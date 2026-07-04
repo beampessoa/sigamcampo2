@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-SIGMA Equipment Module</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- CSS Global -->
+  <link rel="stylesheet" href="esigma-ui.css">
+  
+  <style>
+    /* Estilos específicos da página de index */
+    .page {
+      display: none;
+    }
+    
+    .page.active {
+      display: block;
+    }
+    
+    /* Placeholder */
+    .placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      border: 2px dashed var(--line);
+      border-radius: var(--r-lg);
+      background: var(--field);
+      color: var(--muted);
+      font-size: 16px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  
+  <!-- HEADER -->
+  <header class="es-header">
+    <div class="header-container">
+      <div class="header-brand">
+        <h1>E-SIGMA</h1>
+        <span class="header-subtitle">Equipment Module</span>
+      </div>
+      <div class="header-user">
+        <span class="user-name">Admin</span>
+        <div class="user-avatar">A</div>
+      </div>
+    </div>
+  </header>
+  
+  <!-- SIDEBAR -->
+  <aside class="es-side">
+    <nav class="side-nav">
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="#" class="nav-link active" data-page="planejamento">
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Planejamento</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </aside>
+  
+  <!-- MAIN -->
+  <main class="main">
+    <div class="content">
+      
+      <!-- Breadcrumb -->
+      <nav class="crumb" id="breadcrumb">
+        <a href="#" class="crumb-link">Início</a>
+      </nav>
+      
+      <!-- PAGE: Planejamento -->
+      <section id="planejamento" class="page active">
+        <div class="page-head">
+          <h2 class="page-title">Planejamento</h2>
+          <p class="page-desc">Gerencie e organize seus projetos e equipamentos</p>
+        </div>
+        
+        <div class="card">
+          <div class="placeholder">
+            Esta funcionalidade será desenvolvida em breve
+          </div>
+        </div>
+      </section>
+      
+    </div>
+  </main>
+  
+</div>
+
+<!-- Router e Inicialização -->
+<script>
+  // Simples Router baseado em data-page
+  const Router = {
+    init() {
+      const navLinks = document.querySelectorAll('[data-page]');
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const pageId = link.getAttribute('data-page');
+          this.navigate(pageId);
+        });
+      });
+    },
+    
+    navigate(pageId) {
+      // Oculta todas as páginas
+      const pages = document.querySelectorAll('.page');
+      pages.forEach(page => page.classList.remove('active'));
+      
+      // Remove active de todos os nav links
+      const navLinks = document.querySelectorAll('[data-page]');
+      navLinks.forEach(link => link.classList.remove('active'));
+      
+      // Mostra a página selecionada
+      const activePage = document.getElementById(pageId);
+      if (activePage) {
+        activePage.classList.add('active');
+      }
+      
+      // Marca o nav link como active
+      const activeLink = document.querySelector(`[data-page="${pageId}"]`);
+      if (activeLink) {
+        activeLink.classList.add('active');
+      }
+      
+      // Atualiza breadcrumb dinamicamente
+      this.updateBreadcrumb(pageId);
+      
+      // Atualiza hash da URL
+      window.history.pushState(null, '', `#${pageId}`);
+    },
+    
+    updateBreadcrumb(pageId) {
+      const breadcrumb = document.getElementById('breadcrumb');
+      const pageLabels = {
+        'planejamento': 'Planejamento'
+      };
+      
+      breadcrumb.innerHTML = '<a href="#" class="crumb-link">Início</a>';
+      
+      if (pageId !== 'planejamento') {
+        breadcrumb.innerHTML += `<span class="crumb-sep">/</span>`;
+        breadcrumb.innerHTML += `<span class="crumb-current">${pageLabels[pageId] || pageId}</span>`;
+      }
+    }
+  };
+  
+  // Inicializa router quando DOM está pronto
+  document.addEventListener('DOMContentLoaded', () => {
+    Router.init();
+    
+    // Gerencia navegação por hash
+    window.addEventListener('hashchange', () => {
+      const pageId = window.location.hash.substring(1) || 'planejamento';
+      Router.navigate(pageId);
+    });
+  });
+</script>
+
+</body>
+</html>
