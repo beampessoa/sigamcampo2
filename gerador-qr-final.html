@@ -370,44 +370,52 @@
       const rightW = usableW - leftW - gap;
 
       // Logo
-      const logoW = leftW * 0.92;
+      const logoW = leftW * 0.78;
       const logoH = logoW / LOGO_RATIO;
       const logoX = marginX + (leftW - logoW) / 2;
       const logoY = marginY;
       ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
 
-      // Texto de descrição/localização
-      const textTop = logoY + logoH + 2 * MM_TO_PX;
+      // Texto: TAG (negrito) + descrição — tudo dentro da coluna esquerda
+      const textTop = logoY + logoH + 1.4 * MM_TO_PX;
       const textAvailH = (marginY + usableH) - textTop;
+      const textCenterX = marginX + leftW / 2;
+      const maxWidth = leftW * 0.98;
       ctx.fillStyle = '#111111';
-      ctx.font = 'bold ' + Math.round(2.6 * MM_TO_PX) + 'px Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
+      // Quebra da descrição (medindo já com a fonte da descrição)
+      const descFont = Math.round(2.05 * MM_TO_PX);
+      const descLH = 2.5 * MM_TO_PX;
+      ctx.font = descFont + 'px Arial, sans-serif';
       const words = (item.descricao || '').toUpperCase().split(/\s+/).filter(Boolean);
-      const maxWidth = leftW * 0.96;
       const lines = [];
       let current = '';
       words.forEach(function(w){
         const test = current ? current + ' ' + w : w;
-        if (ctx.measureText(test).width > maxWidth && current){
-          lines.push(current);
-          current = w;
-        } else {
-          current = test;
-        }
+        if (ctx.measureText(test).width > maxWidth && current){ lines.push(current); current = w; }
+        else { current = test; }
       });
       if (current) lines.push(current);
-      const maxLines = 3;
-      const shownLines = lines.slice(0, maxLines);
+      const shownLines = lines.slice(0, 2); // até 2 linhas de descrição
 
-      const lineHeight = 3.1 * MM_TO_PX;
-      const blockH = shownLines.length * lineHeight;
+      const tagFont = Math.round(2.9 * MM_TO_PX);
+      const tagLH = 3.5 * MM_TO_PX;
+      const blockH = tagLH + shownLines.length * descLH;
       let ty = textTop + Math.max(0, (textAvailH - blockH) / 2);
-      const textCenterX = marginX + leftW / 2;
+
+      // TAG (negrito)
+      ctx.font = 'bold ' + tagFont + 'px Arial, sans-serif';
+      ctx.fillText((item.tag || '').toUpperCase(), textCenterX, ty, maxWidth);
+      ty += tagLH;
+
+      // Descrição
+      ctx.font = descFont + 'px Arial, sans-serif';
+      ctx.fillStyle = '#333333';
       shownLines.forEach(function(line){
         ctx.fillText(line, textCenterX, ty, maxWidth);
-        ty += lineHeight;
+        ty += descLH;
       });
 
       // QR
@@ -461,7 +469,7 @@
     log('Gerando ' + extractedRows.length + ' etiquetas de 50x30mm...', 'info');
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'mm', format: [50, 30] });
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [50, 30] });
 
     const logoImg = new Image();
     await new Promise(function(resolve, reject){
@@ -481,7 +489,7 @@
         const canvas = await renderLabelCanvas(item, qrDataUrl, logoImg);
         const labelDataUrl = canvas.toDataURL('image/png');
 
-        if (!firstPage) doc.addPage([50, 30]);
+        if (!firstPage) doc.addPage([50, 30], 'landscape');
         firstPage = false;
         doc.addImage(labelDataUrl, 'PNG', 0, 0, 50, 30);
 
