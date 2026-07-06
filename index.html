@@ -1,172 +1,133 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-SIGMA Equipment Module</title>
-  
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- CSS Global -->
-  <link rel="stylesheet" href="esigma-ui.css">
-  
-  <style>
-    /* Estilos específicos da página de index */
-    .page {
-      display: none;
-    }
-    
-    .page.active {
-      display: block;
-    }
-    
-    /* Placeholder */
-    .placeholder {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 400px;
-      border: 2px dashed var(--line);
-      border-radius: var(--r-lg);
-      background: var(--field);
-      color: var(--muted);
-      font-size: 16px;
-      text-align: center;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SIGMA CODE — Consulta de Equipamentos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#0F4CBA;--blue-700:#0B3A91;--blue-300:#5B8AE6;
+  --white:#fff;--canvas:#F1F4F9;
+  --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
+  --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
+  --font-d:'Exo 2',system-ui,sans-serif;
+  --font-ui:'Inter',system-ui,sans-serif;
+  --r:8px;--r-md:12px;--r-lg:16px;
+  --sh:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+  --sh-md:0 10px 24px -12px rgba(16,24,40,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased;min-height:100vh}
+
+/* TOP BAR */
+.top{display:flex;align-items:center;gap:12px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.top .logo{width:34px;height:34px;border-radius:9px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex:none}
+.top .logo svg{width:18px;height:18px;color:#fff}
+.top .name{font-family:var(--font-d);font-size:16px;font-weight:800;letter-spacing:.01em}
+.top .name small{display:block;font-family:var(--font-ui);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.03em}
+
+.wrap{max-width:920px;margin:0 auto;padding:30px 20px 60px}
+
+/* HERO */
+.hero{margin-bottom:26px}
+.hero .eyebrow{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:8px}
+.hero h1{font-family:var(--font-d);font-size:26px;font-weight:800;line-height:1.15;margin-bottom:8px}
+.hero p{font-size:14px;color:var(--muted);max-width:560px;line-height:1.55}
+
+/* PRIMARY CTA */
+.cta{display:flex;align-items:center;gap:16px;background:var(--blue);color:#fff;border-radius:var(--r-lg);
+  padding:22px 24px;text-decoration:none;box-shadow:var(--sh-md);transition:background .15s}
+.cta:hover{background:var(--blue-700)}
+.cta .ico{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex:none}
+.cta .ico svg{width:23px;height:23px}
+.cta .txt h2{font-family:var(--font-d);font-size:18px;font-weight:700;margin-bottom:3px}
+.cta .txt p{font-size:13px;opacity:.9}
+.cta .arrow{margin-left:auto;flex:none}
+.cta .arrow svg{width:20px;height:20px}
+
+/* SECTION */
+.sec-label{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:30px 0 12px}
+
+/* TOOL CARDS */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tool{display:flex;flex-direction:column;gap:0;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:20px;text-decoration:none;color:var(--ink);box-shadow:var(--sh);transition:transform .12s,box-shadow .15s,border-color .15s}
+.tool:hover{transform:translateY(-2px);box-shadow:var(--sh-md);border-color:var(--blue-300)}
+.tool .ico{width:40px;height:40px;border-radius:11px;background:#EFF4FF;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.tool .ico svg{width:20px;height:20px;color:var(--blue)}
+.tool h3{font-family:var(--font-d);font-size:15px;font-weight:700;margin-bottom:5px}
+.tool p{font-size:12.5px;color:var(--muted);line-height:1.5}
+.tool .go{margin-top:12px;font-size:12.5px;font-weight:700;color:var(--blue);display:inline-flex;align-items:center;gap:5px}
+.tool .go svg{width:13px;height:13px}
+
+.foot{text-align:center;font-size:11px;color:#9CA3AF;margin-top:34px;line-height:1.6}
+
+@media (max-width:640px){
+  .grid{grid-template-columns:1fr}
+  .hero h1{font-size:22px}
+}
+</style>
 </head>
 <body>
-<div class="app">
-  
-  <!-- HEADER -->
-  <header class="es-header">
-    <div class="header-container">
-      <div class="header-brand">
-        <h1>E-SIGMA</h1>
-        <span class="header-subtitle">Equipment Module</span>
-      </div>
-      <div class="header-user">
-        <span class="user-name">Admin</span>
-        <div class="user-avatar">A</div>
-      </div>
-    </div>
-  </header>
-  
-  <!-- SIDEBAR -->
-  <aside class="es-side">
-    <nav class="side-nav">
-      <ul class="nav-list">
-        <li class="nav-item">
-          <a href="#" class="nav-link active" data-page="planejamento">
-            <span class="nav-icon">📋</span>
-            <span class="nav-label">Planejamento</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-  </aside>
-  
-  <!-- MAIN -->
-  <main class="main">
-    <div class="content">
-      
-      <!-- Breadcrumb -->
-      <nav class="crumb" id="breadcrumb">
-        <a href="#" class="crumb-link">Início</a>
-      </nav>
-      
-      <!-- PAGE: Planejamento -->
-      <section id="planejamento" class="page active">
-        <div class="page-head">
-          <h2 class="page-title">Planejamento</h2>
-          <p class="page-desc">Gerencie e organize seus projetos e equipamentos</p>
-        </div>
-        
-        <div class="card">
-          <div class="placeholder">
-            Esta funcionalidade será desenvolvida em breve
-          </div>
-        </div>
-      </section>
-      
-    </div>
-  </main>
-  
+
+<div class="top">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+  </div>
+  <div class="name">SIGMA CODE<small>Consulta de Equipamentos · E-Sigma</small></div>
 </div>
 
-<!-- Router e Inicialização -->
-<script>
-  // Simples Router baseado em data-page
-  const Router = {
-    init() {
-      const navLinks = document.querySelectorAll('[data-page]');
-      navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          const pageId = link.getAttribute('data-page');
-          this.navigate(pageId);
-        });
-      });
-    },
-    
-    navigate(pageId) {
-      // Oculta todas as páginas
-      const pages = document.querySelectorAll('.page');
-      pages.forEach(page => page.classList.remove('active'));
-      
-      // Remove active de todos os nav links
-      const navLinks = document.querySelectorAll('[data-page]');
-      navLinks.forEach(link => link.classList.remove('active'));
-      
-      // Mostra a página selecionada
-      const activePage = document.getElementById(pageId);
-      if (activePage) {
-        activePage.classList.add('active');
-      }
-      
-      // Marca o nav link como active
-      const activeLink = document.querySelector(`[data-page="${pageId}"]`);
-      if (activeLink) {
-        activeLink.classList.add('active');
-      }
-      
-      // Atualiza breadcrumb dinamicamente
-      this.updateBreadcrumb(pageId);
-      
-      // Atualiza hash da URL
-      window.history.pushState(null, '', `#${pageId}`);
-    },
-    
-    updateBreadcrumb(pageId) {
-      const breadcrumb = document.getElementById('breadcrumb');
-      const pageLabels = {
-        'planejamento': 'Planejamento'
-      };
-      
-      breadcrumb.innerHTML = '<a href="#" class="crumb-link">Início</a>';
-      
-      if (pageId !== 'planejamento') {
-        breadcrumb.innerHTML += `<span class="crumb-sep">/</span>`;
-        breadcrumb.innerHTML += `<span class="crumb-current">${pageLabels[pageId] || pageId}</span>`;
-      }
-    }
-  };
-  
-  // Inicializa router quando DOM está pronto
-  document.addEventListener('DOMContentLoaded', () => {
-    Router.init();
-    
-    // Gerencia navegação por hash
-    window.addEventListener('hashchange', () => {
-      const pageId = window.location.hash.substring(1) || 'planejamento';
-      Router.navigate(pageId);
-    });
-  });
-</script>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">Parada Geral de Manutenção</div>
+    <h1>Equipamentos e plaquetas de identificação</h1>
+    <p>Consulte a ficha técnica de cada equipamento por TAG ou por plaqueta e serviço — para apoiar o planejamento e a validação em campo nas localizações de serviço.</p>
+  </div>
+
+  <a class="cta" href="equip-ls.html">
+    <div class="ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    </div>
+    <div class="txt">
+      <h2>Consultar equipamento</h2>
+      <p>Busca por TAG ou por número da plaqueta + serviço</p>
+    </div>
+    <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+  </a>
+
+  <div class="sec-label">Ferramentas internas</div>
+  <div class="grid">
+
+    <a class="tool" href="gerador-qr-ativos.html">
+      <div class="ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      </div>
+      <h3>Gerar pastas de ativos</h3>
+      <p>Monta a árvore de pastas por TAG (Fichas, Desenhos, Inspeções, Fotos) para subir ao Drive.</p>
+      <span class="go">Abrir <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </a>
+
+    <a class="tool" href="gerador-qr-final.html">
+      <div class="ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      </div>
+      <h3>Gerar etiquetas QR</h3>
+      <p>PDF de etiquetas 50x30mm com o QR que abre a ficha técnica do equipamento.</p>
+      <span class="go">Abrir <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </a>
+
+  </div>
+
+  <div class="foot">
+    SIGMA CODE Engenharia · E-Sigma<br>
+    Ambiente de consulta pública — sem login. A importação de plaquetas fica no sistema com acesso restrito.
+  </div>
+
+</div>
 
 </body>
 </html>
