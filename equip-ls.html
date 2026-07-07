@@ -186,8 +186,8 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
     <!-- ESCOLHER (mesmo número em serviços diferentes) -->
     <div class="state center card-pad" id="stPick">
       <div class="big-ico warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
-      <h2>Qual serviço?</h2>
-      <p class="msg">O número <b id="pickCode"></b> existe em mais de um serviço. Escolha qual você quer ver:</p>
+      <h2>Qual equipamento?</h2>
+      <p class="msg"><b id="pickCode"></b> tem mais de um resultado (por unidade/serviço). Escolha qual você quer ver:</p>
       <div class="pick" id="pickList"></div>
     </div>
 
@@ -198,13 +198,14 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
 
       <div class="seg">
         <button id="segTag" class="on" onclick="setMode('tag')">Por TAG</button>
-        <button id="segLs" onclick="setMode('ls')">Plaqueta + Serviço</button>
+        <button id="segPlq" onclick="setMode('plq')">Plaqueta</button>
+        <button id="segLs" onclick="setMode('ls')">Por LS</button>
       </div>
 
       <div class="panel on" id="panelTag">
         <div class="fg">
           <label for="inTag">TAG do equipamento</label>
-          <input type="text" id="inTag" placeholder="Ex.: PB-1234-A" autocomplete="off" autocapitalize="characters">
+          <input type="text" id="inTag" placeholder="Ex.: TV-118" autocomplete="off" autocapitalize="characters">
         </div>
         <button class="btn btn-primary btn-block" onclick="buscarTag()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -212,14 +213,25 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
         </button>
       </div>
 
-      <div class="panel" id="panelLs">
+      <div class="panel" id="panelPlq">
         <div class="fg">
           <label for="inServico">Serviço</label>
           <select id="inServico"><option value="">Carregando serviços…</option></select>
         </div>
         <div class="fg">
-          <label for="inLs">Número da plaqueta</label>
-          <input type="text" id="inLs" placeholder="Ex.: T-001" autocomplete="off" autocapitalize="characters">
+          <label for="inPlq">Plaqueta (sigla + número)</label>
+          <input type="text" id="inPlq" placeholder="Ex.: T-001" autocomplete="off" autocapitalize="characters">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="buscarPlq()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Buscar ficha
+        </button>
+      </div>
+
+      <div class="panel" id="panelLs">
+        <div class="fg">
+          <label for="inLs">Código LS</label>
+          <input type="text" id="inLs" placeholder="Ex.: ZF-16171699" autocomplete="off" autocapitalize="characters">
         </div>
         <button class="btn btn-primary btn-block" onclick="buscarLs()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -254,11 +266,31 @@ function contrastText(hex){
   const r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
   return (0.299*r+0.587*g+0.114*b)/255>0.6?'#1F2937':'#FFFFFF';
 }
+// ─── siglas por serviço (pra completar a plaqueta quando só vem o número) ───
+const SIGLAS=[
+  {sigla:'RG',nome:'Reengaxetamento'},{sigla:'RQT',nome:'Raqueteamento da Unidade'},
+  {sigla:'MVR',nome:'Manutenção de Válvulas de Retenção'},{sigla:'MV',nome:'Manutenção de Válvulas'},
+  {sigla:'T',nome:'Substituição de Válvula'},{sigla:'P',nome:"PSV's"},
+  {sigla:'LF',nome:'Limpeza de Filtros'},{sigla:'SE',nome:'Serviços Específicos'},
+  {sigla:'E',nome:'Ejetores'},{sigla:'H',nome:'Hidrojato'},
+  {sigla:'RI',nome:'Troca de Trecho'},{sigla:'DR',nome:'Disco de Ruptura'},{sigla:'AC',nome:'Adequação de Caps'}
+];
+function normNome(s){return (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
+const SIGLAS_NORM=SIGLAS.map(s=>({sigla:s.sigla,n:normNome(s.nome)})).sort((a,b)=>b.n.length-a.n.length);
+function siglaDoServico(nome){const n=normNome(nome);let h=SIGLAS_NORM.find(s=>s.n===n);if(!h)h=SIGLAS_NORM.find(s=>n.includes(s.n)||s.n.includes(n));return h?h.sigla:null;}
+function normPlaqueta(s,sigla){
+  const v=(s||'').toUpperCase().replace(/\s+/g,'');
+  const m=v.match(/^([A-Z]*)[\-_\.\/]?0*(\d+)$/);
+  if(!m) return v;
+  const pref=m[1]||(sigla||''); const num=m[2].padStart(3,'0');
+  return pref?pref+'-'+num:num;
+}
+function ilikeEsc(s){return (s||'').toString().replace(/[\\%_]/g,'\\$&');}
+
 function fichaUrl(p){
   const base=location.origin+location.pathname;
-  if(p.ls_codigo&&p.servico_id) return `${base}?ls=${encodeURIComponent(p.ls_codigo)}&sid=${encodeURIComponent(p.servico_id)}`;
-  if(p.ls_codigo&&p.servico)    return `${base}?ls=${encodeURIComponent(p.ls_codigo)}&servico=${encodeURIComponent(p.servico)}`;
   if(p.tag)                     return `${base}?tag=${encodeURIComponent(p.tag)}`;
+  if(p.plaqueta&&p.servico_id)  return `${base}?plq=${encodeURIComponent(p.plaqueta)}&sid=${encodeURIComponent(p.servico_id)}`;
   return base;
 }
 function qrSvg(text){
@@ -270,15 +302,19 @@ function qrSvg(text){
 // CONSULTAS
 // ═══════════════════════════════════════════════
 async function fetchByTag(tag){
-  const {data,error}=await db.from('plaquetas').select('*').eq('tag',tag).limit(1);
+  const {data,error}=await db.from('plaquetas').select('*').ilike('tag',ilikeEsc(tag)).limit(10);
   if(error) throw error;
-  return data&&data[0]||null;
+  return data||[];
 }
-async function fetchByLs(ls,{sid,servico}={}){
-  let q=db.from('plaquetas').select('*').eq('ls_codigo',ls);
-  if(sid)          q=q.eq('servico_id',sid);
-  else if(servico) q=q.eq('servico',servico);
+async function fetchByPlaqueta(plq,sid){
+  let q=db.from('plaquetas').select('*').ilike('plaqueta',ilikeEsc(normPlaqueta(plq)));
+  if(sid) q=q.eq('servico_id',sid);
   const {data,error}=await q.limit(10);
+  if(error) throw error;
+  return data||[];
+}
+async function fetchByLs(ls){
+  const {data,error}=await db.from('plaquetas').select('*').ilike('ls_codigo',ilikeEsc(ls)).limit(10);
   if(error) throw error;
   return data||[];
 }
@@ -300,13 +336,14 @@ async function renderFicha(p){
   const servStyle=ex.cor?`background:${ex.cor};color:${contrastText(ex.cor)};border-color:${ex.borda||ex.cor}`:'';
 
   const linhas=[];
+  linhas.push(['Código LS', p.ls_codigo]);
   linhas.push(['Unidade', p.unidade]);
   linhas.push(['Ordem de Serviço', ex.osNumero ? (ex.osNumero + (ex.osDesc?` — ${ex.osDesc}`:'')) : null]);
   linhas.push(['Descrição', p.descricao]);
 
   document.getElementById('stFicha').innerHTML = `
     <div class="eyebrow">Ficha Técnica</div>
-    <div class="ls-code">${esc(p.ls_codigo||'—')}</div>
+    <div class="ls-code">${esc(p.plaqueta||p.ls_codigo||'—')}</div>
     <div class="chips">
       <span class="chip chip-servico" style="${servStyle}">${esc(ex.servicoNome||'Serviço não informado')}</span>
       <span class="chip chip-status ${ativo?'':'off'}"><span class="dot"></span>${ativo?'Ativo':esc(p.status||'Inativo')}</span>
@@ -331,7 +368,7 @@ async function renderFicha(p){
 
     <div class="qr-panel">
       <div class="qr-box">${qrSvg(fichaUrl(p))}</div>
-      <div class="qr-cap">Aponte a câmera para reabrir esta ficha.<br><b>${esc(p.ls_codigo||'')}</b>${ex.servicoNome?` · ${esc(ex.servicoNome)}`:''}</div>
+      <div class="qr-cap">Aponte a câmera para reabrir esta ficha.<br><b>${esc(p.plaqueta||p.ls_codigo||'')}</b>${ex.servicoNome?` · ${esc(ex.servicoNome)}`:''}</div>
     </div>
 
     <div class="acts">
@@ -356,7 +393,7 @@ async function renderPick(ls,matches){
       if(data&&data[0]){nome=data[0].nome||nome;cor=data[0].cor_preenchimento;}}catch(e){}}
     const st=cor?`background:${cor};color:${contrastText(cor)}`:'';
     return `<button onclick="abrirMatch('${esc(m.id)}')">
-      <span><span class="pk-tag">${esc(m.tag||m.ls_codigo)}</span><span class="pk-sub">${esc(m.unidade||'')}</span></span>
+      <span><span class="pk-tag">${esc(m.tag||m.plaqueta||m.ls_codigo)}</span><span class="pk-sub">${esc(m.unidade||'')}${m.plaqueta?' · '+esc(m.plaqueta):''}</span></span>
       <span class="pk-serv" style="${st}">${esc(nome)}</span></button>`;
   }));
   document.getElementById('pickList').innerHTML=cards.join('');
@@ -372,10 +409,10 @@ function abrirMatch(id){
 // BUSCA (UI)
 // ═══════════════════════════════════════════════
 function setMode(m){
-  document.getElementById('segTag').classList.toggle('on',m==='tag');
-  document.getElementById('segLs').classList.toggle('on',m==='ls');
-  document.getElementById('panelTag').classList.toggle('on',m==='tag');
-  document.getElementById('panelLs').classList.toggle('on',m==='ls');
+  [['tag','Tag'],['plq','Plq'],['ls','Ls']].forEach(([k,S])=>{
+    document.getElementById('seg'+S).classList.toggle('on',m===k);
+    document.getElementById('panel'+S).classList.toggle('on',m===k);
+  });
   hideErr();
 }
 function showErr(msg){const e=document.getElementById('searchErr');document.getElementById('searchErrTxt').textContent=msg;e.classList.add('on');}
@@ -387,12 +424,20 @@ function buscarTag(){
   if(!tag){showErr('Digite a TAG do equipamento.');return;}
   location.search='?tag='+encodeURIComponent(tag);
 }
-function buscarLs(){
-  const sid=document.getElementById('inServico').value;
-  const ls=document.getElementById('inLs').value.trim();
+function buscarPlq(){
+  const sel=document.getElementById('inServico');
+  const sid=sel.value;
+  const nome=sel.selectedIndex>=0?sel.options[sel.selectedIndex].text:'';
+  const raw=document.getElementById('inPlq').value.trim();
   if(!sid){showErr('Selecione o serviço.');return;}
-  if(!ls){showErr('Digite o número da plaqueta.');return;}
-  location.search='?ls='+encodeURIComponent(ls)+'&sid='+encodeURIComponent(sid);
+  if(!raw){showErr('Digite a plaqueta (sigla + número).');return;}
+  const plq=normPlaqueta(raw, siglaDoServico(nome)); // completa sigla/zeros se vier só o número
+  location.search='?plq='+encodeURIComponent(plq)+'&sid='+encodeURIComponent(sid);
+}
+function buscarLs(){
+  const ls=document.getElementById('inLs').value.trim();
+  if(!ls){showErr('Digite o código LS.');return;}
+  location.search='?ls='+encodeURIComponent(ls);
 }
 
 async function carregarServicos(){
@@ -411,27 +456,21 @@ async function carregarServicos(){
 async function boot(){
   const q=new URLSearchParams(location.search);
   const tag=q.get('tag');
+  const plq=q.get('plq');
   const ls=q.get('ls');
 
-  if(!tag&&!ls){ show('stSearch'); carregarServicos(); return; }
+  if(!tag&&!plq&&!ls){ show('stSearch'); carregarServicos(); return; }
   show('stLoad');
 
   try{
-    if(tag){
-      const p=await fetchByTag(tag);
-      if(!p){ notFound(`Nenhuma plaqueta com a TAG <b>${esc(tag)}</b>.`); return; }
-      return renderFicha(p);
-    }
-    // por número de plaqueta (+ serviço)
-    const sid=q.get('sid');
-    const servico=q.get('servico');
-    const opts={};
-    if(sid) opts.sid=sid; else if(servico&&!isUuid(servico)) opts.servico=servico; else if(servico) opts.sid=servico;
-    const matches=await fetchByLs(ls,opts);
+    let matches=[], termo='';
+    if(tag){ termo=tag; matches=await fetchByTag(tag); }
+    else if(plq){ termo=plq; matches=await fetchByPlaqueta(plq,q.get('sid')); }
+    else { termo=ls; matches=await fetchByLs(ls); }
 
-    if(!matches.length){ notFound(`Nenhuma plaqueta <b>${esc(ls)}</b>${(sid||servico)?' para esse serviço':''}.`); return; }
+    if(!matches.length){ notFound(`Nada encontrado para <b>${esc(termo)}</b>.`); return; }
     if(matches.length===1) return renderFicha(matches[0]);
-    return renderPick(ls,matches);   // número repetido: deixa escolher o serviço
+    return renderPick(termo,matches); // vários resultados: deixa escolher
   }catch(e){
     notFound(`Não foi possível consultar agora. Verifique a conexão e tente de novo.<br><span style="font-size:11px">${esc(e.message||'')}</span>`);
   }
