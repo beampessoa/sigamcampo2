@@ -60,6 +60,8 @@ button,input,select{font-family:inherit}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
   font-size:11.5px;font-weight:700;line-height:1;border:1.5px solid transparent}
 .chip-servico{background:var(--field);color:var(--ink);border-color:var(--field-line)}
+.chip-meta{background:var(--field);color:var(--ink-soft);border-color:var(--field-line);font-weight:600}
+.chip-meta b{color:var(--ink);font-weight:700}
 .chip-status{background:#F0FDF4;color:#166534;border-color:#BBF7D0}
 .chip-status.off{background:#FEF2F2;color:#991B1B;border-color:#FECACA}
 .chip-status .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
@@ -216,11 +218,15 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
       <div class="panel" id="panelPlq">
         <div class="fg">
           <label for="inServico">Serviço</label>
-          <select id="inServico"><option value="">Carregando serviços…</option></select>
+          <select id="inServico" onchange="carregarUnidades()"><option value="">Carregando serviços…</option></select>
         </div>
         <div class="fg">
-          <label for="inPlq">Plaqueta (sigla + número)</label>
-          <input type="text" id="inPlq" placeholder="Ex.: T-001" autocomplete="off" autocapitalize="characters">
+          <label for="inUnidade">Unidade</label>
+          <select id="inUnidade"><option value="">Todas as unidades</option></select>
+        </div>
+        <div class="fg">
+          <label for="inPlq">Plaqueta (opcional)</label>
+          <input type="text" id="inPlq" placeholder="Ex.: T-001 — em branco lista a unidade" autocomplete="off" autocapitalize="characters">
         </div>
         <button class="btn btn-primary btn-block" onclick="buscarPlq()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -306,10 +312,12 @@ async function fetchByTag(tag){
   if(error) throw error;
   return data||[];
 }
-async function fetchByPlaqueta(plq,sid){
-  let q=db.from('plaquetas').select('*').ilike('plaqueta',ilikeEsc(normPlaqueta(plq)));
-  if(sid) q=q.eq('servico_id',sid);
-  const {data,error}=await q.limit(10);
+async function fetchByPlaqueta(plq,sid,unidade){
+  let q=db.from('plaquetas').select('*');
+  if(plq)     q=q.ilike('plaqueta',ilikeEsc(normPlaqueta(plq)));
+  if(sid)     q=q.eq('servico_id',sid);
+  if(unidade) q=q.eq('unidade',unidade);
+  const {data,error}=await q.order('plaqueta').limit(300);
   if(error) throw error;
   return data||[];
 }
@@ -337,16 +345,17 @@ async function renderFicha(p){
 
   const linhas=[];
   linhas.push(['Código LS', p.ls_codigo]);
-  linhas.push(['Unidade', p.unidade]);
   linhas.push(['Ordem de Serviço', ex.osNumero ? (ex.osNumero + (ex.osDesc?` — ${ex.osDesc}`:'')) : null]);
   linhas.push(['Descrição', p.descricao]);
 
   document.getElementById('stFicha').innerHTML = `
     <div class="eyebrow">Ficha Técnica</div>
-    <div class="ls-code">${esc(p.plaqueta||p.ls_codigo||'—')}</div>
+    <div class="ls-code">${esc(p.ls_codigo||'—')}</div>
     <div class="chips">
       <span class="chip chip-servico" style="${servStyle}">${esc(ex.servicoNome||'Serviço não informado')}</span>
       <span class="chip chip-status ${ativo?'':'off'}"><span class="dot"></span>${ativo?'Ativo':esc(p.status||'Inativo')}</span>
+      <span class="chip chip-meta">Plaqueta · <b>${esc(p.plaqueta||'—')}</b></span>
+      ${p.unidade?`<span class="chip chip-meta">Unidade · <b>${esc(p.unidade)}</b></span>`:''}
     </div>
 
     <div class="tag-hero">
@@ -368,7 +377,7 @@ async function renderFicha(p){
 
     <div class="qr-panel">
       <div class="qr-box">${qrSvg(fichaUrl(p))}</div>
-      <div class="qr-cap">Aponte a câmera para reabrir esta ficha.<br><b>${esc(p.plaqueta||p.ls_codigo||'')}</b>${ex.servicoNome?` · ${esc(ex.servicoNome)}`:''}</div>
+      <div class="qr-cap">Aponte a câmera para reabrir esta ficha.<br><b>${esc(p.ls_codigo||'')}</b>${ex.servicoNome?` · ${esc(ex.servicoNome)}`:''}</div>
     </div>
 
     <div class="acts">
@@ -384,17 +393,24 @@ async function renderFicha(p){
 // ═══════════════════════════════════════════════
 // DESAMBIGUAÇÃO (número repetido em serviços)
 // ═══════════════════════════════════════════════
-async function renderPick(ls,matches){
-  document.getElementById('pickCode').textContent=ls;
-  // busca nomes/cores dos serviços
+async function renderPick(termo,matches){
+  document.getElementById('pickCode').textContent = termo || 'Vários equipamentos';
+  // cache de serviço (nome+cor) — evita 1 consulta por item numa listagem grande
+  const cacheServ={};
+  async function serv(id, fallbackNome){
+    if(!id) return {nome:fallbackNome||'Serviço', cor:null};
+    if(cacheServ[id]) return cacheServ[id];
+    let r={nome:fallbackNome||'Serviço', cor:null};
+    try{const{data}=await db.from('tipos_servico').select('nome,cor_preenchimento').eq('id',id).limit(1);
+      if(data&&data[0]) r={nome:data[0].nome||r.nome, cor:data[0].cor_preenchimento};}catch(e){}
+    cacheServ[id]=r; return r;
+  }
   const cards=await Promise.all(matches.map(async m=>{
-    let nome=m.servico||'Serviço', cor=null;
-    if(m.servico_id){try{const{data}=await db.from('tipos_servico').select('nome,cor_preenchimento').eq('id',m.servico_id).limit(1);
-      if(data&&data[0]){nome=data[0].nome||nome;cor=data[0].cor_preenchimento;}}catch(e){}}
-    const st=cor?`background:${cor};color:${contrastText(cor)}`:'';
+    const s=await serv(m.servico_id, m.servico);
+    const st=s.cor?`background:${s.cor};color:${contrastText(s.cor)}`:'';
     return `<button onclick="abrirMatch('${esc(m.id)}')">
       <span><span class="pk-tag">${esc(m.tag||m.plaqueta||m.ls_codigo)}</span><span class="pk-sub">${esc(m.unidade||'')}${m.plaqueta?' · '+esc(m.plaqueta):''}</span></span>
-      <span class="pk-serv" style="${st}">${esc(nome)}</span></button>`;
+      <span class="pk-serv" style="${st}">${esc(s.nome)}</span></button>`;
   }));
   document.getElementById('pickList').innerHTML=cards.join('');
   window.__matches=matches;
@@ -428,11 +444,13 @@ function buscarPlq(){
   const sel=document.getElementById('inServico');
   const sid=sel.value;
   const nome=sel.selectedIndex>=0?sel.options[sel.selectedIndex].text:'';
+  const unidade=document.getElementById('inUnidade').value;
   const raw=document.getElementById('inPlq').value.trim();
   if(!sid){showErr('Selecione o serviço.');return;}
-  if(!raw){showErr('Digite a plaqueta (sigla + número).');return;}
-  const plq=normPlaqueta(raw, siglaDoServico(nome)); // completa sigla/zeros se vier só o número
-  location.search='?plq='+encodeURIComponent(plq)+'&sid='+encodeURIComponent(sid);
+  let qs='?sid='+encodeURIComponent(sid);
+  if(unidade) qs+='&un='+encodeURIComponent(unidade);
+  if(raw)     qs+='&plq='+encodeURIComponent(normPlaqueta(raw, siglaDoServico(nome)));
+  location.search=qs;
 }
 function buscarLs(){
   const ls=document.getElementById('inLs').value.trim();
@@ -450,22 +468,37 @@ async function carregarServicos(){
   }catch(e){sel.innerHTML='<option value="">Erro ao carregar serviços</option>';}
 }
 
+async function carregarUnidades(){
+  const sel=document.getElementById('inUnidade');
+  const sid=document.getElementById('inServico').value;
+  sel.innerHTML='<option value="">Todas as unidades</option>';
+  if(!sid) return;
+  try{
+    const {data,error}=await db.from('plaquetas').select('unidade').eq('servico_id',sid);
+    if(error) throw error;
+    const uni=[...new Set((data||[]).map(r=>(r.unidade||'').trim()).filter(Boolean))].sort();
+    sel.innerHTML='<option value="">Todas as unidades</option>'+uni.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
+  }catch(e){/* mantém "Todas as unidades" */}
+}
+
 // ═══════════════════════════════════════════════
 // ROTEAMENTO POR PARÂMETROS DA URL
 // ═══════════════════════════════════════════════
 async function boot(){
   const q=new URLSearchParams(location.search);
   const tag=q.get('tag');
-  const plq=q.get('plq');
   const ls=q.get('ls');
+  const sid=q.get('sid');
+  const plq=q.get('plq');
+  const un=q.get('un');
 
-  if(!tag&&!plq&&!ls){ show('stSearch'); carregarServicos(); return; }
+  if(!tag&&!ls&&!sid){ show('stSearch'); carregarServicos(); return; }
   show('stLoad');
 
   try{
     let matches=[], termo='';
     if(tag){ termo=tag; matches=await fetchByTag(tag); }
-    else if(plq){ termo=plq; matches=await fetchByPlaqueta(plq,q.get('sid')); }
+    else if(sid){ termo=plq||un||'esse serviço'; matches=await fetchByPlaqueta(plq,sid,un); }
     else { termo=ls; matches=await fetchByLs(ls); }
 
     if(!matches.length){ notFound(`Nada encontrado para <b>${esc(termo)}</b>.`); return; }
