@@ -278,9 +278,14 @@
 
         const headerRow = rows[0].map(h => String(h).trim());
         const tagCol = headerRow.findIndex(h => /^tag/i.test(h));
+        const lsCol = headerRow.findIndex(function(h){
+          const n = h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,' ').trim();
+          return /\bls\b/.test(n) || /cod.*ls/.test(n); // LS, COD_LS, COD LS, CÓDIGO LS…
+        });
         const descCol = headerRow.findIndex(h => /^descri/i.test(h) || /^local/i.test(h));
 
         if (tagCol === -1) throw new Error('Nenhuma coluna "TAG" encontrada. Colunas encontradas: ' + headerRow.join(', '));
+        if (lsCol === -1) log('Nenhuma coluna "LS" encontrada — a etiqueta sairá sem a linha em vermelho do LS.', 'warn');
         if (descCol === -1) log('Nenhuma coluna "DESCRIÇÃO"/"LOCALIZAÇÃO" encontrada — as etiquetas sairão sem esse texto.', 'warn');
 
         const parsed = [];
@@ -288,10 +293,11 @@
 
         for (let i = 1; i < rows.length; i++){
           const tag = String(rows[i][tagCol] || '').trim();
+          const ls = lsCol === -1 ? '' : String(rows[i][lsCol] || '').trim();
           const descricao = descCol === -1 ? '' : String(rows[i][descCol] || '').trim();
           if (!tag) continue;
           if (!descricao) semDesc++;
-          parsed.push({ tag: tag, descricao: descricao });
+          parsed.push({ tag: tag, ls: ls, descricao: descricao });
         }
 
         if (!parsed.length) throw new Error('Nenhuma linha com TAG preenchido foi encontrada.');
@@ -370,24 +376,28 @@
       const rightW = usableW - leftW - gap;
 
       // Logo
-      const logoW = leftW * 0.78;
+      const logoW = leftW * 0.64;
       const logoH = logoW / LOGO_RATIO;
       const logoX = marginX + (leftW - logoW) / 2;
       const logoY = marginY;
       ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
 
-      // Texto: TAG (negrito) + descrição — tudo dentro da coluna esquerda
-      const textTop = logoY + logoH + 1.4 * MM_TO_PX;
+      // Texto: LS (vermelho) + TAG (negrito) + descrição — tudo dentro da coluna esquerda
+      const textTop = logoY + logoH + 1.0 * MM_TO_PX;
       const textAvailH = (marginY + usableH) - textTop;
       const textCenterX = marginX + leftW / 2;
       const maxWidth = leftW * 0.98;
-      ctx.fillStyle = '#111111';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // Quebra da descrição (medindo já com a fonte da descrição)
-      const descFont = Math.round(2.05 * MM_TO_PX);
-      const descLH = 2.5 * MM_TO_PX;
+      const lsFont  = Math.round(1.9 * MM_TO_PX);
+      const lsLH    = 2.3 * MM_TO_PX;
+      const tagFont = Math.round(2.9 * MM_TO_PX);
+      const tagLH   = 3.4 * MM_TO_PX;
+      const descFont = Math.round(1.7 * MM_TO_PX);
+      const descLH   = 2.0 * MM_TO_PX;
+
+      // Quebra da descrição (medindo já com a fonte da descrição), até 4 linhas
       ctx.font = descFont + 'px Arial, sans-serif';
       const words = (item.descricao || '').toUpperCase().split(/\s+/).filter(Boolean);
       const lines = [];
@@ -398,19 +408,27 @@
         else { current = test; }
       });
       if (current) lines.push(current);
-      const shownLines = lines.slice(0, 2); // até 2 linhas de descrição
+      const shownLines = lines.slice(0, 4); // até 4 linhas de descrição
 
-      const tagFont = Math.round(2.9 * MM_TO_PX);
-      const tagLH = 3.5 * MM_TO_PX;
-      const blockH = tagLH + shownLines.length * descLH;
+      const hasLs = !!(item.ls && item.ls.trim());
+      const blockH = (hasLs ? lsLH : 0) + tagLH + shownLines.length * descLH;
       let ty = textTop + Math.max(0, (textAvailH - blockH) / 2);
+
+      // LS (vermelho, acima da TAG)
+      if (hasLs){
+        ctx.font = lsFont + 'px Arial, sans-serif';
+        ctx.fillStyle = '#C00000';
+        ctx.fillText(item.ls.toUpperCase(), textCenterX, ty, maxWidth);
+        ty += lsLH;
+      }
 
       // TAG (negrito)
       ctx.font = 'bold ' + tagFont + 'px Arial, sans-serif';
+      ctx.fillStyle = '#111111';
       ctx.fillText((item.tag || '').toUpperCase(), textCenterX, ty, maxWidth);
       ty += tagLH;
 
-      // Descrição
+      // Descrição (menor)
       ctx.font = descFont + 'px Arial, sans-serif';
       ctx.fillStyle = '#333333';
       shownLines.forEach(function(line){
