@@ -139,7 +139,7 @@
     <div class="badge">ES</div>
     <div>
       <h1>Gerador de QR Final</h1>
-      <div class="subtitle">SIGMA CODE ENGENHARIA · ETIQUETA 50x30mm · IMPRESSORA DE ROLO</div>
+      <div class="subtitle">SIGMA CODE ENGENHARIA · FOLHA A4 · 21 ETIQUETAS 63,5×38,1mm</div>
     </div>
   </header>
 
@@ -171,11 +171,11 @@
         <label for="showGuide">Mostrar borda de guia (só para conferência na tela/teste)</label>
       </div>
 
-      <button class="primary" id="processBtn" disabled>Gerar PDF de etiquetas (50x30mm)</button>
+      <button class="primary" id="processBtn" disabled>Gerar PDF de etiquetas (A4 · 21 por folha)</button>
 
       <div class="footnote">
-        Uma página do PDF = uma etiqueta de 50x30mm, no tamanho exato para a impressora de rolo.
-        Logo GCB fixa. O QR abre a ficha técnica do equipamento (equip-ls.html?tag=…);
+        Folha A4 com 21 etiquetas (3×7) de 63,5×38,1mm — padrão Avery L7160/Pimaco 6081. Layout de cada etiqueta: logo GCB, LS em vermelho, TAG e descrição à esquerda, QR à direita. As margens da folha são ajustáveis no código se sua marca for diferente.
+        O QR abre a ficha técnica do equipamento (equip-ls.html?tag=…);
         o link do Drive fica dentro da ficha, não no QR.
       </div>
 
@@ -357,11 +357,12 @@
     });
   }
 
-  // ---- Renderiza a etiqueta 50x30mm num canvas (usado no PDF e na prévia) ----
+  // ---- Renderiza a etiqueta 63,5×38,1mm num canvas (usado no PDF e na prévia) ----
   function renderLabelCanvas(item, qrDataUrl, logoImg){
     return new Promise(function(resolve){
       const MM_TO_PX = 8; // resolução de trabalho: 8px por mm (~200dpi)
-      const W = 50 * MM_TO_PX, H = 30 * MM_TO_PX;
+      const LW_MM = 63.5, LH_MM = 38.1;
+      const W = Math.round(LW_MM * MM_TO_PX), H = Math.round(LH_MM * MM_TO_PX);
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
@@ -375,29 +376,29 @@
       const gap = 2 * MM_TO_PX;
       const rightW = usableW - leftW - gap;
 
-      // Logo
+      // Logo GCB (topo da coluna esquerda)
       const logoW = leftW * 0.64;
       const logoH = logoW / LOGO_RATIO;
-      const logoX = marginX + (leftW - logoW) / 2;
+      const logoX = marginX;
       const logoY = marginY;
       ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
 
-      // Texto: LS (vermelho) + TAG (negrito) + descrição — tudo dentro da coluna esquerda
-      const textTop = logoY + logoH + 1.0 * MM_TO_PX;
+      // Texto: LS (vermelho) + TAG (negrito) + descrição (4 linhas)
+      const textTop = logoY + logoH + 1.2 * MM_TO_PX;
       const textAvailH = (marginY + usableH) - textTop;
       const textCenterX = marginX + leftW / 2;
       const maxWidth = leftW * 0.98;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      const lsFont  = Math.round(1.9 * MM_TO_PX);
-      const lsLH    = 2.3 * MM_TO_PX;
-      const tagFont = Math.round(2.9 * MM_TO_PX);
-      const tagLH   = 3.4 * MM_TO_PX;
-      const descFont = Math.round(1.7 * MM_TO_PX);
-      const descLH   = 2.0 * MM_TO_PX;
+      const lsFont   = Math.round(3.0 * MM_TO_PX);
+      const lsLH     = 3.5 * MM_TO_PX;
+      const tagFont  = Math.round(4.0 * MM_TO_PX);
+      const tagLH    = 4.8 * MM_TO_PX;
+      const descFont = Math.round(2.6 * MM_TO_PX);
+      const descLH   = 3.0 * MM_TO_PX;
 
-      // Quebra da descrição (medindo já com a fonte da descrição), até 4 linhas
+      // Quebra da descrição (medindo com a fonte da descrição), até 4 linhas
       ctx.font = descFont + 'px Arial, sans-serif';
       const words = (item.descricao || '').toUpperCase().split(/\s+/).filter(Boolean);
       const lines = [];
@@ -408,13 +409,12 @@
         else { current = test; }
       });
       if (current) lines.push(current);
-      const shownLines = lines.slice(0, 4); // até 4 linhas de descrição
+      const shownLines = lines.slice(0, 4);
 
       const hasLs = !!(item.ls && item.ls.trim());
       const blockH = (hasLs ? lsLH : 0) + tagLH + shownLines.length * descLH;
       let ty = textTop + Math.max(0, (textAvailH - blockH) / 2);
 
-      // LS (vermelho, acima da TAG)
       if (hasLs){
         ctx.font = lsFont + 'px Arial, sans-serif';
         ctx.fillStyle = '#C00000';
@@ -422,13 +422,11 @@
         ty += lsLH;
       }
 
-      // TAG (negrito)
       ctx.font = 'bold ' + tagFont + 'px Arial, sans-serif';
       ctx.fillStyle = '#111111';
       ctx.fillText((item.tag || '').toUpperCase(), textCenterX, ty, maxWidth);
       ty += tagLH;
 
-      // Descrição (menor)
       ctx.font = descFont + 'px Arial, sans-serif';
       ctx.fillStyle = '#333333';
       shownLines.forEach(function(line){
@@ -436,7 +434,7 @@
         ty += descLH;
       });
 
-      // QR
+      // QR à direita, centralizado
       const qrSize = Math.min(rightW, usableH);
       const qrX = marginX + leftW + gap + (rightW - qrSize) / 2;
       const qrY = marginY + (usableH - qrSize) / 2;
@@ -444,13 +442,11 @@
       const qrImg = new Image();
       qrImg.onload = function(){
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-
         if (showGuideEl.checked){
           ctx.strokeStyle = '#cccccc';
           ctx.lineWidth = 1;
           ctx.strokeRect(1, 1, W - 2, H - 2);
         }
-
         resolve(canvas);
       };
       qrImg.src = qrDataUrl;
@@ -484,10 +480,20 @@
     previewBox.style.display = 'none';
     previewCaption.style.display = 'none';
 
-    log('Gerando ' + extractedRows.length + ' etiquetas de 50x30mm...', 'info');
+    log('Gerando ' + extractedRows.length + ' etiquetas (A4, 21 por folha)...', 'info');
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [50, 30] });
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    // Folha A4 · 21 etiquetas (3 colunas × 7 linhas) — padrão Avery L7160 / Pimaco 6081
+    // Ajuste estas medidas se a sua folha for de outra marca:
+    const LW = 63.5, LH = 38.1;   // tamanho de cada etiqueta (mm)
+    const COLS = 3, ROWS = 7;
+    const MARGIN_TOP = 15.15;     // margem superior da folha (mm)
+    const MARGIN_LEFT = 7.25;     // margem esquerda da folha (mm)
+    const GAP_X = 2.5;            // espaço entre colunas (mm)
+    const GAP_Y = 0;              // espaço entre linhas (mm)
+    const PER_PAGE = COLS * ROWS; // 21 por folha
 
     const logoImg = new Image();
     await new Promise(function(resolve, reject){
@@ -496,7 +502,7 @@
       logoImg.src = GCB_LOGO;
     });
 
-    let okCount = 0, errCount = 0, firstPage = true;
+    let okCount = 0, errCount = 0;
 
     for (let i = 0; i < extractedRows.length; i++){
       const item = extractedRows[i];
@@ -507,9 +513,12 @@
         const canvas = await renderLabelCanvas(item, qrDataUrl, logoImg);
         const labelDataUrl = canvas.toDataURL('image/png');
 
-        if (!firstPage) doc.addPage([50, 30], 'landscape');
-        firstPage = false;
-        doc.addImage(labelDataUrl, 'PNG', 0, 0, 50, 30);
+        const cell = i % PER_PAGE;
+        if (i > 0 && cell === 0) doc.addPage();           // nova folha A4 a cada 21
+        const col = cell % COLS, row = Math.floor(cell / COLS);
+        const x = MARGIN_LEFT + col * (LW + GAP_X);
+        const y = MARGIN_TOP + row * (LH + GAP_Y);
+        doc.addImage(labelDataUrl, 'PNG', x, y, LW, LH);
 
         if (i === 0){
           previewImg.src = labelDataUrl;
