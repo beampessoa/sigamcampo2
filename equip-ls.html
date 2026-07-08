@@ -148,12 +148,102 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
   .row .k{width:auto}
 }
 
+/* ══ REGISTRO DE ATIVIDADE (CDR) ══ */
+/* botão principal na ficha */
+.btn-registro{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  margin-top:16px;padding:13px;border:none;border-radius:var(--r);background:var(--blue);
+  color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+.btn-registro:hover{background:var(--blue-700)}
+.btn-registro svg{width:17px;height:17px}
+
+/* histórico na ficha */
+.cdr-hist{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.cdr-hist h3{font-family:var(--font-d);font-size:13px;font-weight:800;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.cdr-item{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid #F1F4F9}
+.cdr-item:last-child{border-bottom:none}
+.cdr-dot{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:800;color:#fff}
+.cdr-dot.sim{background:var(--green)}
+.cdr-dot.nao{background:var(--danger)}
+.cdr-body{flex:1;min-width:0}
+.cdr-body .t{font-size:13px;font-weight:700;color:var(--ink);line-height:1.3}
+.cdr-body .s{font-size:11.5px;color:var(--muted);margin-top:2px}
+.cdr-body .o{font-size:12px;color:var(--ink-soft);margin-top:4px;background:var(--field);
+  border-radius:6px;padding:6px 8px}
+
+/* overlay + modal */
+.ov{position:fixed;inset:0;background:rgba(16,24,40,.55);display:none;align-items:center;
+  justify-content:center;padding:18px;z-index:100}
+.ov.on{display:flex}
+.modal{width:100%;max-width:440px;max-height:92vh;overflow-y:auto;background:#fff;
+  border-radius:var(--r-lg);box-shadow:0 24px 60px -20px rgba(16,24,40,.5)}
+.modal-h{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;
+  border-bottom:1px solid var(--line)}
+.modal-h .tt{font-family:var(--font-d);font-size:16px;font-weight:800}
+.modal-h .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.modal-x{width:30px;height:30px;border:none;background:var(--field);border-radius:8px;
+  cursor:pointer;font-size:16px;color:var(--muted);flex:none}
+.modal-x:hover{background:#E9EDF5}
+.modal-b{padding:20px}
+.mstep{display:none}.mstep.on{display:block}
+
+/* achou usuário */
+.user-hit{display:flex;align-items:center;gap:10px;margin-top:10px;padding:11px 13px;
+  border-radius:var(--r);background:#F0FDF4;border:1px solid #BBF7D0}
+.user-hit .ic{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;
+  flex:none;display:flex;align-items:center;justify-content:center;font-weight:800}
+.user-hit .nm{font-size:13.5px;font-weight:700;color:#166534}
+.user-hit .fx{font-size:11.5px;color:#15803D;margin-top:1px}
+.user-miss{margin-top:10px;padding:11px 13px;border-radius:var(--r);background:#FEF2F2;
+  border:1px solid #FECACA;color:#991B1B;font-size:12.5px;font-weight:600}
+.pick-list{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.pick-list button{text-align:left;padding:10px 12px;border:1px solid var(--line);
+  border-radius:var(--r);background:#fff;cursor:pointer}
+.pick-list button:hover{border-color:var(--blue-300);background:#EFF4FF}
+.pick-list .pn{font-size:13px;font-weight:700}
+.pick-list .ps{font-size:11px;color:var(--muted)}
+
+/* etapa / pergunta */
+.task-meta{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:6px}
+.task-q{font-family:var(--font-d);font-size:18px;font-weight:700;line-height:1.3;margin-bottom:4px}
+.task-fn{font-size:11.5px;color:var(--muted);margin-bottom:16px}
+.task-fn b{color:var(--ink-soft)}
+.simnao{display:flex;gap:10px;margin-bottom:16px}
+.simnao label{flex:1;text-align:center;padding:13px;border:2px solid var(--line);border-radius:var(--r-md);
+  font-weight:800;cursor:pointer;font-size:14px;background:#fff;user-select:none}
+.simnao input{display:none}
+.simnao input:checked+label{}
+.simnao .yes input:checked+label{border-color:var(--green);background:#F0FDF4;color:#166534}
+.simnao .no input:checked+label{border-color:var(--danger);background:#FEF2F2;color:#991B1B}
+.updrop{border:2px dashed var(--field-line);border-radius:var(--r);padding:14px;text-align:center;
+  cursor:pointer;font-size:12px;color:var(--muted);margin-top:6px}
+.updrop:hover{border-color:var(--blue-300);background:#EFF4FF}
+.updrop.has{border-style:solid;border-color:var(--green);color:#166534;background:#F0FDF4;font-weight:600}
+textarea{width:100%;padding:11px 13px;border:1px solid var(--field-line);border-radius:var(--r);
+  background:var(--field);font-size:14px;color:var(--ink);font-family:inherit;min-height:70px;resize:vertical}
+textarea:focus{outline:2px solid var(--blue-300);outline-offset:1px;background:#fff}
+.done-ico{width:56px;height:56px;margin:6px auto 14px;border-radius:50%;background:#F0FDF4;
+  display:flex;align-items:center;justify-content:center}
+.done-ico svg{width:30px;height:30px;color:var(--green)}
+
+/* toast */
+.toast-wrap{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;
+  display:flex;flex-direction:column;gap:8px;width:calc(100% - 32px);max-width:400px}
+.toast{display:flex;align-items:center;gap:9px;padding:12px 15px;border-radius:var(--r);
+  font-size:13px;font-weight:700;box-shadow:var(--sh-md);animation:tin .25s var(--ease)}
+.toast.ok{background:#166534;color:#fff}
+.toast.err{background:var(--danger);color:#fff}
+.toast svg{width:17px;height:17px;flex:none}
+@keyframes tin{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+
 /* PRINT — ficha limpa para etiqueta/PDF */
 @media print{
   body{background:#fff;padding:0;display:block}
   .wrap{max-width:none}
   .card{border:none;box-shadow:none}
-  .acts,.drive,.seg,.foot{display:none!important}
+  .acts,.drive,.seg,.foot,.btn-registro,.cdr-hist{display:none!important}
   .qr-panel{border-color:#ccc}
 }
 </style>
@@ -375,6 +465,13 @@ async function renderFicha(p){
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
       Abrir pasta no Drive</a>`:''}
 
+    <button class="btn-registro" onclick="abrirRegistro()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      Registrar Atividade
+    </button>
+
+    <div class="cdr-hist" id="cdrHist" style="display:none"></div>
+
     <div class="qr-panel">
       <div class="qr-box">${qrSvg(fichaUrl(p))}</div>
       <div class="qr-cap">Aponte a câmera para reabrir esta ficha.<br><b>${esc(p.ls_codigo||'')}</b>${ex.servicoNome?` · ${esc(ex.servicoNome)}`:''}</div>
@@ -387,7 +484,10 @@ async function renderFicha(p){
       </button>
       <button class="btn btn-ghost" onclick="irBusca()">Nova busca</button>
     </div>`;
+  window.__ficha = p;
+  window.__servicoNome = ex.servicoNome || p.servico || '';
   show('stFicha');
+  carregarHistoricoCDR();
 }
 
 // ═══════════════════════════════════════════════
@@ -519,7 +619,280 @@ async function boot(){
 }
 function notFound(html){document.getElementById('noneMsg').innerHTML=html;show('stNone');}
 
+// ═══════════════════════════════════════════════
+// REGISTRO DE ATIVIDADE (CDR)
+// ═══════════════════════════════════════════════
+let __regUser=null, __workflow=[], __tarefa=null;
+
+function toastCDR(msg,type){
+  const w=document.getElementById('toastWrap');
+  const t=document.createElement('div'); t.className='toast '+(type||'ok');
+  t.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><span>'+esc(msg)+'</span>';
+  w.appendChild(t); setTimeout(()=>t.remove(),3800);
+}
+function regStep(id){['mStepId','mStepTask','mStepOk'].forEach(s=>document.getElementById(s).classList.toggle('on',s===id));}
+function regErr(m){const e=document.getElementById('regErr');document.getElementById('regErrTxt').textContent=m;e.classList.add('on');}
+function regErrClear(){document.getElementById('regErr').classList.remove('on');}
+
+function abrirRegistro(){
+  const p=window.__ficha;
+  if(!p){toastCDR('Abra uma ficha primeiro.','err');return;}
+  __regUser=null; __tarefa=null;
+  document.getElementById('regBusca').value='';
+  document.getElementById('regUserRes').innerHTML='';
+  document.getElementById('regObs').value='';
+  document.getElementById('regFile').value='';
+  document.getElementById('regDrop').textContent='Clique para selecionar (opcional)';
+  document.getElementById('regDrop').classList.remove('has');
+  document.querySelectorAll('input[name=resp]').forEach(r=>r.checked=false);
+  regErrClear();
+  document.getElementById('regSub').textContent=(p.ls_codigo||'')+(window.__servicoNome?' · '+window.__servicoNome:'');
+  regStep('mStepId');
+  document.getElementById('ovReg').classList.add('on');
+  setTimeout(()=>document.getElementById('regBusca').focus(),60);
+}
+function fecharRegistro(){document.getElementById('ovReg').classList.remove('on');}
+function sanitCDR(t){return (t||'').replace(/[%,]/g,' ').trim();}
+
+async function buscarUsuarioCDR(){
+  const t=sanitCDR(document.getElementById('regBusca').value);
+  const box=document.getElementById('regUserRes');
+  __regUser=null;
+  if(t.length<3){box.innerHTML='';return;}
+  try{
+    const {data,error}=await db.from('usuarios_campo')
+      .select('id,nome,cpf,matricula,funcao,ativo')
+      .or(`nome.ilike.%${t}%,cpf.ilike.%${t}%,matricula.ilike.%${t}%`)
+      .eq('ativo',true).limit(6);
+    if(error) throw error;
+    if(!data||!data.length){box.innerHTML='<div class="user-miss">Não encontrado. Confira nome, CPF ou matrícula.</div>';return;}
+    if(data.length===1){selecUserCDR(data[0]);return;}
+    window.__ucache=data;
+    box.innerHTML='<div class="pick-list">'+data.map((u,i)=>
+      `<button onclick="selecUserCDR(window.__ucache[${i}])"><div class="pn">${esc(u.nome)}</div><div class="ps">${esc(u.matricula)} · ${esc(u.funcao)}</div></button>`
+    ).join('')+'</div>';
+  }catch(e){box.innerHTML='<div class="user-miss">Erro na busca. '+esc(e.message||'')+'</div>';}
+}
+
+function selecUserCDR(u){
+  __regUser=u;
+  document.getElementById('regBusca').value=u.nome;
+  document.getElementById('regUserRes').innerHTML=
+    '<div class="user-hit"><div class="ic">'+esc((u.nome||'?').trim().charAt(0).toUpperCase())+'</div>'+
+    '<div><div class="nm">'+esc(u.nome)+'</div><div class="fx">'+esc(u.matricula)+' · '+esc(u.funcao)+'</div></div></div>';
+  iniciarTarefaCDR();
+}
+
+async function carregarWorkflowCDR(){
+  const p=window.__ficha;
+  if(!p||!p.servico_id){__workflow=[];return;}
+  const {data,error}=await db.from('workflow_tarefas')
+    .select('etapa,pergunta,funcao_requerida,proxima_etapa_se_sim,proxima_etapa_se_nao')
+    .eq('servico_id',p.servico_id).order('etapa',{ascending:true});
+  if(error) throw error;
+  __workflow=data||[];
+}
+
+async function iniciarTarefaCDR(){
+  const p=window.__ficha;
+  try{
+    await carregarWorkflowCDR();
+    if(!__workflow.length){
+      regStep('mStepTask');
+      document.getElementById('taskMeta').textContent='Sem workflow';
+      document.getElementById('taskQ').textContent='Nenhuma tarefa configurada para este serviço.';
+      document.getElementById('taskFn').innerHTML='';
+      document.getElementById('regSalvar').style.display='none';
+      return;
+    }
+    document.getElementById('regSalvar').style.display='';
+    const {data:regs}=await db.from('cdr_registros').select('etapa')
+      .eq('plaqueta_id',p.id).order('etapa',{ascending:false}).limit(1);
+    const ultima=(regs&&regs.length)?regs[0].etapa:0;
+    const prox=__workflow.find(w=>w.etapa>ultima);
+    if(!prox){ mostrarTudoConcluido(); return; }
+    renderTarefa(prox);
+  }catch(e){ toastCDR('Erro ao carregar tarefa. '+(e.message||''),'err'); }
+}
+
+function renderTarefa(w){
+  __tarefa=w;
+  document.getElementById('taskMeta').textContent='Etapa '+w.etapa+' de '+__workflow.length;
+  document.getElementById('taskQ').textContent=w.pergunta;
+  let fn='Função prevista: <b>'+esc(w.funcao_requerida)+'</b>';
+  if(__regUser&&__regUser.funcao&&__regUser.funcao!==w.funcao_requerida)
+    fn+=' — você entrou como <b>'+esc(__regUser.funcao)+'</b>';
+  document.getElementById('taskFn').innerHTML=fn;
+  document.querySelectorAll('input[name=resp]').forEach(r=>r.checked=false);
+  document.getElementById('regObs').value='';
+  document.getElementById('regFile').value='';
+  document.getElementById('regDrop').textContent='Clique para selecionar (opcional)';
+  document.getElementById('regDrop').classList.remove('has');
+  regErrClear();
+  regStep('mStepTask');
+}
+
+function nomeArqCDR(){
+  const f=document.getElementById('regFile').files[0];
+  const d=document.getElementById('regDrop');
+  if(f){d.textContent=f.name;d.classList.add('has');}
+  else{d.textContent='Clique para selecionar (opcional)';d.classList.remove('has');}
+}
+
+async function salvarRegistroCDR(){
+  const p=window.__ficha;
+  const resp=document.querySelector('input[name=resp]:checked');
+  if(!__regUser){regErr('Identifique-se primeiro.');return;}
+  if(!__tarefa){regErr('Nenhuma tarefa carregada.');return;}
+  if(!resp){regErr('Marque SIM ou NÃO.');return;}
+  regErrClear();
+  const btn=document.getElementById('regSalvar'); const txt=btn.textContent;
+  btn.disabled=true; btn.textContent='Salvando…';
+  try{
+    let arquivo_url=null, arquivo_nome=null;
+    const f=document.getElementById('regFile').files[0];
+    if(f){
+      const path='cdr/'+p.id+'/'+Date.now()+'_'+f.name.replace(/[^\w.\-]+/g,'_');
+      const up=await db.storage.from('plaquetas-fotos').upload(path,f,{upsert:false});
+      if(up.error) throw up.error;
+      arquivo_url=path; arquivo_nome=f.name;
+    }
+    const ins=await db.from('cdr_registros').insert({
+      plaqueta_id:p.id, servico_id:p.servico_id||null,
+      usuario_id:__regUser.id, usuario_nome:__regUser.nome, usuario_funcao:__regUser.funcao,
+      etapa:__tarefa.etapa, pergunta:__tarefa.pergunta, resposta:resp.value,
+      observacoes:document.getElementById('regObs').value.trim()||null,
+      arquivo_url, arquivo_nome
+    });
+    if(ins.error) throw ins.error;
+
+    toastCDR('Atividade '+__tarefa.etapa+' registrada — OK','ok');
+    carregarHistoricoCDR();
+
+    const prox=(resp.value==='sim')?__tarefa.proxima_etapa_se_sim:__tarefa.proxima_etapa_se_nao;
+    const okTitle=document.getElementById('okTitle');
+    const okMsg=document.getElementById('okMsg');
+    const okProx=document.getElementById('okProx');
+    if(resp.value==='nao'){
+      okTitle.textContent='Registrado como NÃO';
+      okMsg.innerHTML='Etapa '+__tarefa.etapa+' marcada como <b>não realizada</b>. Aparece no painel geral como pendência.';
+    }else{
+      okTitle.textContent='Atividade '+__tarefa.etapa+' registrada';
+      okMsg.textContent='Registro salvo com sucesso.';
+    }
+    if(prox){ window.__proxEtapa=prox; okProx.style.display=''; }
+    else { window.__proxEtapa=null; okProx.style.display='none'; okMsg.innerHTML+=' <br><b>Fluxo concluído.</b>'; }
+    regStep('mStepOk');
+  }catch(e){
+    regErr('Erro ao salvar: '+(e.message||e));
+  }finally{ btn.disabled=false; btn.textContent=txt; }
+}
+
+function proximaTarefaCDR(){
+  const n=window.__proxEtapa;
+  if(!n){fecharRegistro();return;}
+  const w=__workflow.find(x=>x.etapa===n);
+  if(!w){fecharRegistro();return;}
+  renderTarefa(w);
+}
+
+function mostrarTudoConcluido(){
+  document.getElementById('okTitle').textContent='Tudo registrado';
+  document.getElementById('okMsg').textContent='Todas as etapas deste serviço já foram registradas para esta plaqueta.';
+  document.getElementById('okProx').style.display='none';
+  regStep('mStepOk');
+}
+
+async function carregarHistoricoCDR(){
+  const p=window.__ficha; if(!p) return;
+  const box=document.getElementById('cdrHist'); if(!box) return;
+  try{
+    const {data,error}=await db.from('cdr_registros')
+      .select('etapa,pergunta,resposta,observacoes,usuario_nome,usuario_funcao,data_criacao')
+      .eq('plaqueta_id',p.id).order('data_criacao',{ascending:true});
+    if(error) throw error;
+    if(!data||!data.length){box.style.display='none';box.innerHTML='';return;}
+    box.style.display='';
+    box.innerHTML='<h3>Atividades registradas</h3>'+data.map(r=>{
+      const dt=r.data_criacao?new Date(r.data_criacao):null;
+      const when=dt?dt.toLocaleDateString('pt-BR')+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+      const sim=r.resposta==='sim';
+      return '<div class="cdr-item"><div class="cdr-dot '+(sim?'sim':'nao')+'">'+(sim?'✓':'!')+'</div>'+
+        '<div class="cdr-body"><div class="t">Etapa '+esc(r.etapa)+' · '+(sim?'Sim':'Não')+'</div>'+
+        '<div class="s">'+esc(r.pergunta||'')+'</div>'+
+        '<div class="s">'+esc(r.usuario_nome||'')+(r.usuario_funcao?' · '+esc(r.usuario_funcao):'')+(when?' · '+when:'')+'</div>'+
+        (r.observacoes?'<div class="o">'+esc(r.observacoes)+'</div>':'')+
+        '</div></div>';
+    }).join('');
+  }catch(e){ box.style.display='none'; }
+}
+
 boot();
 </script>
+<!-- ══ MODAL: REGISTRO DE ATIVIDADE ══ -->
+<div class="ov" id="ovReg" onclick="if(event.target===this)fecharRegistro()">
+  <div class="modal">
+    <div class="modal-h">
+      <div>
+        <div class="tt">Registrar Atividade</div>
+        <div class="sub" id="regSub">—</div>
+      </div>
+      <button class="modal-x" onclick="fecharRegistro()">✕</button>
+    </div>
+    <div class="modal-b">
+
+      <!-- Passo 1: identificação -->
+      <div class="mstep on" id="mStepId">
+        <div class="fg">
+          <label for="regBusca">Identifique-se</label>
+          <input type="text" id="regBusca" placeholder="Nome, CPF ou matrícula…" autocomplete="off" oninput="buscarUsuarioCDR()">
+        </div>
+        <div id="regUserRes"></div>
+      </div>
+
+      <!-- Passo 2: tarefa -->
+      <div class="mstep" id="mStepTask">
+        <div class="task-meta" id="taskMeta">Etapa</div>
+        <div class="task-q" id="taskQ">—</div>
+        <div class="task-fn" id="taskFn"></div>
+
+        <div class="simnao">
+          <span class="yes"><input type="radio" name="resp" id="rSim" value="sim"><label for="rSim">SIM ✓</label></span>
+          <span class="no"><input type="radio" name="resp" id="rNao" value="nao"><label for="rNao">NÃO ✗</label></span>
+        </div>
+
+        <div class="fg">
+          <label for="regObs">Observações</label>
+          <textarea id="regObs" placeholder="Detalhe o que foi verificado (opcional)…"></textarea>
+        </div>
+
+        <div class="fg">
+          <label>Anexar foto / arquivo</label>
+          <label class="updrop" id="regDrop" for="regFile">Clique para selecionar (opcional)</label>
+          <input type="file" id="regFile" accept="image/*,.pdf" style="display:none" onchange="nomeArqCDR()">
+        </div>
+
+        <div class="inline-err" id="regErr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><span id="regErrTxt"></span></div>
+
+        <button class="btn btn-primary btn-block" style="margin-top:14px" id="regSalvar" onclick="salvarRegistroCDR()">Registrar atividade</button>
+      </div>
+
+      <!-- Passo 3: concluído -->
+      <div class="mstep center" id="mStepOk">
+        <div class="done-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h2 style="font-family:var(--font-d);font-size:17px;margin-bottom:6px" id="okTitle">Atividade registrada</h2>
+        <p class="msg" id="okMsg" style="font-size:13px;color:var(--muted)"></p>
+        <div style="display:flex;gap:9px;margin-top:18px">
+          <button class="btn btn-primary" id="okProx" onclick="proximaTarefaCDR()">Próxima etapa</button>
+          <button class="btn btn-ghost" onclick="fecharRegistro()">Fechar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
 </body>
 </html>
