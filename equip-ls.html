@@ -189,7 +189,7 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
     <div class="state center card-pad" id="stPick">
       <div class="big-ico warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
       <h2>Qual equipamento?</h2>
-      <p class="msg"><b id="pickCode"></b> tem mais de um resultado (por unidade/serviço). Escolha qual você quer ver:</p>
+      <p class="msg">Mais de um registro para <b id="pickCode"></b>. Escolha pela <b>LS</b> que está impressa na etiqueta (ela é única):</p>
       <div class="pick" id="pickList"></div>
     </div>
 
@@ -409,7 +409,7 @@ async function renderPick(termo,matches){
     const s=await serv(m.servico_id, m.servico);
     const st=s.cor?`background:${s.cor};color:${contrastText(s.cor)}`:'';
     return `<button onclick="abrirMatch('${esc(m.id)}')">
-      <span><span class="pk-tag">${esc(m.tag||m.plaqueta||m.ls_codigo)}</span><span class="pk-sub">${esc(m.unidade||'')}${m.plaqueta?' · '+esc(m.plaqueta):''}</span></span>
+      <span><span class="pk-tag">${esc(m.ls_codigo||m.tag||m.plaqueta)}</span><span class="pk-sub">${m.plaqueta?'Plaqueta '+esc(m.plaqueta):''}${m.unidade?' · Un '+esc(m.unidade):''}</span></span>
       <span class="pk-serv" style="${st}">${esc(s.nome)}</span></button>`;
   }));
   document.getElementById('pickList').innerHTML=cards.join('');
@@ -492,13 +492,22 @@ async function boot(){
   const plq=q.get('plq');
   const un=q.get('un');
 
-  if(!tag&&!ls&&!sid){ show('stSearch'); carregarServicos(); return; }
+  if(!tag&&!ls&&!sid&&!plq){ show('stSearch'); carregarServicos(); return; }
   show('stLoad');
 
   try{
     let matches=[], termo='';
-    if(tag){ termo=tag; matches=await fetchByTag(tag); }
-    else if(sid){ termo=plq||un||'esse serviço'; matches=await fetchByPlaqueta(plq,sid,un); }
+    if(tag){
+      termo=tag;
+      matches=await fetchByTag(tag);
+      // Etiquetas já no campo apontam pela TAG. Se houver duplicados (registros antigos
+      // sem plaqueta + o registro atual), fica só com o(s) que têm plaqueta preenchida.
+      if(matches.length>1){
+        const comPlq=matches.filter(m=>m.plaqueta && String(m.plaqueta).trim());
+        if(comPlq.length) matches=comPlq;
+      }
+    }
+    else if(sid||plq){ termo=plq||un||'esse serviço'; matches=await fetchByPlaqueta(plq,sid,un); }
     else { termo=ls; matches=await fetchByLs(ls); }
 
     if(!matches.length){ notFound(`Nada encontrado para <b>${esc(termo)}</b>.`); return; }
