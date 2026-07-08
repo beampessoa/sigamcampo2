@@ -166,11 +166,16 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
   justify-content:center;font-size:12px;font-weight:800;color:#fff}
 .cdr-dot.sim{background:var(--green)}
 .cdr-dot.nao{background:var(--danger)}
+.cdr-dot.na{background:#6B7280}
+.cdr-dot.canc{background:var(--warning)}
 .cdr-body{flex:1;min-width:0}
 .cdr-body .t{font-size:13px;font-weight:700;color:var(--ink);line-height:1.3}
 .cdr-body .s{font-size:11.5px;color:var(--muted);margin-top:2px}
 .cdr-body .o{font-size:12px;color:var(--ink-soft);margin-top:4px;background:var(--field);
   border-radius:6px;padding:6px 8px}
+.cdr-cancel{margin-bottom:12px;padding:11px 13px;border-radius:var(--r);background:#FFFBEB;
+  border:1px solid #FDE68A;color:#92400E;font-size:12.5px;font-weight:800;display:flex;gap:8px;align-items:flex-start}
+.cdr-cancel svg{width:16px;height:16px;flex:none;margin-top:1px}
 
 /* overlay + modal */
 .ov{position:fixed;inset:0;background:rgba(16,24,40,.55);display:none;align-items:center;
@@ -210,13 +215,14 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
 .task-q{font-family:var(--font-d);font-size:18px;font-weight:700;line-height:1.3;margin-bottom:4px}
 .task-fn{font-size:11.5px;color:var(--muted);margin-bottom:16px}
 .task-fn b{color:var(--ink-soft)}
-.simnao{display:flex;gap:10px;margin-bottom:16px}
-.simnao label{flex:1;text-align:center;padding:13px;border:2px solid var(--line);border-radius:var(--r-md);
-  font-weight:800;cursor:pointer;font-size:14px;background:#fff;user-select:none}
-.simnao input{display:none}
-.simnao input:checked+label{}
-.simnao .yes input:checked+label{border-color:var(--green);background:#F0FDF4;color:#166534}
-.simnao .no input:checked+label{border-color:var(--danger);background:#FEF2F2;color:#991B1B}
+.respgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.respgrid .opt input{display:none}
+.respgrid .opt label{display:block;text-align:center;padding:12px;border:2px solid var(--line);
+  border-radius:var(--r-md);font-weight:800;cursor:pointer;font-size:14px;background:#fff;user-select:none}
+.respgrid .sim  input:checked+label{border-color:var(--green);background:#F0FDF4;color:#166534}
+.respgrid .nao  input:checked+label{border-color:var(--danger);background:#FEF2F2;color:#991B1B}
+.respgrid .na   input:checked+label{border-color:#6B7280;background:#F3F4F6;color:#374151}
+.respgrid .canc input:checked+label{border-color:var(--warning);background:#FFFBEB;color:#92400E}
 .updrop{border:2px dashed var(--field-line);border-radius:var(--r);padding:14px;text-align:center;
   cursor:pointer;font-size:12px;color:var(--muted);margin-top:6px}
 .updrop:hover{border-color:var(--blue-300);background:#EFF4FF}
@@ -693,9 +699,24 @@ async function carregarWorkflowCDR(){
   __workflow=data||[];
 }
 
+function mostrarLScancelada(c){
+  document.getElementById('okTitle').textContent='LS cancelada';
+  const doc=(c&&c.doc_cancelamento)?c.doc_cancelamento:'—';
+  const quem=(c&&c.usuario_nome)?(' ('+c.usuario_nome+')'):'';
+  document.getElementById('okMsg').innerHTML='Todas as atividades desta LS foram encerradas pelo documento <b>'+esc(doc)+'</b>'+esc(quem)+'. Não é possível registrar novas etapas.';
+  document.getElementById('okProx').style.display='none';
+  regStep('mStepOk');
+}
+
 async function iniciarTarefaCDR(){
   const p=window.__ficha;
   try{
+    // LS cancelada encerra tudo — bloqueia novo registro
+    const {data:canc}=await db.from('cdr_registros')
+      .select('doc_cancelamento,usuario_nome').eq('plaqueta_id',p.id)
+      .eq('resposta','cancelado').order('data_criacao',{ascending:false}).limit(1);
+    if(canc&&canc.length){ mostrarLScancelada(canc[0]); return; }
+
     await carregarWorkflowCDR();
     if(!__workflow.length){
       regStep('mStepTask');
@@ -715,6 +736,11 @@ async function iniciarTarefaCDR(){
   }catch(e){ toastCDR('Erro ao carregar tarefa. '+(e.message||''),'err'); }
 }
 
+function onRespCDR(){
+  const v=(document.querySelector('input[name=resp]:checked')||{}).value;
+  document.getElementById('cancWrap').style.display=(v==='cancelado')?'block':'none';
+}
+
 function renderTarefa(w){
   __tarefa=w;
   document.getElementById('taskMeta').textContent='Etapa '+w.etapa+' de '+__workflow.length;
@@ -724,6 +750,8 @@ function renderTarefa(w){
     fn+=' — você entrou como <b>'+esc(__regUser.funcao)+'</b>';
   document.getElementById('taskFn').innerHTML=fn;
   document.querySelectorAll('input[name=resp]').forEach(r=>r.checked=false);
+  document.getElementById('cancWrap').style.display='none';
+  document.getElementById('regDocCanc').value='';
   document.getElementById('regObs').value='';
   document.getElementById('regFile').value='';
   document.getElementById('regDrop').textContent='Clique para selecionar (opcional)';
@@ -744,7 +772,9 @@ async function salvarRegistroCDR(){
   const resp=document.querySelector('input[name=resp]:checked');
   if(!__regUser){regErr('Identifique-se primeiro.');return;}
   if(!__tarefa){regErr('Nenhuma tarefa carregada.');return;}
-  if(!resp){regErr('Marque SIM ou NÃO.');return;}
+  if(!resp){regErr('Marque Sim, Não, N/A ou Cancelado.');return;}
+  const docCanc=document.getElementById('regDocCanc').value.trim();
+  if(resp.value==='cancelado' && !docCanc){regErr('Informe qual documento cancela esta etapa.');return;}
   regErrClear();
   const btn=document.getElementById('regSalvar'); const txt=btn.textContent;
   btn.disabled=true; btn.textContent='Salvando…';
@@ -762,20 +792,37 @@ async function salvarRegistroCDR(){
       usuario_id:__regUser.id, usuario_nome:__regUser.nome, usuario_funcao:__regUser.funcao,
       etapa:__tarefa.etapa, pergunta:__tarefa.pergunta, resposta:resp.value,
       observacoes:document.getElementById('regObs').value.trim()||null,
+      doc_cancelamento:(resp.value==='cancelado')?docCanc:null,
       arquivo_url, arquivo_nome
     });
     if(ins.error) throw ins.error;
 
-    toastCDR('Atividade '+__tarefa.etapa+' registrada — OK','ok');
+    const LABEL={sim:'Sim',nao:'Não',na:'N/A',cancelado:'Cancelado'};
+    if(resp.value==='cancelado') toastCDR('LS cancelada','ok');
+    else toastCDR('Etapa '+__tarefa.etapa+' registrada ('+LABEL[resp.value]+')','ok');
     carregarHistoricoCDR();
 
-    const prox=(resp.value==='sim')?__tarefa.proxima_etapa_se_sim:__tarefa.proxima_etapa_se_nao;
     const okTitle=document.getElementById('okTitle');
     const okMsg=document.getElementById('okMsg');
     const okProx=document.getElementById('okProx');
+
+    if(resp.value==='cancelado'){
+      // cancela TODAS as atividades da LS — fluxo encerrado
+      okTitle.textContent='LS cancelada';
+      okMsg.innerHTML='Todas as atividades desta LS foram encerradas pelo documento <b>'+esc(docCanc)+'</b>. Não é possível registrar novas etapas.';
+      window.__proxEtapa=null; okProx.style.display='none';
+      regStep('mStepOk');
+      return;
+    }
+
+    // demais respostas: Não segue proxima_etapa_se_nao; os outros seguem o caminho normal
+    const prox=(resp.value==='nao')?__tarefa.proxima_etapa_se_nao:__tarefa.proxima_etapa_se_sim;
     if(resp.value==='nao'){
       okTitle.textContent='Registrado como NÃO';
       okMsg.innerHTML='Etapa '+__tarefa.etapa+' marcada como <b>não realizada</b>. Aparece no painel geral como pendência.';
+    }else if(resp.value==='na'){
+      okTitle.textContent='Registrado como N/A';
+      okMsg.textContent='Etapa '+__tarefa.etapa+' marcada como não aplicável.';
     }else{
       okTitle.textContent='Atividade '+__tarefa.etapa+' registrada';
       okMsg.textContent='Registro salvo com sucesso.';
@@ -806,21 +853,30 @@ function mostrarTudoConcluido(){
 async function carregarHistoricoCDR(){
   const p=window.__ficha; if(!p) return;
   const box=document.getElementById('cdrHist'); if(!box) return;
+  const LABEL={sim:'Sim',nao:'Não',na:'N/A',cancelado:'Cancelado'};
+  const DOT ={sim:'sim',nao:'nao',na:'na',cancelado:'canc'};
+  const ICO ={sim:'✓',nao:'!',na:'–',cancelado:'✕'};
   try{
     const {data,error}=await db.from('cdr_registros')
-      .select('etapa,pergunta,resposta,observacoes,usuario_nome,usuario_funcao,data_criacao')
+      .select('etapa,pergunta,resposta,observacoes,doc_cancelamento,usuario_nome,usuario_funcao,data_criacao')
       .eq('plaqueta_id',p.id).order('data_criacao',{ascending:true});
     if(error) throw error;
     if(!data||!data.length){box.style.display='none';box.innerHTML='';return;}
     box.style.display='';
-    box.innerHTML='<h3>Atividades registradas</h3>'+data.map(r=>{
+    const cancRow=data.find(r=>r.resposta==='cancelado');
+    const banner=cancRow
+      ? '<div class="cdr-cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><span>LS CANCELADA'
+        +(cancRow.doc_cancelamento?(' — doc '+esc(cancRow.doc_cancelamento)):'')+'. Todas as atividades foram encerradas.</span></div>'
+      : '';
+    box.innerHTML='<h3>Atividades registradas</h3>'+banner+data.map(r=>{
       const dt=r.data_criacao?new Date(r.data_criacao):null;
       const when=dt?dt.toLocaleDateString('pt-BR')+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-      const sim=r.resposta==='sim';
-      return '<div class="cdr-item"><div class="cdr-dot '+(sim?'sim':'nao')+'">'+(sim?'✓':'!')+'</div>'+
-        '<div class="cdr-body"><div class="t">Etapa '+esc(r.etapa)+' · '+(sim?'Sim':'Não')+'</div>'+
+      const key=r.resposta||'sim';
+      return '<div class="cdr-item"><div class="cdr-dot '+(DOT[key]||'na')+'">'+(ICO[key]||'–')+'</div>'+
+        '<div class="cdr-body"><div class="t">Etapa '+esc(r.etapa)+' · '+(LABEL[key]||esc(key))+'</div>'+
         '<div class="s">'+esc(r.pergunta||'')+'</div>'+
         '<div class="s">'+esc(r.usuario_nome||'')+(r.usuario_funcao?' · '+esc(r.usuario_funcao):'')+(when?' · '+when:'')+'</div>'+
+        (r.doc_cancelamento?'<div class="o"><b>Cancelado por:</b> '+esc(r.doc_cancelamento)+'</div>':'')+
         (r.observacoes?'<div class="o">'+esc(r.observacoes)+'</div>':'')+
         '</div></div>';
     }).join('');
@@ -856,9 +912,16 @@ boot();
         <div class="task-q" id="taskQ">—</div>
         <div class="task-fn" id="taskFn"></div>
 
-        <div class="simnao">
-          <span class="yes"><input type="radio" name="resp" id="rSim" value="sim"><label for="rSim">SIM ✓</label></span>
-          <span class="no"><input type="radio" name="resp" id="rNao" value="nao"><label for="rNao">NÃO ✗</label></span>
+        <div class="respgrid">
+          <span class="opt sim"><input type="radio" name="resp" id="rSim" value="sim" onchange="onRespCDR()"><label for="rSim">Sim</label></span>
+          <span class="opt nao"><input type="radio" name="resp" id="rNao" value="nao" onchange="onRespCDR()"><label for="rNao">Não</label></span>
+          <span class="opt na"><input type="radio" name="resp" id="rNA" value="na" onchange="onRespCDR()"><label for="rNA">N/A</label></span>
+          <span class="opt canc"><input type="radio" name="resp" id="rCanc" value="cancelado" onchange="onRespCDR()"><label for="rCanc">Cancelado</label></span>
+        </div>
+
+        <div class="fg" id="cancWrap" style="display:none">
+          <label for="regDocCanc">Qual documento cancela esta etapa? *</label>
+          <input type="text" id="regDocCanc" placeholder="Ex.: RT-2026-014, revisão, e-mail…" autocomplete="off">
         </div>
 
         <div class="fg">
