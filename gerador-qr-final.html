@@ -283,10 +283,12 @@
           return /\bls\b/.test(n) || /cod.*ls/.test(n); // LS, COD_LS, COD LS, CÓDIGO LS…
         });
         const descCol = headerRow.findIndex(h => /^descri/i.test(h) || /^local/i.test(h));
+        const plqCol = headerRow.findIndex(h => /\bplaqueta/.test(h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,' ').trim()));
 
         if (tagCol === -1) throw new Error('Nenhuma coluna "TAG" encontrada. Colunas encontradas: ' + headerRow.join(', '));
         if (lsCol === -1) log('Nenhuma coluna "LS" encontrada — a etiqueta sairá sem a linha em vermelho do LS.', 'warn');
         if (descCol === -1) log('Nenhuma coluna "DESCRIÇÃO"/"LOCALIZAÇÃO" encontrada — as etiquetas sairão sem esse texto.', 'warn');
+        if (plqCol === -1) log('Nenhuma coluna "Plaqueta" encontrada — a etiqueta sairá sem o número da plaqueta.', 'warn');
 
         const parsed = [];
         let semDesc = 0;
@@ -294,10 +296,11 @@
         for (let i = 1; i < rows.length; i++){
           const tag = String(rows[i][tagCol] || '').trim();
           const ls = lsCol === -1 ? '' : String(rows[i][lsCol] || '').trim();
+          const plaqueta = plqCol === -1 ? '' : String(rows[i][plqCol] || '').trim();
           const descricao = descCol === -1 ? '' : String(rows[i][descCol] || '').trim();
           if (!tag) continue;
           if (!descricao) semDesc++;
-          parsed.push({ tag: tag, ls: ls, descricao: descricao });
+          parsed.push({ tag: tag, ls: ls, plaqueta: plaqueta, descricao: descricao });
         }
 
         if (!parsed.length) throw new Error('Nenhuma linha com TAG preenchido foi encontrada.');
@@ -411,9 +414,20 @@
       if (current) lines.push(current);
       const shownLines = lines.slice(0, 4);
 
-      const hasLs = !!(item.ls && item.ls.trim());
-      const blockH = (hasLs ? lsLH : 0) + tagLH + shownLines.length * descLH;
+  const hasLs = !!(item.ls && item.ls.trim());
+      const hasPlq = !!(item.plaqueta && item.plaqueta.trim());
+      const plqFont = Math.round(3.8 * MM_TO_PX);
+      const plqLH   = 4.8 * MM_TO_PX;
+      const blockH = (hasPlq ? plqLH : 0) + (hasLs ? lsLH : 0) + tagLH + shownLines.length * descLH;
       let ty = textTop + Math.max(0, (textAvailH - blockH) / 2);
+
+      // Plaqueta (número) — acima da LS
+      if (hasPlq){
+        ctx.font = 'bold ' + plqFont + 'px Arial, sans-serif';
+        ctx.fillStyle = '#008000';
+        ctx.fillText(item.plaqueta.toUpperCase(), textCenterX, ty, maxWidth);
+        ty += plqLH;
+      }
 
       if (hasLs){
         ctx.font = lsFont + 'px Arial, sans-serif';
