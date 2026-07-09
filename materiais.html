@@ -76,6 +76,29 @@ tr.bad{background:#FEF2F2}
 .st-recebido{color:#166534;background:#F0FDF4;border-color:#BBF7D0}
 .st-aplicado{color:#065F46;background:#ECFDF5;border-color:#A7F3D0}
 .st-devolvido{color:#374151;background:#F3F4F6;border-color:#E5E7EB}
+.due-cell{color:var(--danger);font-weight:800;background:#FEF2F2}
+
+/* alternador de visão */
+.viewtoggle{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin:0 2px 12px}
+.vbtn{padding:7px 15px;border:none;background:#fff;font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer}
+.vbtn.on{background:var(--blue);color:#fff}
+
+/* grupos por LS */
+.lsgroup{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
+.lshead{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;user-select:none}
+.lshead:hover{background:#FBFCFE}
+.lscode{font-family:var(--font-d);font-weight:800;color:var(--blue);font-size:14px}
+.lsuni{font-size:11px;font-weight:700;color:var(--ink-soft);background:var(--field);padding:2px 8px;border-radius:20px}
+.lssum{font-size:12px;color:var(--muted)}
+.lsred{color:var(--danger);font-weight:800}
+.lsopen{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--blue);text-decoration:none}
+.lsopen:hover{text-decoration:underline}
+.chev{color:var(--muted);transition:transform .15s;font-size:12px}
+.lsgroup.collapsed .lsbody{display:none}
+.lsgroup.collapsed .chev{transform:rotate(-90deg)}
+.lsbody table{width:100%;border-collapse:collapse;font-size:12.5px;border-top:1px solid var(--line)}
+.lsbody th{text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);padding:8px 16px;background:#FBFCFE;white-space:nowrap}
+.lsbody td{padding:8px 16px;border-top:1px solid #F1F4F9}
 
 /* add manual */
 .addgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-items:end}
@@ -115,7 +138,7 @@ tr.bad{background:#FEF2F2}
     <div class="drop" id="drop" onclick="document.getElementById('file').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5-5 5 5M12 5v12"/></svg>
       <div class="t">Clique ou arraste um arquivo Excel/CSV</div>
-      <div class="s">Colunas esperadas: LS, NM, Unidade (planta), TAG, Descrição, Status, Qtd, Un. medida</div>
+      <div class="s">Colunas esperadas: LS, NM, Unidade, TAG, Descrição, Status, Previsão, Recebido, Qtd, Un. medida</div>
       <input type="file" id="file" accept=".xlsx,.xls,.csv" onchange="lerArquivo(event)">
     </div>
 
@@ -132,21 +155,30 @@ tr.bad{background:#FEF2F2}
 
   <!-- LISTA -->
   <h2 class="sec" id="listaTitulo">Materiais</h2>
+  <div class="viewtoggle">
+    <button class="vbtn on" data-v="lista" onclick="setView('lista')">Lista</button>
+    <button class="vbtn" data-v="porLS" onclick="setView('porLS')">Por LS</button>
+  </div>
   <div class="filters">
     <button class="fchip on" data-f="todos" onclick="setFiltro('todos')">Todos</button>
     <button class="fchip" data-f="pendente" onclick="setFiltro('pendente')">Pendentes</button>
     <button class="fchip" data-f="solicitado" onclick="setFiltro('solicitado')">Solicitados</button>
     <button class="fchip" data-f="recebido" onclick="setFiltro('recebido')">Recebidos</button>
     <button class="fchip" data-f="aplicado" onclick="setFiltro('aplicado')">Aplicados</button>
+    <button class="fchip" data-f="areceber" onclick="setFiltro('areceber')">A receber</button>
+    <button class="fchip" data-f="atrasados" onclick="setFiltro('atrasados')">Atrasados</button>
     <select id="fUni" onchange="filtroUni=this.value;renderLista()" style="max-width:150px"><option value="">Todas unidades</option></select>
     <input type="text" class="search" id="busca" placeholder="Buscar por LS, NM ou descrição…" oninput="renderLista()">
   </div>
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Qtd</th><th>UM</th><th>Status</th><th>Atualizado</th></tr></thead>
-      <tbody id="matBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
-    </table>
+  <div id="viewLista">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Status</th><th>Previsão</th><th>Recebido</th><th>Qtd</th><th>UM</th><th>Atualizado</th></tr></thead>
+        <tbody id="matBody"><tr><td colspan="11" class="empty">Carregando…</td></tr></tbody>
+      </table>
+    </div>
   </div>
+  <div id="viewPorLS" style="display:none"></div>
 
 </div>
 
@@ -159,9 +191,24 @@ const db=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 const STATUS=['pendente','solicitado','recebido','aplicado','devolvido'];
 const STLABEL={pendente:'Pendente',solicitado:'Solicitado',recebido:'Recebido',aplicado:'Aplicado',devolvido:'Devolvido'};
-const CAMPOS=[['ls_codigo','Cód-LS *'],['nm','NM'],['unidade','Unidade (planta)'],['tag','TAG'],['descricao','Descrição *'],['status','Status'],['quantidade','Qtd'],['unidade_medida','Un. medida'],['codigo','Código']];
+const CAMPOS=[['ls_codigo','Cód-LS *'],['nm','NM'],['unidade','Unidade (planta)'],['tag','TAG'],['descricao','Descrição *'],['status','Status'],['data_prevista','Previsão'],['data_recebimento','Recebido em'],['quantidade','Qtd'],['unidade_medida','Un. medida'],['codigo','Código']];
 
-let MAT=[], filtro='todos', filtroLs=null, filtroUni='';
+const TODAY=new Date().toISOString().slice(0,10);
+let MAT=[], filtro='todos', filtroLs=null, filtroUni='', viewMode='lista';
+
+function fmtDay(iso){if(!iso)return '—';const s=String(iso).slice(0,10);const p=s.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s;}
+function isRecebido(m){return !!m.data_recebimento || m.status==='recebido' || m.status==='aplicado';}
+function isVencido(m){return !!m.data_prevista && !isRecebido(m) && String(m.data_prevista).slice(0,10)<=TODAY;}
+function parseDate(v){
+  if(v==null||v==='')return null;
+  if(v instanceof Date && !isNaN(v)) return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+  if(typeof v==='number'){const d=new Date(Math.round((v-25569)*86400*1000));return isNaN(d)?null:d.toISOString().slice(0,10);}
+  const s=String(v).trim();
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+'-'+m[2]+'-'+m[3];
+  m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if(m){let y=m[3];if(y.length===2)y='20'+y;return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');}
+  return null;
+}
 let rawRows=[], rawHeaders=[], mapping={};
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -186,7 +233,7 @@ async function carregar(){
     MAT=data||[];
     popularUnidades();
     renderLista();
-  }catch(e){document.getElementById('matBody').innerHTML='<tr><td colspan="9" class="empty">Erro: '+esc(e.message||e)+'</td></tr>';}
+  }catch(e){document.getElementById('matBody').innerHTML='<tr><td colspan="11" class="empty">Erro: '+esc(e.message||e)+'</td></tr>';}
 }
 function popularUnidades(){
   const uni=[...new Set(MAT.map(m=>m.unidade).filter(Boolean))].sort();
@@ -195,26 +242,78 @@ function popularUnidades(){
 }
 
 function setFiltro(f){filtro=f;document.querySelectorAll('.fchip').forEach(b=>b.classList.toggle('on',b.dataset.f===f));renderLista();}
+function setView(v){viewMode=v;document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));renderLista();}
 
-function renderLista(){
+function filtrarMat(){
   const q=norm(document.getElementById('busca').value);
-  let rows=MAT.filter(m=>filtro==='todos'||m.status===filtro);
+  let rows=MAT.filter(m=>{
+    if(filtro==='areceber')return !!m.data_prevista && !isRecebido(m);
+    if(filtro==='atrasados')return isVencido(m);
+    return filtro==='todos'||m.status===filtro;
+  });
   if(filtroUni) rows=rows.filter(m=>m.unidade===filtroUni);
   if(q) rows=rows.filter(m=>norm(m.ls_codigo).includes(q)||norm(m.nm).includes(q)||norm(m.descricao).includes(q));
+  return rows;
+}
+
+// dispatcher de visão
+function renderLista(){
+  document.getElementById('viewLista').style.display = viewMode==='porLS'?'none':'';
+  document.getElementById('viewPorLS').style.display = viewMode==='porLS'?'':'none';
+  if(viewMode==='porLS') renderGrouped(); else renderFlat();
+}
+
+function renderFlat(){
+  const rows=filtrarMat();
   const body=document.getElementById('matBody');
-  if(!rows.length){body.innerHTML='<tr><td colspan="9" class="empty">Nenhum material.</td></tr>';return;}
-  body.innerHTML=rows.map(m=>'<tr>'
+  if(!rows.length){body.innerHTML='<tr><td colspan="11" class="empty">Nenhum material.</td></tr>';return;}
+  body.innerHTML=rows.map(m=>{
+    const venc=isVencido(m);
+    return '<tr>'
     +'<td>'+esc(m.nm||'—')+'</td>'
     +'<td><a class="ls-link" href="equip-ls.html?ls='+encodeURIComponent(m.ls_codigo)+'">'+esc(m.ls_codigo)+'</a></td>'
     +'<td>'+esc(m.unidade||'—')+'</td>'
     +'<td>'+esc(m.tag||'—')+'</td>'
     +'<td>'+esc(m.descricao||'')+'</td>'
+    +'<td>'+selStatus(m)+'</td>'
+    +'<td class="'+(venc?'due-cell':'')+'">'+fmtDay(m.data_prevista)+(venc?' ⚠':'')+'</td>'
+    +'<td>'+fmtDay(m.data_recebimento)+'</td>'
     +'<td>'+(m.quantidade!=null?esc(m.quantidade):'—')+'</td>'
     +'<td>'+esc(m.unidade_medida||'—')+'</td>'
-    +'<td>'+selStatus(m)+'</td>'
     +'<td class="mini">'+fmtDate(m.data_atualizacao||m.data_criacao)+'</td>'
-    +'</tr>').join('');
+    +'</tr>';}).join('');
 }
+
+function renderGrouped(){
+  const rows=filtrarMat();
+  const cont=document.getElementById('viewPorLS');
+  if(!rows.length){cont.innerHTML='<div class="panel empty">Nenhum material.</div>';return;}
+  const g={};
+  rows.forEach(m=>{(g[m.ls_codigo]=g[m.ls_codigo]||[]).push(m);});
+  const lss=Object.keys(g).sort();
+  cont.innerHTML=lss.map(ls=>{
+    const items=g[ls];
+    const uni=(items.find(x=>x.unidade)||{}).unidade||'';
+    const pend=items.filter(m=>m.status==='pendente'||m.status==='solicitado').length;
+    const atras=items.filter(isVencido).length;
+    const linhas=items.map(m=>{const venc=isVencido(m);
+      return '<tr><td>'+esc(m.nm||'—')+'</td><td>'+esc(m.descricao||'')+'</td><td>'+selStatus(m)+'</td>'
+        +'<td class="'+(venc?'due-cell':'')+'">'+fmtDay(m.data_prevista)+(venc?' ⚠':'')+'</td>'
+        +'<td>'+fmtDay(m.data_recebimento)+'</td><td>'+(m.quantidade!=null?esc(m.quantidade):'—')+'</td><td>'+esc(m.unidade_medida||'—')+'</td></tr>';}).join('');
+    return '<div class="lsgroup">'
+      +'<div class="lshead" onclick="toggleGroup(this)">'
+        +'<span class="lscode">'+esc(ls)+'</span>'
+        +(uni?'<span class="lsuni">Un '+esc(uni)+'</span>':'')
+        +'<span class="lssum">'+items.length+' '+(items.length>1?'itens':'item')+(pend?' · '+pend+' pend.':'')+(atras?' · <span class="lsred">'+atras+' atrasado'+(atras>1?'s':'')+'</span>':'')+'</span>'
+        +'<a class="lsopen" href="equip-ls.html?ls='+encodeURIComponent(ls)+'" onclick="event.stopPropagation()">ficha ↗</a>'
+        +'<span class="chev">▾</span>'
+      +'</div>'
+      +'<div class="lsbody"><table><thead><tr><th>NM</th><th>Descrição</th><th>Status</th><th>Previsão</th><th>Recebido</th><th>Qtd</th><th>UM</th></tr></thead><tbody>'+linhas+'</tbody></table></div>'
+    +'</div>';
+  }).join('');
+}
+function toggleGroup(head){head.parentElement.classList.toggle('collapsed');}
+
 function selStatus(m){
   return '<select class="stsel st-'+m.status+'" onchange="mudarStatus('+m.id+',this.value,this)">'
     +STATUS.map(s=>'<option value="'+s+'"'+(s===m.status?' selected':'')+'>'+STLABEL[s]+'</option>').join('')+'</select>';
@@ -226,7 +325,7 @@ async function mudarStatus(id,val,el){
     if(error) throw error;
     const m=MAT.find(x=>x.id===id);if(m){m.status=val;m.data_atualizacao=new Date().toISOString();}
     toast('Status atualizado','ok');
-    if(filtro!=='todos')renderLista();
+    if(viewMode==='porLS'||filtro!=='todos')renderLista();
   }catch(e){toast('Erro: '+(e.message||e),'err');}
 }
 
@@ -237,7 +336,7 @@ function lerArquivo(ev){
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const wb=XLSX.read(e.target.result,{type:'array'});
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
       if(!arr.length){toast('Planilha vazia','err');return;}
@@ -258,6 +357,8 @@ function autoMap(){
   mapping.tag=find(/tag/);
   mapping.descricao=find(/descri|material/);
   mapping.status=find(/status|situa/);
+  mapping.data_prevista=find(/prev|eta|estimad|chegad/);
+  mapping.data_recebimento=find(/receb/);
   mapping.quantidade=find(/quant|qtd/);
   mapping.unidade_medida=find(/unid.?med|^um$|^un$|medida|u\.?m/);
   mapping.codigo=find(/codig/,/ls/);
@@ -269,23 +370,25 @@ function montarMap(){
 }
 function valLinha(r){
   const g=k=>{const i=mapping[k];return i>=0?String(r[i]).trim():'';};
+  const gr=k=>{const i=mapping[k];return i>=0?r[i]:'';};
   const ls=g('ls_codigo'),desc=g('descricao');
   const st=g('status')?normStatus(g('status')):'pendente';
   const q=g('quantidade');
   return {ls_codigo:ls,nm:g('nm')||null,unidade:g('unidade')||null,tag:g('tag')||null,descricao:desc,
     status:st||'pendente',statusRaw:g('status'),statusBad:!!(g('status')&&!st),
+    data_prevista:parseDate(gr('data_prevista')),data_recebimento:parseDate(gr('data_recebimento')),
     quantidade:q===''?null:(isNaN(Number(q))?null:Number(q)),unidade_medida:g('unidade_medida')||null,codigo:g('codigo')||null,
     _bad:(!ls||!desc)};
 }
 function preview(){
   const rows=rawRows.map(valLinha);
   const ok=rows.filter(r=>!r._bad).length, bad=rows.length-ok, stbad=rows.filter(r=>r.statusBad).length;
-  const head='<thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Qtd</th><th>UM</th><th>Status</th></tr></thead>';
-  const body='<tbody>'+rows.slice(0,50).map(r=>'<tr class="'+(r._bad?'bad':'')+'"><td>'+esc(r.nm||'')+'</td><td>'+esc(r.ls_codigo||'⚠ vazio')+'</td><td>'+esc(r.unidade||'')+'</td><td>'+esc(r.tag||'')+'</td><td>'+esc(r.descricao||'⚠ vazio')+'</td><td>'+(r.quantidade!=null?r.quantidade:'')+'</td><td>'+esc(r.unidade_medida||'')+'</td><td>'+STLABEL[r.status]+(r.statusBad?' <span class="mini">(“'+esc(r.statusRaw)+'”→pendente)</span>':'')+'</td></tr>').join('')+'</tbody>';
+  const head='<thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Status</th><th>Previsão</th><th>Recebido</th><th>Qtd</th><th>UM</th></tr></thead>';
+  const body='<tbody>'+rows.slice(0,50).map(r=>'<tr class="'+(r._bad?'bad':'')+'"><td>'+esc(r.nm||'')+'</td><td>'+esc(r.ls_codigo||'⚠ vazio')+'</td><td>'+esc(r.unidade||'')+'</td><td>'+esc(r.tag||'')+'</td><td>'+esc(r.descricao||'⚠ vazio')+'</td><td>'+STLABEL[r.status]+(r.statusBad?' <span class="mini">(“'+esc(r.statusRaw)+'”→pendente)</span>':'')+'</td><td>'+fmtDay(r.data_prevista)+'</td><td>'+fmtDay(r.data_recebimento)+'</td><td>'+(r.quantidade!=null?r.quantidade:'')+'</td><td>'+esc(r.unidade_medida||'')+'</td></tr>').join('')+'</tbody>';
   document.getElementById('prevTable').innerHTML=head+body;
   document.getElementById('prevCount').innerHTML='<b>'+ok+'</b> válidos'+(bad?' · <span class="bad">'+bad+' ignorados (sem LS/descrição)</span>':'')+(stbad?' · '+stbad+' status corrigidos':'')+(rows.length>50?' · mostrando 50 de '+rows.length:'');
   document.getElementById('btnImport').disabled=ok===0;
-  window.__toImport=rows.filter(r=>!r._bad).map(r=>({ls_codigo:r.ls_codigo,nm:r.nm,unidade:r.unidade,tag:r.tag,descricao:r.descricao,status:r.status,quantidade:r.quantidade,unidade_medida:r.unidade_medida,codigo:r.codigo}));
+  window.__toImport=rows.filter(r=>!r._bad).map(r=>({ls_codigo:r.ls_codigo,nm:r.nm,unidade:r.unidade,tag:r.tag,descricao:r.descricao,status:r.status,data_prevista:r.data_prevista,data_recebimento:r.data_recebimento,quantidade:r.quantidade,unidade_medida:r.unidade_medida,codigo:r.codigo}));
 }
 async function importar(){
   const rows=window.__toImport||[];if(!rows.length){toast('Nada para importar','err');return;}
