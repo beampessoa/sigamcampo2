@@ -712,7 +712,7 @@ async function iniciarTarefaCDR(){
   const p=window.__ficha;
   try{
     // LS cancelada encerra tudo — bloqueia novo registro
-    const {data:canc}=await db.from('cdr_registros')
+    const {data:canc}=await db.from('atividades_campo')
       .select('doc_cancelamento,usuario_nome').eq('plaqueta_id',p.id)
       .eq('resposta','cancelado').order('data_criacao',{ascending:false}).limit(1);
     if(canc&&canc.length){ mostrarLScancelada(canc[0]); return; }
@@ -727,7 +727,7 @@ async function iniciarTarefaCDR(){
       return;
     }
     document.getElementById('regSalvar').style.display='';
-    const {data:regs}=await db.from('cdr_registros').select('etapa')
+    const {data:regs}=await db.from('atividades_campo').select('etapa')
       .eq('plaqueta_id',p.id).order('etapa',{ascending:false}).limit(1);
     const ultima=(regs&&regs.length)?regs[0].etapa:0;
     const prox=__workflow.find(w=>w.etapa>ultima);
@@ -787,7 +787,7 @@ async function salvarRegistroCDR(){
       if(up.error) throw up.error;
       arquivo_url=path; arquivo_nome=f.name;
     }
-    const ins=await db.from('cdr_registros').insert({
+    const ins=await db.from('atividades_campo').insert({
       plaqueta_id:p.id, servico_id:p.servico_id||null,
       usuario_id:__regUser.id, usuario_nome:__regUser.nome, usuario_funcao:__regUser.funcao,
       etapa:__tarefa.etapa, pergunta:__tarefa.pergunta, resposta:resp.value,
@@ -857,7 +857,7 @@ async function carregarHistoricoCDR(){
   const DOT ={sim:'sim',nao:'nao',na:'na',cancelado:'canc'};
   const ICO ={sim:'✓',nao:'!',na:'–',cancelado:'✕'};
   try{
-    const {data,error}=await db.from('cdr_registros')
+    const {data,error}=await db.from('atividades_campo')
       .select('etapa,pergunta,resposta,observacoes,doc_cancelamento,usuario_nome,usuario_funcao,data_criacao')
       .eq('plaqueta_id',p.id).order('data_criacao',{ascending:true});
     if(error) throw error;
