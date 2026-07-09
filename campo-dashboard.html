@@ -137,7 +137,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const db=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 const LABEL={sim:'Sim',nao:'Não',na:'N/A',cancelado:'Cancelado'};
-let RAW=[], LSROWS=[], filtro='todas';
+let RAW=[], LSROWS=[], filtro='todas', MATBYLS={};
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(m,t){const w=document.getElementById('toastWrap');const e=document.createElement('div');e.className='toast '+(t||'ok');e.textContent=m;w.appendChild(e);setTimeout(()=>e.remove(),3600);}
@@ -147,15 +147,18 @@ async function carregar(){
   const content=document.getElementById('content');
   content.innerHTML='<div class="loading">Carregando registros…</div>';
   try{
-    const [regs,plaqs,servs]=await Promise.all([
+    const [regs,plaqs,servs,mats]=await Promise.all([
       db.from('atividades_campo').select('plaqueta_id,servico_id,etapa,pergunta,resposta,doc_cancelamento,observacoes,usuario_nome,usuario_funcao,data_criacao').order('data_criacao',{ascending:false}),
       db.from('plaquetas').select('id,ls_codigo,tag'),
-      db.from('tipos_servico').select('id,nome')
+      db.from('tipos_servico').select('id,nome'),
+      db.from('materiais').select('ls_codigo,status')
     ]);
     if(regs.error) throw regs.error;
     const pMap={},sMap={};
     (plaqs.data||[]).forEach(p=>pMap[p.id]=p);
     (servs.data||[]).forEach(s=>sMap[s.id]=s);
+    MATBYLS={};
+    if(!mats.error)(mats.data||[]).forEach(m=>{const k=m.ls_codigo||'';(MATBYLS[k]=MATBYLS[k]||[]).push(m.status);});
     RAW=(regs.data||[]).map(r=>({
       ...r,
       ls:(pMap[r.plaqueta_id]||{}).ls_codigo||'—',
@@ -187,7 +190,9 @@ function render(){
     let status='and';
     if(cancel)status='canc';else if(pend)status='pend';
     const ult=rows[0]; // mais recente
-    return {ls:ult.ls,tag:ult.tag,servico:ult.servico,n:rows.length,status,ultEtapa:ult.etapa,ultData:ult.data_criacao};
+    const stats=MATBYLS[ult.ls]||[];
+    const mat={total:stats.length, pend:stats.filter(s=>s==='pendente'||s==='solicitado').length};
+    return {ls:ult.ls,tag:ult.tag,servico:ult.servico,n:rows.length,status,ultEtapa:ult.etapa,ultData:ult.data_criacao,mat:mat};
   }).sort((a,b)=>new Date(b.ultData)-new Date(a.ultData));
 
   // mapa por serviço (estado atual)
@@ -245,7 +250,7 @@ function render(){
     +fchip('pend','Pendências',LSROWS.filter(r=>r.status==='pend').length)
     +fchip('canc','Canceladas',LSROWS.filter(r=>r.status==='canc').length)
     +'</div>';
-  html+='<div class="tbl-wrap"><table><thead><tr><th>LS</th><th>TAG</th><th>Serviço</th><th>Registros</th><th>Última etapa</th><th>Status</th><th>Atualizado</th></tr></thead><tbody id="lsBody"></tbody></table></div>';
+  html+='<div class="tbl-wrap"><table><thead><tr><th>LS</th><th>TAG</th><th>Serviço</th><th>Materiais</th><th>Registros</th><th>Última etapa</th><th>Status</th><th>Atualizado</th></tr></thead><tbody id="lsBody"></tbody></table></div>';
 
   document.getElementById('content').innerHTML=html;
   renderTabela();
@@ -258,17 +263,24 @@ function setFiltro(f){filtro=f;render();}
 function renderTabela(){
   const body=document.getElementById('lsBody');if(!body)return;
   const rows=LSROWS.filter(r=>filtro==='todas'||r.status===filtro);
-  if(!rows.length){body.innerHTML='<tr><td colspan="7" class="empty">Nada aqui.</td></tr>';return;}
+  if(!rows.length){body.innerHTML='<tr><td colspan="8" class="empty">Nada aqui.</td></tr>';return;}
   const B={and:'<span class="badge and">Em andamento</span>',pend:'<span class="badge pend">Pendência</span>',canc:'<span class="badge canc">Cancelada</span>'};
   body.innerHTML=rows.map(r=>'<tr>'
     +'<td><a class="ls-link" href="equip-ls.html?ls='+encodeURIComponent(r.ls)+'">'+esc(r.ls)+'</a></td>'
     +'<td>'+esc(r.tag||'—')+'</td>'
     +'<td>'+esc(r.servico)+'</td>'
+    +matCell(r)
     +'<td>'+r.n+'</td>'
     +'<td>'+esc(r.ultEtapa)+'</td>'
     +'<td>'+(B[r.status]||'')+'</td>'
     +'<td>'+fmtDate(r.ultData)+'</td>'
     +'</tr>').join('');
+}
+function matCell(r){
+  const m=r.mat||{total:0,pend:0};
+  if(!m.total) return '<td style="color:var(--muted)">—</td>';
+  const chip=m.pend>0?'<span class="badge pend">'+m.pend+' pend.</span>':'<span class="badge done">completo</span>';
+  return '<td><a class="ls-link" href="materiais.html?ls='+encodeURIComponent(r.ls)+'">'+m.total+' item'+(m.total>1?'s':'')+'</a> '+chip+'</td>';
 }
 
 function exportarExcel(){

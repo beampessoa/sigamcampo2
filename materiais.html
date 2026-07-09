@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SIGMA CODE — Controle de Materiais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --blue:#0F4CBA;--blue-700:#0B3A91;--blue-300:#5B8AE6;
+  --green:#22C55E;--green-600:#16A34A;
+  --white:#fff;--canvas:#F1F4F9;
+  --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
+  --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
+  --danger:#EF4444;--warning:#F59E0B;
+  --font-d:'Exo 2',system-ui,sans-serif;--font-ui:'Inter',system-ui,sans-serif;
+  --r:8px;--r-md:12px;--r-lg:16px;
+  --sh:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+  --sh-md:0 10px 24px -12px rgba(16,24,40,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 16px 60px}
+.es-header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:13px 16px;display:flex;align-items:center;gap:12px}
+.es-header .logo{width:36px;height:36px;border-radius:9px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.es-header .logo svg{width:19px;height:19px}
+.es-header .tt{font-family:var(--font-d);font-weight:800;font-size:16px;line-height:1.1}
+.es-header .st{font-size:11.5px;color:var(--muted)}
+.es-header .sp{flex:1}
+.es-header a.back{font-size:12.5px;font-weight:700;color:var(--blue);text-decoration:none}
+
+h2.sec{font-family:var(--font-d);font-size:13.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin:24px 4px 12px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh);padding:20px}
+
+/* dropzone */
+.drop{border:2px dashed var(--field-line);border-radius:var(--r-md);padding:26px;text-align:center;cursor:pointer;transition:.15s}
+.drop:hover,.drop.drag{border-color:var(--blue);background:#EFF4FF}
+.drop svg{width:30px;height:30px;color:var(--blue);margin-bottom:8px}
+.drop .t{font-weight:700;font-size:14px}
+.drop .s{font-size:12px;color:var(--muted);margin-top:3px}
+.drop input{display:none}
+
+/* mapping */
+.maprow{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:16px 0}
+.mapf label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em}
+select,input[type=text],input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--field-line);border-radius:var(--r);background:var(--field);font-size:13px;color:var(--ink);font-family:inherit}
+select:focus,input:focus{outline:2px solid var(--blue-300);outline-offset:1px;background:#fff}
+
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md);margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:680px}
+th{text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);padding:9px 11px;background:#FBFCFE;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid #F1F4F9;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.bad{background:#FEF2F2}
+.mini{font-size:11px;color:var(--muted)}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink)}
+.btn:hover{background:var(--field)}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn.primary:hover{background:var(--blue-700)}
+.btn.primary:disabled{background:#9CA3AF;border-color:#9CA3AF;cursor:not-allowed}
+.btn svg{width:15px;height:15px}
+.row-actions{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.count{font-size:12.5px;color:var(--muted)}
+.count b{color:var(--ink)}
+.count .bad{color:var(--danger)}
+
+/* status chip + select */
+.stsel{padding:5px 8px;border-radius:20px;font-size:11.5px;font-weight:700;border:1px solid var(--field-line);background:#fff;cursor:pointer}
+.st-pendente{color:#92400E;background:#FFFBEB;border-color:#FDE68A}
+.st-solicitado{color:var(--blue-700);background:#EFF4FF;border-color:#C7D7F5}
+.st-recebido{color:#166534;background:#F0FDF4;border-color:#BBF7D0}
+.st-aplicado{color:#065F46;background:#ECFDF5;border-color:#A7F3D0}
+.st-devolvido{color:#374151;background:#F3F4F6;border-color:#E5E7EB}
+
+/* add manual */
+.addgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-items:end}
+.addgrid .fld label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em}
+
+/* filtros */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 2px 12px}
+.fchip{font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer}
+.fchip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.search{max-width:280px;margin-left:auto}
+.ls-link{font-family:var(--font-d);font-weight:800;color:var(--blue);text-decoration:none}
+.ls-link:hover{text-decoration:underline}
+.empty{padding:26px;text-align:center;color:var(--muted);font-size:13px}
+
+.toast-wrap{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;width:calc(100% - 32px);max-width:400px}
+.toast{display:flex;align-items:center;gap:9px;padding:12px 15px;border-radius:var(--r);font-size:13px;font-weight:700;box-shadow:var(--sh-md)}
+.toast.ok{background:#166534;color:#fff}.toast.err{background:var(--danger);color:#fff}
+</style>
+</head>
+<body>
+
+<div class="es-header">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.27 6.96 8.73 5.05 8.73-5.05"/><path d="M12 22.08V12"/></svg></div>
+  <div>
+    <div class="tt">Controle de Materiais</div>
+    <div class="st">Status dos materiais por LS</div>
+  </div>
+  <div class="sp"></div>
+  <a class="back" href="index.html">← Início</a>
+</div>
+
+<div class="wrap">
+
+  <!-- IMPORT -->
+  <h2 class="sec">Importar planilha</h2>
+  <div class="panel">
+    <div class="drop" id="drop" onclick="document.getElementById('file').click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5-5 5 5M12 5v12"/></svg>
+      <div class="t">Clique ou arraste um arquivo Excel/CSV</div>
+      <div class="s">Colunas esperadas: LS, NM, Unidade (planta), TAG, Descrição, Status, Qtd, Un. medida</div>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv" onchange="lerArquivo(event)">
+    </div>
+
+    <div id="mapArea" style="display:none">
+      <div class="maprow" id="mapRow"></div>
+      <div class="tbl-wrap"><table id="prevTable"></table></div>
+      <div class="row-actions">
+        <button class="btn primary" id="btnImport" onclick="importar()">Importar</button>
+        <span class="count" id="prevCount"></span>
+        <button class="btn" onclick="cancelarImport()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LISTA -->
+  <h2 class="sec" id="listaTitulo">Materiais</h2>
+  <div class="filters">
+    <button class="fchip on" data-f="todos" onclick="setFiltro('todos')">Todos</button>
+    <button class="fchip" data-f="pendente" onclick="setFiltro('pendente')">Pendentes</button>
+    <button class="fchip" data-f="solicitado" onclick="setFiltro('solicitado')">Solicitados</button>
+    <button class="fchip" data-f="recebido" onclick="setFiltro('recebido')">Recebidos</button>
+    <button class="fchip" data-f="aplicado" onclick="setFiltro('aplicado')">Aplicados</button>
+    <select id="fUni" onchange="filtroUni=this.value;renderLista()" style="max-width:150px"><option value="">Todas unidades</option></select>
+    <input type="text" class="search" id="busca" placeholder="Buscar por LS, NM ou descrição…" oninput="renderLista()">
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Qtd</th><th>UM</th><th>Status</th><th>Atualizado</th></tr></thead>
+      <tbody id="matBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+const SUPA_URL='https://kiwiykgzogcxiseynzyy.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
+const db=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+const STATUS=['pendente','solicitado','recebido','aplicado','devolvido'];
+const STLABEL={pendente:'Pendente',solicitado:'Solicitado',recebido:'Recebido',aplicado:'Aplicado',devolvido:'Devolvido'};
+const CAMPOS=[['ls_codigo','Cód-LS *'],['nm','NM'],['unidade','Unidade (planta)'],['tag','TAG'],['descricao','Descrição *'],['status','Status'],['quantidade','Qtd'],['unidade_medida','Un. medida'],['codigo','Código']];
+
+let MAT=[], filtro='todos', filtroLs=null, filtroUni='';
+let rawRows=[], rawHeaders=[], mapping={};
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(m,t){const w=document.getElementById('toastWrap');const e=document.createElement('div');e.className='toast '+(t||'ok');e.textContent=m;w.appendChild(e);setTimeout(()=>e.remove(),3600);}
+function fmtDate(s){if(!s)return'';const d=new Date(s);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+function normStatus(s){const n=norm(s);if(STATUS.includes(n))return n;
+  if(/receb/.test(n))return'recebido';if(/solicit|comprad/.test(n))return'solicitado';
+  if(/aplic|instal/.test(n))return'aplicado';if(/devolv/.test(n))return'devolvido';
+  if(/pend/.test(n))return'pendente';return null;}
+
+// ── carregar lista ──
+async function carregar(){
+  const p=new URLSearchParams(location.search);
+  filtroLs=p.get('ls');
+  if(filtroLs){document.getElementById('listaTitulo').textContent='Materiais · '+filtroLs;}
+  try{
+    let q=db.from('materiais').select('*').order('ls_codigo').order('nm');
+    if(filtroLs) q=q.eq('ls_codigo',filtroLs);
+    const {data,error}=await q;
+    if(error) throw error;
+    MAT=data||[];
+    popularUnidades();
+    renderLista();
+  }catch(e){document.getElementById('matBody').innerHTML='<tr><td colspan="9" class="empty">Erro: '+esc(e.message||e)+'</td></tr>';}
+}
+function popularUnidades(){
+  const uni=[...new Set(MAT.map(m=>m.unidade).filter(Boolean))].sort();
+  const sel=document.getElementById('fUni');
+  sel.innerHTML='<option value="">Todas unidades</option>'+uni.map(u=>'<option value="'+esc(u)+'"'+(u===filtroUni?' selected':'')+'>Unidade '+esc(u)+'</option>').join('');
+}
+
+function setFiltro(f){filtro=f;document.querySelectorAll('.fchip').forEach(b=>b.classList.toggle('on',b.dataset.f===f));renderLista();}
+
+function renderLista(){
+  const q=norm(document.getElementById('busca').value);
+  let rows=MAT.filter(m=>filtro==='todos'||m.status===filtro);
+  if(filtroUni) rows=rows.filter(m=>m.unidade===filtroUni);
+  if(q) rows=rows.filter(m=>norm(m.ls_codigo).includes(q)||norm(m.nm).includes(q)||norm(m.descricao).includes(q));
+  const body=document.getElementById('matBody');
+  if(!rows.length){body.innerHTML='<tr><td colspan="9" class="empty">Nenhum material.</td></tr>';return;}
+  body.innerHTML=rows.map(m=>'<tr>'
+    +'<td>'+esc(m.nm||'—')+'</td>'
+    +'<td><a class="ls-link" href="equip-ls.html?ls='+encodeURIComponent(m.ls_codigo)+'">'+esc(m.ls_codigo)+'</a></td>'
+    +'<td>'+esc(m.unidade||'—')+'</td>'
+    +'<td>'+esc(m.tag||'—')+'</td>'
+    +'<td>'+esc(m.descricao||'')+'</td>'
+    +'<td>'+(m.quantidade!=null?esc(m.quantidade):'—')+'</td>'
+    +'<td>'+esc(m.unidade_medida||'—')+'</td>'
+    +'<td>'+selStatus(m)+'</td>'
+    +'<td class="mini">'+fmtDate(m.data_atualizacao||m.data_criacao)+'</td>'
+    +'</tr>').join('');
+}
+function selStatus(m){
+  return '<select class="stsel st-'+m.status+'" onchange="mudarStatus('+m.id+',this.value,this)">'
+    +STATUS.map(s=>'<option value="'+s+'"'+(s===m.status?' selected':'')+'>'+STLABEL[s]+'</option>').join('')+'</select>';
+}
+async function mudarStatus(id,val,el){
+  el.className='stsel st-'+val;
+  try{
+    const {error}=await db.from('materiais').update({status:val,data_atualizacao:new Date().toISOString()}).eq('id',id);
+    if(error) throw error;
+    const m=MAT.find(x=>x.id===id);if(m){m.status=val;m.data_atualizacao=new Date().toISOString();}
+    toast('Status atualizado','ok');
+    if(filtro!=='todos')renderLista();
+  }catch(e){toast('Erro: '+(e.message||e),'err');}
+}
+
+// ── add manual ──
+// ── import Excel ──
+function lerArquivo(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(!arr.length){toast('Planilha vazia','err');return;}
+      rawHeaders=arr[0].map(h=>String(h||'').trim());
+      rawRows=arr.slice(1).filter(r=>r.some(c=>String(c).trim()!==''));
+      autoMap();montarMap();preview();
+      document.getElementById('mapArea').style.display='';
+    }catch(err){toast('Erro ao ler: '+(err.message||err),'err');}
+  };
+  reader.readAsArrayBuffer(f);
+}
+function autoMap(){
+  mapping={};
+  const find=(re,avoid)=>{for(let i=0;i<rawHeaders.length;i++){const h=norm(rawHeaders[i]);if(re.test(h)&&!(avoid&&avoid.test(h)))return i;}return -1;};
+  mapping.ls_codigo=find(/(^|[^a-z])ls([^a-z]|$)|cod.?ls|ls.?cod/);
+  mapping.nm=find(/^nm$|nota.?manut|^n\.?m\.?$/);
+  mapping.unidade=find(/unidade|^und$|planta|instala/,/med/);
+  mapping.tag=find(/tag/);
+  mapping.descricao=find(/descri|material/);
+  mapping.status=find(/status|situa/);
+  mapping.quantidade=find(/quant|qtd/);
+  mapping.unidade_medida=find(/unid.?med|^um$|^un$|medida|u\.?m/);
+  mapping.codigo=find(/codig/,/ls/);
+}
+function montarMap(){
+  const opts=i=>'<option value="-1">— não mapear —</option>'+rawHeaders.map((h,idx)=>'<option value="'+idx+'"'+(idx===i?' selected':'')+'>'+esc(h||('coluna '+(idx+1)))+'</option>').join('');
+  document.getElementById('mapRow').innerHTML=CAMPOS.map(([k,lbl])=>
+    '<div class="mapf"><label>'+lbl+'</label><select onchange="mapping[\''+k+'\']=+this.value;preview()">'+opts(mapping[k])+'</select></div>').join('');
+}
+function valLinha(r){
+  const g=k=>{const i=mapping[k];return i>=0?String(r[i]).trim():'';};
+  const ls=g('ls_codigo'),desc=g('descricao');
+  const st=g('status')?normStatus(g('status')):'pendente';
+  const q=g('quantidade');
+  return {ls_codigo:ls,nm:g('nm')||null,unidade:g('unidade')||null,tag:g('tag')||null,descricao:desc,
+    status:st||'pendente',statusRaw:g('status'),statusBad:!!(g('status')&&!st),
+    quantidade:q===''?null:(isNaN(Number(q))?null:Number(q)),unidade_medida:g('unidade_medida')||null,codigo:g('codigo')||null,
+    _bad:(!ls||!desc)};
+}
+function preview(){
+  const rows=rawRows.map(valLinha);
+  const ok=rows.filter(r=>!r._bad).length, bad=rows.length-ok, stbad=rows.filter(r=>r.statusBad).length;
+  const head='<thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Qtd</th><th>UM</th><th>Status</th></tr></thead>';
+  const body='<tbody>'+rows.slice(0,50).map(r=>'<tr class="'+(r._bad?'bad':'')+'"><td>'+esc(r.nm||'')+'</td><td>'+esc(r.ls_codigo||'⚠ vazio')+'</td><td>'+esc(r.unidade||'')+'</td><td>'+esc(r.tag||'')+'</td><td>'+esc(r.descricao||'⚠ vazio')+'</td><td>'+(r.quantidade!=null?r.quantidade:'')+'</td><td>'+esc(r.unidade_medida||'')+'</td><td>'+STLABEL[r.status]+(r.statusBad?' <span class="mini">(“'+esc(r.statusRaw)+'”→pendente)</span>':'')+'</td></tr>').join('')+'</tbody>';
+  document.getElementById('prevTable').innerHTML=head+body;
+  document.getElementById('prevCount').innerHTML='<b>'+ok+'</b> válidos'+(bad?' · <span class="bad">'+bad+' ignorados (sem LS/descrição)</span>':'')+(stbad?' · '+stbad+' status corrigidos':'')+(rows.length>50?' · mostrando 50 de '+rows.length:'');
+  document.getElementById('btnImport').disabled=ok===0;
+  window.__toImport=rows.filter(r=>!r._bad).map(r=>({ls_codigo:r.ls_codigo,nm:r.nm,unidade:r.unidade,tag:r.tag,descricao:r.descricao,status:r.status,quantidade:r.quantidade,unidade_medida:r.unidade_medida,codigo:r.codigo}));
+}
+async function importar(){
+  const rows=window.__toImport||[];if(!rows.length){toast('Nada para importar','err');return;}
+  const btn=document.getElementById('btnImport');btn.disabled=true;const t=btn.textContent;btn.textContent='Importando…';
+  try{
+    for(let i=0;i<rows.length;i+=500){
+      const {error}=await db.from('materiais').insert(rows.slice(i,i+500));
+      if(error) throw error;
+    }
+    toast(rows.length+' materiais importados','ok');
+    cancelarImport();carregar();
+  }catch(e){toast('Erro ao importar: '+(e.message||e),'err');btn.disabled=false;btn.textContent=t;}
+}
+function cancelarImport(){document.getElementById('mapArea').style.display='none';document.getElementById('file').value='';rawRows=[];rawHeaders=[];}
+
+// dnd
+const dz=document.getElementById('drop');
+['dragover','dragenter'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));
+dz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){document.getElementById('file').files=e.dataTransfer.files;lerArquivo({target:{files:[f]}});}});
+
+carregar();
+</script>
+</body>
+</html>
