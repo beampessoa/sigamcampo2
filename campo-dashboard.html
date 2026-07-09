@@ -48,7 +48,7 @@ h2.sec{font-family:var(--font-d);font-size:14px;font-weight:800;letter-spacing:.
   text-transform:uppercase;color:var(--muted);margin:26px 4px 12px}
 
 /* KPIs */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:16px;box-shadow:var(--sh)}
 .kpi .n{font-family:var(--font-d);font-size:30px;font-weight:800;line-height:1}
 .kpi .l{font-size:12px;color:var(--muted);margin-top:6px;font-weight:600}
@@ -87,6 +87,8 @@ h2.sec{font-family:var(--font-d);font-size:14px;font-weight:800;letter-spacing:.
 .chip.nao{background:#FEF2F2;color:#991B1B}
 .chip.na{background:#F3F4F6;color:#374151}
 .chip.canc{background:#FFFBEB;color:#92400E}
+.chip.aguard{background:#EEF2F7;color:#334155}
+.badge.aguard{background:#EEF2F7;color:#334155}
 
 /* tabela LS */
 .filters{display:flex;gap:7px;flex-wrap:wrap;margin:0 4px 12px}
@@ -139,7 +141,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const db=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 const LABEL={sim:'Sim',nao:'Não',na:'N/A',cancelado:'Cancelado'};
-let RAW=[], LSROWS=[], filtro='todas', MATBYLS={};
+let RAW=[], LSROWS=[], filtro='todas', MATBYLS={}, PLAQS=[], sMap={};
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(m,t){const w=document.getElementById('toastWrap');const e=document.createElement('div');e.className='toast '+(t||'ok');e.textContent=m;w.appendChild(e);setTimeout(()=>e.remove(),3600);}
@@ -151,14 +153,15 @@ async function carregar(){
   try{
     const [regs,plaqs,servs,mats]=await Promise.all([
       db.from('atividades_campo').select('plaqueta_id,servico_id,etapa,pergunta,resposta,doc_cancelamento,observacoes,usuario_nome,usuario_funcao,data_criacao').order('data_criacao',{ascending:false}),
-      db.from('plaquetas').select('id,ls_codigo,tag,unidade'),
+      db.from('plaquetas').select('id,ls_codigo,tag,unidade,servico_id,created_at'),
       db.from('tipos_servico').select('id,nome'),
       db.from('materiais').select('ls_codigo,status,data_prevista,data_recebimento')
     ]);
     if(regs.error) throw regs.error;
-    const pMap={},sMap={};
+    const pMap={}; sMap={};
     (plaqs.data||[]).forEach(p=>pMap[p.id]=p);
     (servs.data||[]).forEach(s=>sMap[s.id]=s);
+    PLAQS=plaqs.data||[];
     MATBYLS={};
     if(!mats.error)(mats.data||[]).forEach(m=>{const k=m.ls_codigo||'';(MATBYLS[k]=MATBYLS[k]||[]).push(m);});
     RAW=(regs.data||[]).map(r=>({
@@ -182,45 +185,55 @@ function render(){
   const plaquetasComCancel=new Set(RAW.filter(r=>r.resposta==='cancelado').map(r=>r.plaqueta_id));
   const pendencias=latest.filter(r=>r.resposta==='nao');
   const lsAtivas=new Set(RAW.map(r=>r.plaqueta_id));
+  const instaladas=new Set(latest.filter(r=>r.etapa===1&&r.resposta==='sim').map(r=>r.plaqueta_id));
 
-  // agrupa por LS
+  // resumo de material por LS
+  const hoje=new Date().toISOString().slice(0,10);
+  const receb=m=>!!m.data_recebimento||m.status==='recebido'||m.status==='aplicado';
+  function matResumo(ls){
+    const stats=MATBYLS[ls]||[];
+    return {total:stats.length,
+      pend:stats.filter(m=>m.status==='pendente'||m.status==='solicitado').length,
+      atras:stats.filter(m=>m.data_prevista && !receb(m) && String(m.data_prevista).slice(0,10)<=hoje).length};
+  }
+
+  // atividades agrupadas por plaqueta
   const byLs={};
   RAW.forEach(r=>{(byLs[r.plaqueta_id]=byLs[r.plaqueta_id]||[]).push(r);});
-  LSROWS=Object.keys(byLs).map(pid=>{
-    const rows=byLs[pid];
-    const cancel=plaquetasComCancel.has(pid);
-    const pend=latest.some(r=>r.plaqueta_id===pid&&r.resposta==='nao');
-    let status='and';
-    if(cancel)status='canc';else if(pend)status='pend';
-    const ult=rows[0]; // mais recente
-    const stats=MATBYLS[ult.ls]||[];
-    const hoje=new Date().toISOString().slice(0,10);
-    const receb=m=>!!m.data_recebimento||m.status==='recebido'||m.status==='aplicado';
-    const mat={
-      total:stats.length,
-      pend:stats.filter(m=>m.status==='pendente'||m.status==='solicitado').length,
-      atras:stats.filter(m=>m.data_prevista && !receb(m) && String(m.data_prevista).slice(0,10)<=hoje).length
-    };
-    return {ls:ult.ls,tag:ult.tag,servico:ult.servico,n:rows.length,status,ultEtapa:ult.etapa,ultPergunta:ult.pergunta||'',ultData:ult.data_criacao,mat:mat};
-  }).sort((a,b)=>new Date(b.ultData)-new Date(a.ultData));
 
-  // mapa por unidade → serviço (estado atual)
-  const byUni={};
-  latest.forEach(r=>{
-    const u=r.unidade||'—', k=r.servico||'—';
-    const un=byUni[u]=byUni[u]||{};
-    const o=un[k]=un[k]||{sim:0,nao:0,na:0,cancelado:0,ls:new Set()};
-    if(o[r.resposta]!=null)o[r.resposta]++;
-    o.ls.add(r.plaqueta_id);
+  // LSROWS = TODAS as plaquetas (com ou sem atividade)
+  LSROWS=PLAQS.map(p=>{
+    const rows=byLs[p.id]||[];
+    const servico=(sMap[p.servico_id]||{}).nome||'—';
+    const mat=matResumo(p.ls_codigo);
+    const inst=instaladas.has(p.id);
+    const cancel=rows.some(r=>r.resposta==='cancelado');
+    const pend=latest.some(r=>r.plaqueta_id===p.id&&r.resposta==='nao');
+    let status; if(cancel)status='canc'; else if(!inst)status='aguardando'; else if(pend)status='pend'; else status='and';
+    const ult=rows[0];
+    return {ls:p.ls_codigo,tag:(ult&&ult.tag)||p.tag||'',servico:(ult&&ult.servico)||servico,unidade:(ult&&ult.unidade)||p.unidade||'—',n:rows.length,status,inst,ultEtapa:ult?ult.etapa:null,ultPergunta:ult?(ult.pergunta||''):'',ultData:ult?ult.data_criacao:(p.created_at||null),mat};
+  }).sort((a,b)=>{
+    if(a.status==='aguardando'&&b.status!=='aguardando')return 1;
+    if(b.status==='aguardando'&&a.status!=='aguardando')return -1;
+    return new Date(b.ultData||0)-new Date(a.ultData||0);
   });
 
+  const aguardando=LSROWS.filter(r=>r.status==='aguardando').length;
+  const instaladasN=LSROWS.filter(r=>r.inst).length;
   const kCanc=plaquetasComCancel.size;
+
+  // mapa por unidade → serviço (todas as plaquetas; aguardando = não instalada)
+  const byUni={};
+  function cell(u,k){const un=byUni[u]=byUni[u]||{};return un[k]=un[k]||{sim:0,nao:0,na:0,cancelado:0,aguardando:0,ls:new Set()};}
+  PLAQS.forEach(p=>{const u=p.unidade||'—';const k=(sMap[p.servico_id]||{}).nome||'—';const o=cell(u,k);o.ls.add(p.id);if(!instaladas.has(p.id)&&!plaquetasComCancel.has(p.id))o.aguardando++;});
+  latest.forEach(r=>{const o=cell(r.unidade||'—',r.servico||'—');if(o[r.resposta]!=null)o[r.resposta]++;});
 
   let html='';
   // KPIs
   html+='<div class="kpis">'
-    +kpi(RAW.length,'Registros no total','')
-    +kpi(lsAtivas.size,'LS com atividade','')
+    +kpi(LSROWS.length,'Total de LS','')
+    +kpi(instaladasN,'Instaladas (etapa 1)','ok')
+    +kpi(aguardando,'Aguardando instalação','canc')
     +kpi(pendencias.length,'Pendências (Não)','warn')
     +kpi(kCanc,'LS canceladas','canc')
     +'</div>';
@@ -246,11 +259,12 @@ function render(){
   }else{
     html+=uniKeys.map(u=>{
       const svcs=byUni[u];
-      const cards=Object.keys(svcs).sort().map(k=>{const o=svcs[k];return '<div class="svc"><div class="nm">'+esc(k)+'</div><div class="ls">'+o.ls.size+' LS · '+(o.sim+o.nao+o.na+o.cancelado)+' etapas</div><div class="chips">'
+      const cards=Object.keys(svcs).sort().map(k=>{const o=svcs[k];return '<div class="svc"><div class="nm">'+esc(k)+'</div><div class="ls">'+o.ls.size+' LS'+(o.aguardando?' · '+o.aguardando+' aguardando':'')+'</div><div class="chips">'
         +(o.sim?'<span class="chip sim">Sim '+o.sim+'</span>':'')
         +(o.nao?'<span class="chip nao">Não '+o.nao+'</span>':'')
         +(o.na?'<span class="chip na">N/A '+o.na+'</span>':'')
         +(o.cancelado?'<span class="chip canc">Cancel. '+o.cancelado+'</span>':'')
+        +(o.aguardando?'<span class="chip aguard">Aguard. '+o.aguardando+'</span>':'')
         +'</div></div>';}).join('');
       return '<div class="unihdr">Unidade '+esc(u)+'</div><div class="svcgrid">'+cards+'</div>';
     }).join('');
@@ -263,6 +277,7 @@ function render(){
     +fchip('and','Em andamento',LSROWS.filter(r=>r.status==='and').length)
     +fchip('pend','Pendências',LSROWS.filter(r=>r.status==='pend').length)
     +fchip('canc','Canceladas',LSROWS.filter(r=>r.status==='canc').length)
+    +fchip('aguardando','Aguardando',LSROWS.filter(r=>r.status==='aguardando').length)
     +'</div>';
   html+='<div class="tbl-wrap"><table><thead><tr><th>LS</th><th>TAG</th><th>Serviço</th><th>Materiais</th><th>Registros</th><th>Última etapa</th><th>Status</th><th>Atualizado</th></tr></thead><tbody id="lsBody"></tbody></table></div>';
 
@@ -278,14 +293,14 @@ function renderTabela(){
   const body=document.getElementById('lsBody');if(!body)return;
   const rows=LSROWS.filter(r=>filtro==='todas'||r.status===filtro);
   if(!rows.length){body.innerHTML='<tr><td colspan="8" class="empty">Nada aqui.</td></tr>';return;}
-  const B={and:'<span class="badge and">Em andamento</span>',pend:'<span class="badge pend">Pendência</span>',canc:'<span class="badge canc">Cancelada</span>'};
+  const B={and:'<span class="badge and">Em andamento</span>',pend:'<span class="badge pend">Pendência</span>',canc:'<span class="badge canc">Cancelada</span>',aguardando:'<span class="badge aguard">Aguardando</span>'};
   body.innerHTML=rows.map(r=>'<tr>'
     +'<td><a class="ls-link" href="equip-ls.html?ls='+encodeURIComponent(r.ls)+'">'+esc(r.ls)+'</a></td>'
     +'<td>'+esc(r.tag||'—')+'</td>'
     +'<td>'+esc(r.servico)+'</td>'
     +matCell(r)
     +'<td>'+r.n+'</td>'
-    +'<td>'+(r.ultPergunta?('<b>Etapa '+esc(r.ultEtapa)+'</b><div style="font-size:11.5px;color:var(--muted);margin-top:2px">'+esc(r.ultPergunta)+'</div>'):esc(r.ultEtapa))+'</td>'
+    +'<td>'+(r.ultEtapa==null?'<span style="color:var(--muted)">—</span>':(r.ultPergunta?('<b>Etapa '+esc(r.ultEtapa)+'</b><div style="font-size:11.5px;color:var(--muted);margin-top:2px">'+esc(r.ultPergunta)+'</div>'):esc(r.ultEtapa)))+'</td>'
     +'<td>'+(B[r.status]||'')+'</td>'
     +'<td>'+fmtDate(r.ultData)+'</td>'
     +'</tr>').join('');
@@ -293,11 +308,11 @@ function renderTabela(){
 function matCell(r){
   const m=r.mat||{total:0,pend:0,atras:0};
   if(!m.total) return '<td style="color:var(--muted)">—</td>';
-  let chip;
-  if(m.atras>0) chip='<span class="badge canc" style="background:#FEF2F2;color:#991B1B">'+m.atras+' atrasado'+(m.atras>1?'s':'')+'</span>';
-  else if(m.pend>0) chip='<span class="badge pend">'+m.pend+' pend.</span>';
-  else chip='<span class="badge done">completo</span>';
-  return '<td><a class="ls-link" href="materiais.html?ls='+encodeURIComponent(r.ls)+'">'+m.total+' item'+(m.total>1?'s':'')+'</a> '+chip+'</td>';
+  let cls,txt;
+  if(m.atras>0){cls='pend';txt='Atrasado';}
+  else if(m.pend>0){cls='canc';txt='Pendente';}
+  else {cls='done';txt='Completo';}
+  return '<td><a class="ls-link" href="materiais.html?ls='+encodeURIComponent(r.ls)+'"><span class="badge '+cls+'">'+txt+'</span></a></td>';
 }
 
 function exportarExcel(){
@@ -327,7 +342,11 @@ function exportarExcel(){
 }
 
 // realtime: novo registro → recarrega
-db.channel('campo_dash').on('postgres_changes',{event:'INSERT',schema:'public',table:'atividades_campo'},()=>carregar()).subscribe();
+db.channel('campo_dash')
+  .on('postgres_changes',{event:'*',schema:'public',table:'atividades_campo'},()=>carregar())
+  .on('postgres_changes',{event:'*',schema:'public',table:'plaquetas'},()=>carregar())
+  .on('postgres_changes',{event:'*',schema:'public',table:'materiais'},()=>carregar())
+  .subscribe();
 
 carregar();
 </script>
