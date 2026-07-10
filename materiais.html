@@ -99,6 +99,7 @@ tr.bad{background:#FEF2F2}
 .lsbody table{width:100%;border-collapse:collapse;font-size:12.5px;border-top:1px solid var(--line)}
 .lsbody th{text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);padding:8px 16px;background:#FBFCFE;white-space:nowrap}
 .lsbody td{padding:8px 16px;border-top:1px solid #F1F4F9}
+.naocad-tag{margin-left:auto;font-size:11.5px;font-weight:800;color:#4B5563;background:#F3F4F6;padding:3px 10px;border-radius:20px}
 
 /* add manual */
 .addgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-items:end}
@@ -167,6 +168,7 @@ tr.bad{background:#FEF2F2}
     <button class="fchip" data-f="aplicado" onclick="setFiltro('aplicado')">Aplicados</button>
     <button class="fchip" data-f="areceber" onclick="setFiltro('areceber')">A receber</button>
     <button class="fchip" data-f="atrasados" onclick="setFiltro('atrasados')">Atrasados</button>
+    <button class="fchip" data-f="naocad" onclick="setFiltro('naocad')">LS não cadastradas</button>
     <select id="fUni" onchange="filtroUni=this.value;renderLista()" style="max-width:150px"><option value="">Todas unidades</option></select>
     <input type="text" class="search" id="busca" placeholder="Buscar por LS, NM ou descrição…" oninput="renderLista()">
   </div>
@@ -194,7 +196,7 @@ const STLABEL={pendente:'Pendente',solicitado:'Solicitado',recebido:'Recebido',a
 const CAMPOS=[['ls_codigo','Cód-LS *'],['nm','NM'],['unidade','Unidade (planta)'],['tag','TAG'],['descricao','Descrição *'],['status','Status'],['data_prevista','Previsão'],['data_recebimento','Recebido em'],['quantidade','Qtd'],['unidade_medida','Un. medida'],['codigo','Código']];
 
 const TODAY=new Date().toISOString().slice(0,10);
-let MAT=[], filtro='todos', filtroLs=null, filtroUni='', viewMode='lista';
+let MAT=[], PLAQS=[], filtro='todos', filtroLs=null, filtroUni='', viewMode='lista';
 
 function fmtDay(iso){if(!iso)return '—';const s=String(iso).slice(0,10);const p=s.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s;}
 function isRecebido(m){return !!m.data_recebimento || m.status==='recebido' || m.status==='aplicado';}
@@ -228,15 +230,19 @@ async function carregar(){
   try{
     let q=db.from('materiais').select('*').order('ls_codigo').order('nm');
     if(filtroLs) q=q.eq('ls_codigo',filtroLs);
-    const {data,error}=await q;
-    if(error) throw error;
-    MAT=data||[];
+    const [mres,pres]=await Promise.all([
+      q,
+      filtroLs?Promise.resolve({data:[]}):db.from('plaquetas').select('ls_codigo,unidade,tag').order('ls_codigo')
+    ]);
+    if(mres.error) throw mres.error;
+    MAT=mres.data||[];
+    PLAQS=pres&&!pres.error?(pres.data||[]):[];
     popularUnidades();
     renderLista();
   }catch(e){document.getElementById('matBody').innerHTML='<tr><td colspan="11" class="empty">Erro: '+esc(e.message||e)+'</td></tr>';}
 }
 function popularUnidades(){
-  const uni=[...new Set(MAT.map(m=>m.unidade).filter(Boolean))].sort();
+  const uni=[...new Set([...MAT.map(m=>m.unidade),...PLAQS.map(p=>p.unidade)].filter(Boolean))].sort();
   const sel=document.getElementById('fUni');
   sel.innerHTML='<option value="">Todas unidades</option>'+uni.map(u=>'<option value="'+esc(u)+'"'+(u===filtroUni?' selected':'')+'>Unidade '+esc(u)+'</option>').join('');
 }
@@ -258,9 +264,32 @@ function filtrarMat(){
 
 // dispatcher de visão
 function renderLista(){
+  if(filtro==='naocad'){
+    document.getElementById('viewLista').style.display='none';
+    document.getElementById('viewPorLS').style.display='';
+    renderNaoCad();
+    return;
+  }
   document.getElementById('viewLista').style.display = viewMode==='porLS'?'none':'';
   document.getElementById('viewPorLS').style.display = viewMode==='porLS'?'':'none';
   if(viewMode==='porLS') renderGrouped(); else renderFlat();
+}
+
+function renderNaoCad(){
+  const q=norm(document.getElementById('busca').value);
+  const comMaterial=new Set(MAT.map(m=>m.ls_codigo));
+  let rows=PLAQS.filter(p=>!comMaterial.has(p.ls_codigo));
+  if(filtroUni) rows=rows.filter(p=>p.unidade===filtroUni);
+  if(q) rows=rows.filter(p=>norm(p.ls_codigo).includes(q)||norm(p.tag).includes(q));
+  const cont=document.getElementById('viewPorLS');
+  if(!rows.length){cont.innerHTML='<div class="panel empty">Todas as LS já têm material cadastrado 🎉</div>';return;}
+  cont.innerHTML=rows.map(p=>'<div class="lsgroup"><div class="lshead" style="cursor:default">'
+    +'<span class="lscode">'+esc(p.ls_codigo)+'</span>'
+    +(p.unidade?'<span class="lsuni">Un '+esc(p.unidade)+'</span>':'')
+    +(p.tag?'<span class="lssum">TAG '+esc(p.tag)+'</span>':'')
+    +'<span class="naocad-tag">Ainda não cadastrado</span>'
+    +'<a class="lsopen" href="equip-ls.html?ls='+encodeURIComponent(p.ls_codigo)+'">ficha ↗</a>'
+    +'</div></div>').join('');
 }
 
 function renderFlat(){
