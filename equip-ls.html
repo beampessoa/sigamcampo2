@@ -150,6 +150,22 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
 
 /* ══ REGISTRO DE ATIVIDADE (CDR) ══ */
 /* botão principal na ficha */
+.mat-box{margin-top:18px;border:1px solid var(--line);border-radius:var(--r-md);padding:16px;background:#fff}
+.mat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mat-head h3{font-family:var(--font-d);font-size:14px;font-weight:800}
+.mat-chip{font-size:12px;font-weight:800;padding:3px 11px;border-radius:20px}
+.mat-chip.red{background:#FEF2F2;color:#991B1B}
+.mat-chip.green{background:#F0FDF4;color:#166534}
+.mat-chip.gray{background:#F3F4F6;color:#4B5563}
+.mat-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F1F4F9}
+.mat-row:last-child{border-bottom:none}
+.mat-info{flex:1;min-width:0;font-size:13px;color:var(--ink)}
+.mat-info b{font-family:var(--font-d)}
+.mat-tag{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap;flex:none}
+.mat-tag.red{background:#FEF2F2;color:#991B1B}
+.mat-tag.green{background:#F0FDF4;color:#166534}
+.mat-link{display:inline-block;margin-top:12px;font-size:12.5px;font-weight:700;color:var(--blue);text-decoration:none}
+.mat-link:hover{text-decoration:underline}
 .btn-registro{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
   margin-top:16px;padding:13px;border:none;border-radius:var(--r);background:var(--blue);
   color:#fff;font-size:14px;font-weight:700;cursor:pointer}
@@ -249,7 +265,7 @@ textarea:focus{outline:2px solid var(--blue-300);outline-offset:1px;background:#
   body{background:#fff;padding:0;display:block}
   .wrap{max-width:none}
   .card{border:none;box-shadow:none}
-  .acts,.drive,.seg,.foot,.btn-registro,.cdr-hist{display:none!important}
+  .acts,.drive,.seg,.foot,.btn-registro,.cdr-hist,.mat-box{display:none!important}
   .qr-panel{border-color:#ccc}
 }
 </style>
@@ -285,7 +301,7 @@ textarea:focus{outline:2px solid var(--blue-300);outline-offset:1px;background:#
     <div class="state center card-pad" id="stPick">
       <div class="big-ico warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
       <h2>Qual equipamento?</h2>
-      <p class="msg">Mais de um registro para <b id="pickCode"></b>. Escolha pela <b>LS</b> que está impressa na etiqueta (ela é única):</p>
+      <p class="msg">Mais de um registro para <b id="pickCode"></b>. Escolha pela <b>LS</b> que está impressa na etiqueta (Plaqueta única):</p>
       <div class="pick" id="pickList"></div>
     </div>
 
@@ -471,6 +487,8 @@ async function renderFicha(p){
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
       Abrir pasta no Drive</a>`:''}
 
+    <div class="mat-box" id="matBox" style="display:none"></div>
+
     <button class="btn-registro" onclick="abrirRegistro()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
       Registrar Atividade
@@ -494,6 +512,7 @@ async function renderFicha(p){
   window.__servicoNome = ex.servicoNome || p.servico || '';
   show('stFicha');
   carregarHistoricoCDR();
+  carregarMateriaisLS();
 }
 
 // ═══════════════════════════════════════════════
@@ -880,6 +899,45 @@ async function carregarHistoricoCDR(){
         (r.observacoes?'<div class="o">'+esc(r.observacoes)+'</div>':'')+
         '</div></div>';
     }).join('');
+  }catch(e){ box.style.display='none'; }
+}
+
+async function carregarMateriaisLS(){
+  const p=window.__ficha; if(!p) return;
+  const box=document.getElementById('matBox'); if(!box) return;
+  const hoje=new Date().toISOString().slice(0,10);
+  const receb=m=>!!m.data_recebimento||m.status==='recebido'||m.status==='aplicado';
+  const venc=m=>!!m.data_prevista&&!receb(m)&&String(m.data_prevista).slice(0,10)<=hoje;
+  const LB={pendente:'Pendente',solicitado:'Solicitado',recebido:'Recebido',aplicado:'Aplicado',devolvido:'Devolvido'};
+  try{
+    const {data,error}=await db.from('materiais')
+      .select('nm,descricao,status,data_prevista,data_recebimento,unidade_medida,quantidade')
+      .eq('ls_codigo',p.ls_codigo).order('nm');
+    if(error) throw error;
+    if(!data||!data.length){
+      box.style.display='';
+      box.innerHTML='<div class="mat-head"><h3>Materiais desta LS</h3><span class="mat-chip gray">Ainda não cadastrado</span></div>';
+      return;
+    }
+    const total=data.length;
+    const atras=data.filter(venc).length;
+    const pend=data.filter(m=>!receb(m)&&!venc(m)).length;
+    let chip;
+    if(atras>0) chip='<span class="mat-chip red">'+atras+' atrasado'+(atras>1?'s':'')+'</span>';
+    else if(pend>0) chip='<span class="mat-chip red">'+pend+' pendente'+(pend>1?'s':'')+'</span>';
+    else chip='<span class="mat-chip green">Completo</span>';
+    const linhas=data.map(m=>{
+      const v=venc(m), r=receb(m);
+      const st=v?'red':(r?'green':'red');           // pendente/atrasado = vermelho; recebido/aplicado = verde
+      const stTxt=v?'Atrasado':(LB[m.status]||m.status);
+      const q=(m.quantidade!=null?(' · '+esc(m.quantidade)+(m.unidade_medida?' '+esc(m.unidade_medida):'')):'');
+      return '<div class="mat-row"><div class="mat-info"><b>'+esc(m.nm||'—')+'</b> '+esc(m.descricao||'')+q+'</div>'+
+        '<span class="mat-tag '+st+'">'+esc(stTxt)+'</span></div>';
+    }).join('');
+    box.style.display='';
+    box.innerHTML='<div class="mat-head"><h3>Materiais desta LS</h3>'+chip+'</div>'+
+      '<div class="mat-list">'+linhas+'</div>'+
+      '<a class="mat-link" href="materiais.html?ls='+encodeURIComponent(p.ls_codigo)+'">Ver no controle de materiais →</a>';
   }catch(e){ box.style.display='none'; }
 }
 
