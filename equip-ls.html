@@ -151,6 +151,16 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
 /* ══ REGISTRO DE ATIVIDADE (CDR) ══ */
 /* botão principal na ficha */
 .mat-box{margin-top:18px;border:1px solid var(--line);border-radius:var(--r-md);padding:16px;background:#fff}
+.valv-box{margin-top:18px;border:1px solid var(--line);border-radius:var(--r-md);padding:16px;background:#fff}
+.valv-head{font-family:var(--font-d);font-size:14px;font-weight:800;margin-bottom:12px}
+.valv-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+.valv-grid>div{display:flex;flex-direction:column;gap:2px}
+.valv-grid .vk{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.valv-grid .vv{font-size:15px;font-weight:700;color:var(--ink)}
+.valv-grid .vv.muted{color:var(--muted);font-weight:500}
+.valv-grid .vv.warn{color:#92400E}
+.valv-check{display:flex;align-items:flex-start;gap:8px;margin-top:14px;padding:10px 12px;border-radius:var(--r);background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;font-size:12.5px;font-weight:600}
+.valv-check svg{width:16px;height:16px;flex:none;margin-top:1px}
 .mat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .mat-head h3{font-family:var(--font-d);font-size:14px;font-weight:800}
 .mat-chip{font-size:12px;font-weight:800;padding:3px 11px;border-radius:20px}
@@ -464,6 +474,24 @@ async function renderFicha(p){
   linhas.push(['Ordem de Serviço', ex.osNumero ? (ex.osNumero + (ex.osDesc?` — ${ex.osDesc}`:'')) : null]);
   linhas.push(['Descrição', p.descricao]);
 
+  const temValv = p.tipo || p.diametro || p.classe || p.tipo_montagem;
+  const montLabel = p.tipo_montagem==='soldagem' ? 'Soldagem'
+                  : (p.tipo_montagem==='torque' ? 'Torque controlado' : '');
+  const valvBloco = temValv ? `
+    <div class="valv-box">
+      <div class="valv-head">Dados da válvula</div>
+      <div class="valv-grid">
+        <div><span class="vk">Tipo</span><span class="vv ${p.tipo?'':'muted'}">${p.tipo?esc(p.tipo):'—'}</span></div>
+        <div><span class="vk">Diâmetro</span><span class="vv ${p.diametro?'':'muted'}">${p.diametro?esc(p.diametro):'—'}</span></div>
+        <div><span class="vk">Classe</span><span class="vv ${p.classe?'':'muted'}">${p.classe?esc(p.classe):'—'}</span></div>
+        <div><span class="vk">Montagem</span><span class="vv ${montLabel?'':'warn'}">${montLabel||'não definida'}</span></div>
+      </div>
+      <div class="valv-check">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Confira estas informações com a válvula em campo antes de executar.</span>
+      </div>
+    </div>` : '';
+
   document.getElementById('stFicha').innerHTML = `
     <div class="eyebrow">Ficha Técnica</div>
     <div class="ls-code">${esc(p.ls_codigo||'—')}</div>
@@ -486,6 +514,8 @@ async function renderFicha(p){
           <div class="v ${v?'':'muted'}">${v?esc(v):'não informado'}</div>
         </div>`).join('')}
     </div>
+
+    ${valvBloco}
 
     <div class="mat-box" id="matBox" style="display:none"></div>
 
