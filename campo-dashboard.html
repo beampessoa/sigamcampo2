@@ -89,6 +89,7 @@ h2.sec{font-family:var(--font-d);font-size:14px;font-weight:800;letter-spacing:.
 .chip.canc{background:#FFFBEB;color:#92400E}
 .chip.aguard{background:#EEF2F7;color:#334155}
 .badge.aguard{background:#EEF2F7;color:#334155}
+.badge.raq{background:#EEF2FF;color:#3730A3}
 
 /* tabela LS */
 .filters{display:flex;gap:7px;flex-wrap:wrap;margin:0 4px 12px}
@@ -141,7 +142,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const db=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 const LABEL={sim:'Sim',nao:'Não',na:'N/A',cancelado:'Cancelado'};
-let RAW=[], LSROWS=[], filtro='todas', MATBYLS={}, PLAQS=[], sMap={};
+let RAW=[], LSROWS=[], filtro='todas', MATBYLS={}, PLAQS=[], sMap={}, MAXETAPA={};
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(m,t){const w=document.getElementById('toastWrap');const e=document.createElement('div');e.className='toast '+(t||'ok');e.textContent=m;w.appendChild(e);setTimeout(()=>e.remove(),3600);}
@@ -151,17 +152,20 @@ async function carregar(){
   const content=document.getElementById('content');
   content.innerHTML='<div class="loading">Carregando registros…</div>';
   try{
-    const [regs,plaqs,servs,mats]=await Promise.all([
+    const [regs,plaqs,servs,mats,wf]=await Promise.all([
       db.from('atividades_campo').select('plaqueta_id,servico_id,etapa,pergunta,resposta,doc_cancelamento,observacoes,usuario_nome,usuario_funcao,data_criacao').order('data_criacao',{ascending:false}),
       db.from('plaquetas').select('id,ls_codigo,tag,unidade,servico_id,created_at'),
       db.from('tipos_servico').select('id,nome'),
-      db.from('materiais').select('ls_codigo,status,data_prevista,data_recebimento')
+      db.from('materiais').select('ls_codigo,status,data_prevista,data_recebimento'),
+      db.from('workflow_tarefas').select('servico_id,etapa')
     ]);
     if(regs.error) throw regs.error;
     const pMap={}; sMap={};
     (plaqs.data||[]).forEach(p=>pMap[p.id]=p);
     (servs.data||[]).forEach(s=>sMap[s.id]=s);
     PLAQS=plaqs.data||[];
+    MAXETAPA={};
+    if(!wf.error)(wf.data||[]).forEach(w=>{const k=w.servico_id;if(MAXETAPA[k]==null||w.etapa>MAXETAPA[k])MAXETAPA[k]=w.etapa;});
     MATBYLS={};
     if(!mats.error)(mats.data||[]).forEach(m=>{const k=m.ls_codigo||'';(MATBYLS[k]=MATBYLS[k]||[]).push(m);});
     RAW=(regs.data||[]).map(r=>({
@@ -209,7 +213,17 @@ function render(){
     const inst=instaladas.has(p.id);
     const cancel=rows.some(r=>r.resposta==='cancelado');
     const pend=latest.some(r=>r.plaqueta_id===p.id&&r.resposta==='nao');
-    let status; if(cancel)status='canc'; else if(!inst)status='aguardando'; else if(pend)status='pend'; else status='and';
+    const maxE=MAXETAPA[p.servico_id];
+    const concluida=maxE!=null&&latest.some(r=>r.plaqueta_id===p.id&&r.etapa===maxE&&r.resposta==='sim');
+    const isRaq=servico.toLowerCase().includes('raqueteamento');
+    const raqMarco=isRaq&&latest.some(r=>r.plaqueta_id===p.id&&r.etapa===6&&r.resposta==='sim');
+    let status;
+    if(cancel)status='canc';
+    else if(!inst)status='aguardando';
+    else if(concluida)status='concluida';
+    else if(raqMarco)status='raqueteada';
+    else if(pend)status='pend';
+    else status='and';
     const ult=rows[0];
     return {ls:p.ls_codigo,tag:(ult&&ult.tag)||p.tag||'',servico:(ult&&ult.servico)||servico,unidade:(ult&&ult.unidade)||p.unidade||'—',n:rows.length,status,inst,ultEtapa:ult?ult.etapa:null,ultPergunta:ult?(ult.pergunta||''):'',ultData:ult?ult.data_criacao:(p.created_at||null),mat};
   }).sort((a,b)=>{
@@ -220,6 +234,8 @@ function render(){
 
   const aguardando=LSROWS.filter(r=>r.status==='aguardando').length;
   const instaladasN=LSROWS.filter(r=>r.inst).length;
+  const raqueteadasN=LSROWS.filter(r=>r.status==='raqueteada').length;
+  const concluidasN=LSROWS.filter(r=>r.status==='concluida').length;
   const kCanc=plaquetasComCancel.size;
 
   // mapa por unidade → serviço (todas as plaquetas; aguardando = não instalada)
@@ -234,6 +250,8 @@ function render(){
     +kpi(LSROWS.length,'Total de LS','')
     +kpi(instaladasN,'Instaladas (etapa 1)','ok')
     +kpi(aguardando,'Aguardando instalação','canc')
+    +kpi(raqueteadasN,'Raqueteadas · aguard. desraq.','')
+    +kpi(concluidasN,'Concluídas','ok')
     +kpi(pendencias.length,'Pendências (Não)','warn')
     +kpi(kCanc,'LS canceladas','canc')
     +'</div>';
@@ -275,6 +293,8 @@ function render(){
   html+='<div class="filters">'
     +fchip('todas','Todas',LSROWS.length)
     +fchip('and','Em andamento',LSROWS.filter(r=>r.status==='and').length)
+    +fchip('raqueteada','Raqueteadas',LSROWS.filter(r=>r.status==='raqueteada').length)
+    +fchip('concluida','Concluídas',LSROWS.filter(r=>r.status==='concluida').length)
     +fchip('pend','Pendências',LSROWS.filter(r=>r.status==='pend').length)
     +fchip('canc','Canceladas',LSROWS.filter(r=>r.status==='canc').length)
     +fchip('aguardando','Aguardando',LSROWS.filter(r=>r.status==='aguardando').length)
@@ -293,7 +313,7 @@ function renderTabela(){
   const body=document.getElementById('lsBody');if(!body)return;
   const rows=LSROWS.filter(r=>filtro==='todas'||r.status===filtro);
   if(!rows.length){body.innerHTML='<tr><td colspan="8" class="empty">Nada aqui.</td></tr>';return;}
-  const B={and:'<span class="badge and">Em andamento</span>',pend:'<span class="badge pend">Pendência</span>',canc:'<span class="badge canc">Cancelada</span>',aguardando:'<span class="badge aguard">Aguardando</span>'};
+  const B={and:'<span class="badge and">Em andamento</span>',pend:'<span class="badge pend">Pendência</span>',canc:'<span class="badge canc">Cancelada</span>',aguardando:'<span class="badge aguard">Aguardando</span>',concluida:'<span class="badge done">Concluída</span>',raqueteada:'<span class="badge raq">Raqueteada</span>'};
   body.innerHTML=rows.map(r=>'<tr>'
     +'<td><a class="ls-link" href="equip-ls.html?ls='+encodeURIComponent(r.ls)+'">'+esc(r.ls)+'</a></td>'
     +'<td>'+esc(r.tag||'—')+'</td>'
