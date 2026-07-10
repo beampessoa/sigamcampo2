@@ -203,6 +203,10 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
 .cdr-body .s{font-size:11.5px;color:var(--muted);margin-top:2px}
 .cdr-body .o{font-size:12px;color:var(--ink-soft);margin-top:4px;background:var(--field);
   border-radius:6px;padding:6px 8px}
+.cdr-foto{display:inline-block;margin-top:8px}
+.cdr-foto img{width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block}
+.cdr-anexo{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:var(--blue);text-decoration:none}
+.cdr-anexo:hover{text-decoration:underline}
 .cdr-cancel{margin-bottom:12px;padding:11px 13px;border-radius:var(--r);background:#FFFBEB;
   border:1px solid #FDE68A;color:#92400E;font-size:12.5px;font-weight:800;display:flex;gap:8px;align-items:flex-start}
 .cdr-cancel svg{width:16px;height:16px;flex:none;margin-top:1px}
@@ -911,11 +915,20 @@ async function carregarHistoricoCDR(){
   const ICO ={sim:'✓',nao:'!',na:'–',cancelado:'✕'};
   try{
     const {data,error}=await db.from('atividades_campo')
-      .select('etapa,pergunta,resposta,observacoes,doc_cancelamento,usuario_nome,usuario_funcao,data_criacao')
+      .select('etapa,pergunta,resposta,observacoes,doc_cancelamento,arquivo_url,arquivo_nome,usuario_nome,usuario_funcao,data_criacao')
       .eq('plaqueta_id',p.id).order('data_criacao',{ascending:true});
     if(error) throw error;
     if(!data||!data.length){box.style.display='none';box.innerHTML='';return;}
     box.style.display='';
+    const pubUrl=path=>{try{return db.storage.from('plaquetas-fotos').getPublicUrl(path).data.publicUrl;}catch(e){return null;}};
+    const anexoHtml=r=>{
+      if(!r.arquivo_url) return '';
+      const url=pubUrl(r.arquivo_url); if(!url) return '';
+      const img=/\.(jpe?g|png|gif|webp|bmp|heic)$/i.test(r.arquivo_nome||r.arquivo_url);
+      return img
+        ? '<a class="cdr-foto" href="'+url+'" target="_blank" rel="noopener"><img src="'+url+'" loading="lazy" alt="foto da atividade"></a>'
+        : '<a class="cdr-anexo" href="'+url+'" target="_blank" rel="noopener">📎 '+esc(r.arquivo_nome||'anexo')+'</a>';
+    };
     const cancRow=data.find(r=>r.resposta==='cancelado');
     const banner=cancRow
       ? '<div class="cdr-cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><span>LS CANCELADA'
@@ -931,6 +944,7 @@ async function carregarHistoricoCDR(){
         '<div class="s">'+esc(r.usuario_nome||'')+(r.usuario_funcao?' · '+esc(r.usuario_funcao):'')+(when?' · '+when:'')+'</div>'+
         (r.doc_cancelamento?'<div class="o"><b>Cancelado por:</b> '+esc(r.doc_cancelamento)+'</div>':'')+
         (r.observacoes?'<div class="o">'+esc(r.observacoes)+'</div>':'')+
+        anexoHtml(r)+
         '</div></div>';
     }).join('');
   }catch(e){ box.style.display='none'; }
