@@ -478,21 +478,26 @@ async function renderFicha(p){
   linhas.push(['Ordem de Serviço', ex.osNumero ? (ex.osNumero + (ex.osDesc?` — ${ex.osDesc}`:'')) : null]);
   linhas.push(['Descrição', p.descricao]);
 
-  const temValv = p.tipo || p.diametro || p.classe || p.tipo_montagem;
+  const temES = p.diametro_entrada || p.classe_entrada || p.diametro_saida || p.classe_saida;
+  const temValv = p.tipo || p.diametro || p.classe || p.tipo_montagem || temES;
   const montLabel = p.tipo_montagem==='soldagem' ? 'Soldagem'
                   : (p.tipo_montagem==='torque' ? 'Torque controlado' : '');
+  const vcell=(k,v)=>`<div><span class="vk">${k}</span><span class="vv ${v?'':'muted'}">${v?esc(v):'—'}</span></div>`;
+  const gridES = temES
+    ? vcell('Ø Entrada', p.diametro_entrada)+vcell('Classe entrada', p.classe_entrada)
+      +vcell('Ø Saída', p.diametro_saida)+vcell('Classe saída', p.classe_saida)
+    : vcell('Diâmetro', p.diametro)+vcell('Classe', p.classe);
   const valvBloco = temValv ? `
     <div class="valv-box">
-      <div class="valv-head">Dados da válvula</div>
+      <div class="valv-head">Dados do equipamento</div>
       <div class="valv-grid">
-        <div><span class="vk">Tipo</span><span class="vv ${p.tipo?'':'muted'}">${p.tipo?esc(p.tipo):'—'}</span></div>
-        <div><span class="vk">Diâmetro</span><span class="vv ${p.diametro?'':'muted'}">${p.diametro?esc(p.diametro):'—'}</span></div>
-        <div><span class="vk">Classe</span><span class="vv ${p.classe?'':'muted'}">${p.classe?esc(p.classe):'—'}</span></div>
+        ${vcell('Tipo', p.tipo)}
+        ${gridES}
         <div><span class="vk">Montagem</span><span class="vv ${montLabel?'':'warn'}">${montLabel||'não definida'}</span></div>
       </div>
       <div class="valv-check">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        <span>Confira estas informações com a válvula em campo antes de executar.</span>
+        <span>Confira estas informações com o equipamento em campo antes de executar.</span>
       </div>
     </div>` : '';
 
@@ -839,10 +844,14 @@ async function salvarRegistroCDR(){
     let arquivo_url=null, arquivo_nome=null;
     const f=document.getElementById('regFile').files[0];
     if(f){
-      const path='cdr/'+p.id+'/'+Date.now()+'_'+f.name.replace(/[^\w.\-]+/g,'_');
+      const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w.\-]+/g,'-').replace(/^-+|-+$/g,'');
+      const ext=(f.name.match(/\.[a-z0-9]+$/i)||[''])[0].toLowerCase();
+      const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+      const nomeArq=safe(p.ls_codigo)+'_'+safe(p.tag||'sem-tag')+'_etapa-'+__tarefa.etapa+'_'+stamp+ext;
+      const path='atividades/'+safe(p.ls_codigo)+'/'+nomeArq;
       const up=await db.storage.from('plaquetas-fotos').upload(path,f,{upsert:false});
       if(up.error) throw up.error;
-      arquivo_url=path; arquivo_nome=f.name;
+      arquivo_url=path; arquivo_nome=nomeArq;
     }
     const ins=await db.from('atividades_campo').insert({
       plaqueta_id:p.id, servico_id:p.servico_id||null,
