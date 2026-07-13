@@ -210,6 +210,10 @@ input:focus,select:focus{outline:2px solid var(--blue-300);outline-offset:1px;ba
 .cdr-cancel{margin-bottom:12px;padding:11px 13px;border-radius:var(--r);background:#FFFBEB;
   border:1px solid #FDE68A;color:#92400E;font-size:12.5px;font-weight:800;display:flex;gap:8px;align-items:flex-start}
 .cdr-cancel svg{width:16px;height:16px;flex:none;margin-top:1px}
+.cdr-reativ{margin-bottom:12px;padding:11px 13px;border-radius:var(--r);background:#EFF6FF;
+  border:1px solid #BFDBFE;color:#1E40AF;font-size:12.5px;font-weight:800;display:flex;gap:8px;align-items:flex-start}
+.cdr-reativ svg{width:16px;height:16px;flex:none;margin-top:1px}
+.cdr-dot.reativ{background:#2563EB}
 
 /* overlay + modal */
 .ov{position:fixed;inset:0;background:rgba(16,24,40,.55);display:none;align-items:center;
@@ -280,11 +284,36 @@ textarea:focus{outline:2px solid var(--blue-300);outline-offset:1px;background:#
 
 /* PRINT — ficha limpa para etiqueta/PDF */
 @media print{
+  @page{margin:12mm}
   body{background:#fff;padding:0;display:block}
   .wrap{max-width:none}
-  .card{border:none;box-shadow:none}
-  .acts,.drive,.seg,.foot,.btn-registro,.cdr-hist,.mat-box{display:none!important}
+  .card{border:none;box-shadow:none;overflow:visible}
+
+  /* Esconde só o que é interação — o histórico e os materiais DEVEM sair impressos */
+  .acts,.drive,.seg,.foot,.btn-registro,.overlay,.modal,.toast,.toast-wrap{display:none!important}
   .qr-panel{border-color:#ccc}
+
+  /* Histórico de atividades: SAI impresso (antes estava em display:none!important).
+     O JS marca com .tem quando há registros — aqui forçamos a exibição, vencendo
+     qualquer style inline ou regra anterior. LS sem registro não imprime caixa vazia. */
+  .cdr-hist.tem,.mat-box.tem{display:block!important;visibility:visible!important}
+  .cdr-hist.tem .cdr-item{display:flex!important}
+  .cdr-hist{margin-top:14px;border-top:1px solid #ccc;padding-top:12px;
+            page-break-inside:auto;break-inside:auto}
+  .cdr-hist h3{page-break-after:avoid;break-after:avoid}
+  .cdr-item{page-break-inside:avoid;break-inside:avoid}   /* não parte um registro ao meio */
+  .cdr-foto{max-width:120px}
+  .cdr-foto img{max-width:120px;height:auto}
+
+  .valv-box{page-break-inside:avoid;break-inside:avoid}
+  .cdr-cancel,.cdr-reativ{page-break-inside:avoid;break-inside:avoid;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  /* cores dos selos e bolinhas saem no papel (senão viram tudo branco) */
+  .cdr-dot,.badge,.chip,.selo{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  /* nada de container rolável escondendo conteúdo na impressão */
+  *{overflow:visible!important;max-height:none!important}
 }
 </style>
 </head>
@@ -773,11 +802,14 @@ function mostrarLScancelada(c){
 async function iniciarTarefaCDR(){
   const p=window.__ficha;
   try{
-    // LS cancelada encerra tudo — bloqueia novo registro
-    const {data:canc}=await db.from('atividades_campo')
-      .select('doc_cancelamento,usuario_nome').eq('plaqueta_id',p.id)
-      .eq('resposta','cancelado').order('data_criacao',{ascending:false}).limit(1);
-    if(canc&&canc.length){ mostrarLScancelada(canc[0]); return; }
+    // LS cancelada encerra tudo — mas uma REATIVAÇÃO posterior libera de novo.
+    // Vale o evento mais recente entre 'cancelado' e 'reativado'.
+    const {data:evt}=await db.from('atividades_campo')
+      .select('resposta,doc_cancelamento,usuario_nome')
+      .eq('plaqueta_id',p.id)
+      .in('resposta',['cancelado','reativado'])
+      .order('data_criacao',{ascending:false}).limit(1);
+    if(evt && evt.length && evt[0].resposta==='cancelado'){ mostrarLScancelada(evt[0]); return; }
 
     await carregarWorkflowCDR();
     if(!__workflow.length){
@@ -919,16 +951,16 @@ function mostrarTudoConcluido(){
 async function carregarHistoricoCDR(){
   const p=window.__ficha; if(!p) return;
   const box=document.getElementById('cdrHist'); if(!box) return;
-  const LABEL={sim:'Sim',nao:'Não',na:'N/A',cancelado:'Cancelado'};
-  const DOT ={sim:'sim',nao:'nao',na:'na',cancelado:'canc'};
-  const ICO ={sim:'✓',nao:'!',na:'–',cancelado:'✕'};
+  const LABEL={sim:'Sim',nao:'Não',na:'N/A',cancelado:'Cancelado',reativado:'Reativado'};
+  const DOT ={sim:'sim',nao:'nao',na:'na',cancelado:'canc',reativado:'reativ'};
+  const ICO ={sim:'✓',nao:'!',na:'–',cancelado:'✕',reativado:'↺'};
   try{
     const {data,error}=await db.from('atividades_campo')
       .select('etapa,pergunta,resposta,observacoes,doc_cancelamento,arquivo_url,arquivo_nome,usuario_nome,usuario_funcao,data_criacao')
       .eq('plaqueta_id',p.id).order('data_criacao',{ascending:true});
     if(error) throw error;
-    if(!data||!data.length){box.style.display='none';box.innerHTML='';return;}
-    box.style.display='';
+    if(!data||!data.length){box.style.display='none';box.classList.remove('tem');box.innerHTML='';return;}
+    box.style.display='';box.classList.add('tem');
     const pubUrl=path=>{try{return db.storage.from('plaquetas-fotos').getPublicUrl(path).data.publicUrl;}catch(e){return null;}};
     const anexoHtml=r=>{
       if(!r.arquivo_url) return '';
@@ -938,11 +970,16 @@ async function carregarHistoricoCDR(){
         ? '<a class="cdr-foto" href="'+url+'" target="_blank" rel="noopener"><img src="'+url+'" loading="lazy" alt="foto da atividade"></a>'
         : '<a class="cdr-anexo" href="'+url+'" target="_blank" rel="noopener">📎 '+esc(r.arquivo_nome||'anexo')+'</a>';
     };
-    const cancRow=data.find(r=>r.resposta==='cancelado');
-    const banner=cancRow
-      ? '<div class="cdr-cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><span>LS CANCELADA'
-        +(cancRow.doc_cancelamento?(' — doc '+esc(cancRow.doc_cancelamento)):'')+'. Todas as atividades foram encerradas.</span></div>'
-      : '';
+    // último evento entre cancelamento e reativação (data ordena o histórico)
+    const evtRow=data.find(r=>r.resposta==='cancelado'||r.resposta==='reativado');
+    let banner='';
+    if(evtRow && evtRow.resposta==='cancelado'){
+      banner='<div class="cdr-cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><span>LS CANCELADA'
+        +(evtRow.doc_cancelamento?(' — doc '+esc(evtRow.doc_cancelamento)):'')+'. Todas as atividades foram encerradas.</span></div>';
+    }else if(evtRow && evtRow.resposta==='reativado'){
+      banner='<div class="cdr-reativ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>LS REATIVADA'
+        +(evtRow.doc_cancelamento?(' — doc '+esc(evtRow.doc_cancelamento)):'')+'. O cancelamento anterior permanece no histórico.</span></div>';
+    }
     box.innerHTML='<h3>Atividades registradas</h3>'+banner+data.map(r=>{
       const dt=r.data_criacao?new Date(r.data_criacao):null;
       const when=dt?dt.toLocaleDateString('pt-BR')+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
@@ -956,7 +993,7 @@ async function carregarHistoricoCDR(){
         anexoHtml(r)+
         '</div></div>';
     }).join('');
-  }catch(e){ box.style.display='none'; }
+  }catch(e){ box.style.display='none'; box.classList.remove('tem'); }
 }
 
 async function carregarMateriaisLS(){
@@ -972,7 +1009,7 @@ async function carregarMateriaisLS(){
       .eq('ls_codigo',p.ls_codigo).order('nm');
     if(error) throw error;
     if(!data||!data.length){
-      box.style.display='';
+      box.style.display='';box.classList.add('tem');
       box.innerHTML='<div class="mat-head"><h3>Materiais desta LS</h3><span class="mat-chip gray">Ainda não cadastrado</span></div>';
       return;
     }
@@ -989,7 +1026,7 @@ async function carregarMateriaisLS(){
       +(atras?' · <b class="r">'+atras+' atrasado'+(atras>1?'s':'')+'</b>':'')
       +(ok?' · <b class="g">'+ok+' recebido'+(ok>1?'s':'')+'</b>':'')
       +'</div>';
-    box.style.display='';
+    box.style.display='';box.classList.add('tem');
     box.innerHTML='<div class="mat-head"><h3>Materiais desta LS</h3>'+chip+'</div>'+
       resumo+
       '<a class="mat-link" href="materiais.html?ls='+encodeURIComponent(p.ls_codigo)+'">Ver no controle de materiais →</a>';
