@@ -42,6 +42,14 @@ body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);-webki
 .hbtn:hover{background:var(--field)}
 .hbtn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 .hbtn.primary:hover{background:var(--blue-700)}
+/* leva ao painel gerencial. Estilo próprio: não compete com o primário (Exportar),
+   mas também não some no meio dos botões neutros. */
+.hbtn.graf{position:relative;background:#fff;color:var(--blue-700);border-color:var(--blue-300);
+  padding-right:15px;overflow:hidden}
+.hbtn.graf::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.hbtn.graf:hover{background:#EFF4FF;border-color:var(--blue)}
+.hbtn.graf svg{color:var(--blue)}
+@media(max-width:720px){.hbtn .lbl{display:none}.hbtn{padding:9px 11px}}
 .hbtn svg{width:15px;height:15px}
 
 h2.sec{font-family:var(--font-d);font-size:14px;font-weight:800;letter-spacing:.03em;
@@ -126,8 +134,9 @@ tr:last-child td{border-bottom:none}
     <div class="st">Controle de Atividades em Campo</div>
   </div>
   <div class="sp"></div>
-  <button class="hbtn" onclick="carregar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Atualizar</button>
-  <button class="hbtn primary" onclick="exportarExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>Exportar Mapa Geral</button>
+  <a class="hbtn graf" href="campo-graf.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg><span class="lbl">Painel Gerencial</span></a>
+  <button class="hbtn" onclick="carregar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span class="lbl">Atualizar</span></button>
+  <button class="hbtn primary" onclick="exportarExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg><span class="lbl">Exportar Mapa Geral</span></button>
 </div>
 
 <div class="wrap">
