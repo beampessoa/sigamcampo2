@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SIGMA CODE — Painel Gerencial de Campo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --blue:#0F4CBA;--blue-700:#0B3A91;--blue-300:#5B8AE6;
+  --green:#22C55E;--green-600:#16A34A;
+  --white:#fff;--canvas:#F1F4F9;
+  --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
+  --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
+  --danger:#EF4444;--warning:#F59E0B;
+  --font-d:'Exo 2',system-ui,sans-serif;
+  --font-ui:'Inter',system-ui,sans-serif;
+  --r:8px;--r-md:12px;--r-lg:16px;
+  --sh:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+  --sh-md:0 10px 24px -12px rgba(16,24,40,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 60px}
+
+.es-header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);
+  padding:14px 16px;display:flex;align-items:center;gap:12px}
+.es-header .logo{width:38px;height:38px;border-radius:10px;background:var(--blue);color:#fff;
+  display:flex;align-items:center;justify-content:center;flex:none}
+.es-header .logo svg{width:20px;height:20px}
+.es-header .tt{font-family:var(--font-d);font-weight:800;font-size:16px;line-height:1.1}
+.es-header .st{font-size:11.5px;color:var(--muted)}
+.es-header .sp{flex:1}
+.hbtn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:var(--r);
+  font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink)}
+.hbtn:hover{background:var(--field)}
+.hbtn svg{width:15px;height:15px}
+.hbtn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.hbtn.primary:hover{background:var(--blue-700)}
+
+h2.sec{font-family:var(--font-d);font-size:14px;font-weight:800;letter-spacing:.03em;
+  text-transform:uppercase;color:var(--muted);margin:30px 4px 4px}
+p.seclead{font-size:12.5px;color:var(--muted);margin:0 4px 14px}
+
+/* filtros globais */
+.gfilters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--line);
+  border-radius:var(--r-md);padding:12px 14px;box-shadow:var(--sh);margin-bottom:18px}
+.gfilters label{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.gfilters select{font-family:var(--font-ui);font-size:13px;font-weight:600;color:var(--ink);
+  background:var(--field);border:1px solid var(--field-line);border-radius:var(--r);padding:8px 10px;min-width:190px;cursor:pointer}
+.gfilters .sp{flex:1}
+.gfilters .scope{font-size:12px;color:var(--muted);font-weight:600}
+.gfilters .scope b{color:var(--ink);font-family:var(--font-d)}
+
+/* faixa de marcos */
+.marcos{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:820px){.marcos{grid-template-columns:1fr 1fr}}
+.mk{background:#fff;border:1px solid var(--line);border-top:3px solid var(--field-line);border-radius:var(--r-md);
+  padding:13px 14px;box-shadow:var(--sh);cursor:pointer;text-align:left;font-family:var(--font-ui);transition:.12s}
+.mk:hover{border-color:var(--blue-300)}
+.mk.on{border-color:var(--blue);box-shadow:0 0 0 2px rgba(15,76,186,.12),var(--sh)}
+.mk.off{cursor:default;opacity:.62}
+.mk.off:hover{border-color:var(--line)}
+.mk .fase{font-family:var(--font-d);font-size:12.5px;font-weight:800;color:var(--ink);letter-spacing:.01em}
+.mk .n{font-family:var(--font-d);font-size:24px;font-weight:800;line-height:1.1;margin-top:6px}
+.mk .l{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+.mk .bar{height:4px;border-radius:3px;background:var(--field);margin-top:9px;overflow:hidden}
+.mk .bar i{display:block;height:100%;background:var(--green-600);border-radius:3px}
+.mk .ni{font-family:var(--font-d);font-size:15px;font-weight:800;color:#C3C9D4;margin-top:8px}
+.mk .ni-l{font-size:11px;color:var(--muted);margin-top:2px}
+.mk-all{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.mk-all button{font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;border:1px solid var(--line);
+  background:#fff;color:var(--ink-soft);cursor:pointer;font-family:var(--font-ui)}
+.mk-all button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.mk-warn{background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--r-md);padding:12px 14px;
+  font-size:12.5px;color:#92400E;line-height:1.55;margin-bottom:14px}
+.mk-warn b{font-weight:800}
+.mk-warn code{font-family:ui-monospace,monospace;background:#FEF3C7;padding:1px 5px;border-radius:4px;font-size:11.5px}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:16px;box-shadow:var(--sh)}
+.kpi .n{font-family:var(--font-d);font-size:30px;font-weight:800;line-height:1}
+.kpi .l{font-size:12px;color:var(--muted);margin-top:6px;font-weight:600}
+.kpi .sub{font-size:11px;color:var(--muted);margin-top:3px}
+.kpi.warn .n{color:var(--danger)}
+.kpi.canc .n{color:var(--warning)}
+.kpi.ok .n{color:var(--green-600)}
+
+/* paineis */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh);overflow:hidden}
+.panel-h{padding:14px 18px;border-bottom:1px solid var(--line)}
+.panel-h .tt{font-weight:800;font-size:14px}
+.panel-h .q{font-size:11.5px;color:var(--muted);margin-top:3px}
+.panel-b{padding:16px 18px}
+.cvbox{position:relative;width:100%}
+.foot{font-size:11px;color:var(--muted);padding:0 18px 14px;line-height:1.5}
+.empty{padding:34px 18px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
+.empty b{display:block;color:var(--ink-soft);font-family:var(--font-d);font-size:13.5px;margin-bottom:4px}
+
+/* heatmap */
+.hm{overflow-x:auto}
+table.hm-t{border-collapse:separate;border-spacing:3px;font-size:12px}
+table.hm-t th{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;padding:2px 6px;white-space:nowrap}
+table.hm-t th.rowh{text-align:left;max-width:190px;overflow:hidden;text-overflow:ellipsis;font-size:11.5px;text-transform:none;letter-spacing:0;color:var(--ink-soft)}
+table.hm-t td{width:34px;height:30px;text-align:center;border-radius:6px;font-weight:800;font-size:11.5px;color:#fff}
+table.hm-t td.z{background:var(--field);color:#C3C9D4;font-weight:600}
+table.hm-t td.na{background:transparent}
+
+/* tabela */
+.tbl-wrap{overflow-x:auto}
+table.dt{width:100%;border-collapse:collapse;font-size:13px;min-width:600px}
+table.dt th{text-align:left;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line);background:#FBFCFE}
+table.dt td{padding:11px 14px;border-bottom:1px solid #F1F4F9}
+table.dt tr:last-child td{border-bottom:none}
+.ls-link{font-family:var(--font-d);font-weight:800;color:var(--blue);text-decoration:none}
+.ls-link:hover{text-decoration:underline}
+.badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px}
+.badge.pend{background:#FEF2F2;color:#991B1B}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.18)}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;padding:0 18px 14px;font-size:11.5px;color:var(--ink-soft);font-weight:600}
+.legend span{display:inline-flex;align-items:center}
+
+.loading{padding:60px;text-align:center;color:var(--muted);font-size:14px}
+.toast-wrap{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;width:calc(100% - 32px);max-width:400px}
+.toast{padding:12px 15px;border-radius:var(--r);font-size:13px;font-weight:700;box-shadow:var(--sh-md)}
+.toast.ok{background:#166534;color:#fff}.toast.err{background:var(--danger);color:#fff}
+@media(max-width:680px){.kpis{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div class="es-header">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div>
+  <div>
+    <div class="tt">Painel Gerencial de Campo</div>
+    <div class="st">REDUC · OS-030 · Parada Geral 2026</div>
+  </div>
+  <div class="sp"></div>
+  <button class="hbtn" onclick="carregar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Atualizar</button>
+  <a class="hbtn primary" href="campo-dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>Ver por LS</a>
+</div>
+
+<div class="wrap">
+  <div id="content"><div class="loading">Carregando painel…</div></div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+const SUPA_URL='https://kiwiykgzogcxiseynzyy.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
+const db=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// Cores semânticas de ESTADO. Não são cores de serviço — estado e serviço são
+// dimensões diferentes e não podem compartilhar paleta, ou o leitor confunde as duas.
+const EST={
+  aguardando:{l:'Aguardando plaqueta', c:'#94A3B8'},
+  em_andamento:{l:'Em andamento',       c:'#0F4CBA'},
+  raqueteada:{l:'Raqueteada',           c:'#6366F1'},
+  pendencia:{l:'Pendência',             c:'#EF4444'},
+  concluida:{l:'Concluída',             c:'#16A34A'},
+  cancelada:{l:'Cancelada',             c:'#F59E0B'}
+};
+const ORDEM_EST=['aguardando','em_andamento','raqueteada','pendencia','concluida','cancelada'];
+
+// Marcos da parada. A fase NÃO é atributo da plaqueta — é derivada de
+// (unidade, hoje) contra o calendário de eventos. Uma coluna `fase` ficaria
+// desatualizada sozinha na virada de cada data.
+const FASES=['mobilizacao','pre_parada','parada','pos_parada'];
+const FASE_L={mobilizacao:'Mobilização',pre_parada:'Pré-parada',parada:'Parada',pos_parada:'Pós-parada'};
+
+// Datas em America/Sao_Paulo. toISOString() é UTC e vira o dia seguinte depois
+// das 21h — erro silencioso que já mordeu o cálculo de material atrasado.
+function hojeBR(){ return new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'}); }
+function diasAte(d){
+  if(!d) return null;
+  const ms=new Date(d+'T12:00:00Z')-new Date(hojeBR()+'T12:00:00Z');
+  return Math.round(ms/86400000);
+}
+function fmtBR(d){ if(!d) return '—'; const [a,m,x]=String(d).slice(0,10).split('-'); return x+'/'+m+'/'+a; }
+
+function faseDe(ev){
+  if(!ev) return null;
+  const h=hojeBR();
+  if(ev.inicio_pre_parada && h < ev.inicio_pre_parada) return 'mobilizacao';
+  if(ev.inicio_manutencao && h < ev.inicio_manutencao) return 'pre_parada';
+  if(ev.termino_manutencao && h <= ev.termino_manutencao) return 'parada';
+  if(ev.termino_manutencao) return 'pos_parada';
+  return 'pre_parada';
+}
+
+let LS=[], MAT=[], SERV=[], EVT=[], EVTBYUNI={}, MATBYLS={}, temEventos=false, fUni='', fSrv='', fFase='';
+const CHARTS={};
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(m,t){const w=document.getElementById('toastWrap');const e=document.createElement('div');e.className='toast '+(t||'ok');e.textContent=m;w.appendChild(e);setTimeout(()=>e.remove(),3600);}
+
+// A cor oficial do serviço é código de PLAQUETA IMPRESSA, não paleta de tela:
+// Serviços Específicos é #FFFFFF e Disco de Ruptura é quase branco. Sem borda,
+// a barra some no fundo branco. cor_borda só existe em um serviço — nos demais
+// derivamos um traço escurecido do próprio preenchimento.
+function darken(hex,f){
+  const h=String(hex||'#888888').replace('#','');
+  if(h.length!==6) return '#666666';
+  const n=parseInt(h,16);
+  const r=Math.round(((n>>16)&255)*f), g=Math.round(((n>>8)&255)*f), b=Math.round((n&255)*f);
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function corSrv(nome){
+  const s=SERV.find(x=>x.nome===nome);
+  const fill=(s&&s.cor_preenchimento)||'#9CA3AF';
+  const stroke=(s&&s.cor_borda)||darken(fill,.55);
+  return {fill,stroke};
+}
+
+// Supabase corta em 1000 linhas por padrão. Sem paginar, as contagens ficam erradas
+// em silêncio — que é o pior modo de erro num painel gerencial.
+async function fetchAll(tabela,colunas){
+  const PAGE=1000; let de=0, out=[];
+  for(;;){
+    const {data,error}=await db.from(tabela).select(colunas).range(de,de+PAGE-1);
+    if(error) throw error;
+    out=out.concat(data||[]);
+    if(!data||data.length<PAGE) break;
+    de+=PAGE;
+  }
+  return out;
+}
+
+async function carregar(){
+  const content=document.getElementById('content');
+  content.innerHTML='<div class="loading">Carregando painel…</div>';
+  try{
+    const [ls,mat,serv]=await Promise.all([
+      fetchAll('vw_ls_painel','plaqueta_id,ls_codigo,plaqueta,tag,unidade,servico_id,servico,max_etapa,cancelada,instalada,tem_pendencia,concluida,etapas_registradas,ultima_atividade,estado'),
+      fetchAll('vw_material_estado','ls_codigo,recebido,atrasado'),
+      fetchAll('tipos_servico','id,nome,cor_preenchimento,cor_borda,ativo,ordem')
+    ]);
+    LS=ls; MAT=mat;
+    SERV=(serv||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+    MATBYLS={};
+    MAT.forEach(m=>{const k=m.ls_codigo||'';(MATBYLS[k]=MATBYLS[k]||[]).push(m);});
+
+    // O calendário de eventos é opcional: sem ele o painel roda sem abas, em vez
+    // de quebrar. Com ele, cada LS herda a fase da unidade.
+    EVT=[]; EVTBYUNI={}; temEventos=false;
+    try{
+      EVT=await fetchAll('paradas_eventos','evento,unidade,inicio_pre_parada,data_paralisacao,inicio_manutencao,termino_manutencao');
+      EVT.forEach(e=>{ EVTBYUNI[e.unidade]=e; });
+      temEventos=EVT.length>0;
+    }catch(e){ temEventos=false; fFase=''; }
+    LS.forEach(r=>{
+      const ev=EVTBYUNI[r.unidade]||null;
+      r.evento=ev?ev.evento:null;
+      r.fase=faseDe(ev);
+    });
+
+    render();
+  }catch(e){
+    content.innerHTML='<div class="empty"><b>Não foi possível carregar</b>'+esc(e.message||e)+'</div>';
+  }
+}
+
+function matDaLs(ls){
+  const it=MATBYLS[ls]||[];
+  return {total:it.length, atras:it.filter(m=>m.atrasado).length, receb:it.filter(m=>m.recebido).length};
+}
+
+function filtradas(){
+  return LS.filter(r=>(!fUni||r.unidade===fUni)&&(!fSrv||r.servico===fSrv)&&(!fFase||r.fase===fFase));
+}
+
+function setF(k,v){ if(k==='u')fUni=v; else if(k==='s')fSrv=v; else fFase=v; render(); }
+function setFase(f){ if(fFase===f) return; fFase=f; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+// A faixa de marcos fica sempre visível: aba esconde, e quem olha de longe precisa
+// do todo. A aba filtra; a faixa contextualiza.
+function marcosHTML(){
+  if(!temEventos){
+    return '<div class="mk-warn"><b>Calendário de paradas ainda não carregado.</b> '
+      +'Rode <code>mt29_paradas_eventos.sql</code> para ativar as abas por fase. '
+      +'Enquanto isso, o painel mostra todas as LS juntas.</div>';
+  }
+  // Unidade sem evento cadastrado sai de todas as abas. Isso precisa gritar, não sumir.
+  const orfas=LS.filter(r=>!r.fase);
+  const unisOrfas=[...new Set(orfas.map(r=>r.unidade||'—'))];
+
+  let h='';
+  if(orfas.length){
+    h+='<div class="mk-warn"><b>'+orfas.length+' LS em unidades fora do calendário.</b> '
+      +'Não aparecem em nenhuma aba de fase: <code>'+unisOrfas.map(esc).join('</code> <code>')+'</code>. '
+      +'O nome da unidade em <code>paradas_eventos</code> precisa bater com o de <code>plaquetas</code>.</div>';
+  }
+
+  h+='<div class="mk-all">'
+    +'<button class="'+(fFase===''?'on':'')+'" onclick="setFase(\'\')">Todas as fases</button>'
+    +'<span style="font-size:11.5px;color:var(--muted);font-weight:600">Fase derivada da unidade e da data de hoje ('+fmtBR(hojeBR())+')</span>'
+    +'</div>';
+
+  h+='<div class="marcos">';
+  FASES.forEach(f=>{
+    const rs=LS.filter(r=>r.fase===f);
+    const unis=EVT.filter(e=>faseDe(e)===f);
+
+    if(!rs.length){
+      // "Não iniciado" com data: a aba vazia passa a dizer QUANDO deixa de ser vazia.
+      let quando='';
+      if(f==='mobilizacao'){
+        quando='Nenhuma unidade nesta fase';
+      }else{
+        const prox=EVT.filter(e=>{
+          const alvo = f==='pre_parada' ? e.inicio_pre_parada
+                    : f==='parada'      ? e.inicio_manutencao
+                    :                     e.termino_manutencao;
+          return alvo && alvo > hojeBR();
+        }).sort((a,b)=>{
+          const ka = f==='pre_parada'?a.inicio_pre_parada : f==='parada'?a.inicio_manutencao : a.termino_manutencao;
+          const kb = f==='pre_parada'?b.inicio_pre_parada : f==='parada'?b.inicio_manutencao : b.termino_manutencao;
+          return ka<kb?-1:1;
+        })[0];
+        if(prox){
+          const alvo = f==='pre_parada' ? prox.inicio_pre_parada
+                    : f==='parada'      ? prox.inicio_manutencao
+                    :                     prox.termino_manutencao;
+          const d=diasAte(alvo);
+          quando='Inicia em '+fmtBR(alvo)+' · faltam '+d+' dia'+(d===1?'':'s');
+        }else{
+          quando='Nenhuma unidade nesta fase';
+        }
+      }
+      h+='<div class="mk off"><div class="fase">'+FASE_L[f]+'</div>'
+        +'<div class="ni">Não iniciado</div><div class="ni-l">'+quando+'</div></div>';
+      return;
+    }
+
+    const vivas=rs.filter(r=>!r.cancelada);
+    const inst=vivas.filter(r=>r.instalada).length;
+    const cob=vivas.length?Math.round(inst/vivas.length*100):0;
+    const evs=[...new Set(unis.map(e=>e.evento))].join(', ');
+
+    // dias restantes na fase atual
+    let restam='';
+    if(unis.length){
+      const lim = f==='mobilizacao' ? unis.map(e=>e.inicio_pre_parada)
+                : f==='pre_parada'  ? unis.map(e=>e.inicio_manutencao)
+                : f==='parada'      ? unis.map(e=>e.termino_manutencao)
+                : [];
+      const prox=lim.filter(Boolean).sort()[0];
+      if(prox){ const d=diasAte(prox); if(d!=null&&d>=0) restam=' · '+d+'d p/ próxima fase'; }
+    }
+
+    h+='<button class="mk'+(fFase===f?' on':'')+'" onclick="setFase(\''+f+'\')">'
+      +'<div class="fase">'+FASE_L[f]+'</div>'
+      +'<div class="n">'+rs.length+'</div><div class="l">LS · '+cob+'% plaquetadas</div>'
+      +'<div class="bar"><i style="width:'+cob+'%"></i></div>'
+      +'<div class="ni-l" style="margin-top:7px">'+esc(evs||'—')+restam+'</div>'
+      +'</button>';
+  });
+  return h+'</div>';
+}
+
+function render(){
+  const rows=filtradas();
+  const unidades=[...new Set(LS.map(r=>r.unidade||'—'))].sort();
+  const servicos=[...new Set(LS.map(r=>r.servico||'—'))].sort();
+
+  const total=rows.length;
+  const canc=rows.filter(r=>r.cancelada).length;
+  const vivas=rows.filter(r=>!r.cancelada);
+  const inst=vivas.filter(r=>r.instalada).length;
+  const aguard=vivas.length-inst;
+  const cobertura=vivas.length?Math.round(inst/vivas.length*100):0;
+  const pend=rows.filter(r=>r.estado==='pendencia').length;
+  const conc=rows.filter(r=>r.estado==='concluida').length;
+  const lsComAtraso=new Set(vivas.filter(r=>matDaLs(r.ls_codigo).atras>0).map(r=>r.ls_codigo));
+
+  let h=marcosHTML();
+
+  if(!total){
+    h+='<div class="panel"><div class="empty"><b>Não iniciado</b>'
+      +'Nenhuma LS neste recorte'+(fFase?' na fase '+FASE_L[fFase]:'')+'. '
+      +'Quando as LS forem cadastradas, o painel preenche sozinho.</div></div>';
+    document.getElementById('content').innerHTML=h;
+    return;
+  }
+
+  // filtros globais
+  h+='<div class="gfilters">'
+    +'<label for="fu">Unidade</label><select id="fu" onchange="setF(\'u\',this.value)">'
+    +'<option value="">Todas</option>'+unidades.map(u=>'<option'+(fUni===u?' selected':'')+'>'+esc(u)+'</option>').join('')+'</select>'
+    +'<label for="fs">Serviço</label><select id="fs" onchange="setF(\'s\',this.value)">'
+    +'<option value="">Todos</option>'+servicos.map(s=>'<option'+(fSrv===s?' selected':'')+'>'+esc(s)+'</option>').join('')+'</select>'
+    +'<div class="sp"></div>'
+    +'<div class="scope"><b>'+total+'</b> LS no recorte · de <b>'+LS.length+'</b> cadastradas</div>'
+    +'</div>';
+
+  // KPIs
+  h+='<div class="kpis">'
+    +kpi(total,'LS cadastradas','')
+    +kpi(inst,'Plaquetadas','ok')
+    +kpi(aguard,'Aguardando plaqueta','canc')
+    +kpi(cobertura+'%','Cobertura de plaquetagem','')
+    +kpi(conc,'Concluídas','ok')
+    +kpi(pend,'Com pendência','warn')
+    +kpi(lsComAtraso.size,'LS com material atrasado','warn')
+    +kpi(canc,'Canceladas','canc')
+    +'</div>';
+
+  // ---------- FRENTE DE INSTALAÇÃO ----------
+  h+='<h2 class="sec">Frente de instalação</h2>'
+   +'<p class="seclead">Onde a plaqueta ainda não chegou. Esta é a operação de agora — sem plaqueta instalada, nenhuma etapa pode ser registrada.</p>';
+
+  h+='<div class="grid2">'
+    +painel('Cobertura por unidade','Para onde a equipe de plaquetagem ainda precisa ir?','cvUni',Math.max(180,unidades.length*38+60),
+        '<div class="legend"><span><i class="dot" style="background:#16A34A"></i>Plaquetadas</span><span><i class="dot" style="background:#94A3B8"></i>Aguardando</span></div>')
+    +painel('Cobertura por serviço','Qual serviço está atrasado na plaquetagem?','cvSrv',Math.max(180,servicos.length*38+60),
+        '<div class="legend"><span><i class="dot" style="background:#16A34A"></i>Plaquetadas</span><span><i class="dot" style="background:#94A3B8"></i>Aguardando</span></div>')
+    +'</div>';
+
+  // ---------- MATERIAL ----------
+  h+='<h2 class="sec">Material</h2>'
+   +'<p class="seclead">O material chega a tempo de a frente avançar?</p>';
+
+  const prontasSemMat=vivas.filter(r=>r.instalada&&!r.concluida&&!r.tem_pendencia&&matDaLs(r.ls_codigo).atras>0)
+    .sort((a,b)=>matDaLs(b.ls_codigo).atras-matDaLs(a.ls_codigo).atras);
+
+  h+='<div class="grid2">'
+    +painel('Material atrasado por unidade','Onde o suprimento está segurando a obra?','cvMat',Math.max(180,unidades.length*38+60),
+        '<div class="foot">Conta LS distintas com ao menos um item atrasado. Uma LS que apareça em duas unidades é contada nas duas.</div>')
+    +'<div class="panel"><div class="panel-h"><div class="tt">Prontas para avançar, sem material</div>'
+      +'<div class="q">Plaquetada, sem pendência, e o material não chegou. É a pauta da reunião com suprimento.</div></div>'
+      +(prontasSemMat.length
+        ? '<div class="tbl-wrap"><table class="dt"><thead><tr><th>LS</th><th>TAG</th><th>Serviço</th><th>Unid.</th><th>Itens atrasados</th></tr></thead><tbody>'
+          +prontasSemMat.slice(0,40).map(r=>'<tr>'
+            +'<td><a class="ls-link" href="equip-ls.html?ls='+encodeURIComponent(r.ls_codigo)+'">'+esc(r.ls_codigo)+'</a></td>'
+            +'<td>'+esc(r.tag||'—')+'</td><td>'+esc(r.servico)+'</td><td>'+esc(r.unidade||'—')+'</td>'
+            +'<td><span class="badge pend">'+matDaLs(r.ls_codigo).atras+'</span></td></tr>').join('')
+          +'</tbody></table></div>'
+          +(prontasSemMat.length>40?'<div class="foot">Mostrando as 40 com mais itens atrasados, de '+prontasSemMat.length+'.</div>':'')
+        : '<div class="empty"><b>Nenhuma LS travada por material</b>Toda LS plaquetada e sem pendência tem o material que precisa.</div>')
+      +'</div>'
+    +'</div>';
+
+  // ---------- FRENTE DE EXECUÇÃO ----------
+  const avancadas=vivas.filter(r=>(r.etapas_registradas||0)>1).length;
+  h+='<h2 class="sec">Frente de execução</h2>'
+   +'<p class="seclead">'+(avancadas
+      ? avancadas+' LS já passaram da instalação. Esta seção cresce à medida que a parada avança.'
+      : 'A execução ainda não começou — as LS plaquetadas estão todas na etapa 1. Os gráficos desta seção acendem sozinhos quando as primeiras etapas forem registradas.')+'</p>';
+
+  h+=painel('Situação de todas as LS','Quanto do escopo já fechou, e quanto nem foi tocado?','cvFunil',110,
+      '<div class="legend" id="lgFunil"></div>');
+
+  // heatmap: só faz sentido quando existe alguma LS além da etapa 1
+  h+='<div style="height:14px"></div>';
+  h+='<div class="panel"><div class="panel-h"><div class="tt">Onde as LS empilham</div>'
+    +'<div class="q">Cada célula é o número de LS cuja última etapa registrada é aquela. A coluna que engorda é o gargalo.</div></div>';
+  h+= avancadas
+    ? '<div class="panel-b hm" id="hmBox"></div><div class="foot">Só LS plaquetadas e não canceladas. Quanto mais escura a célula, mais LS paradas ali.</div>'
+    : '<div class="empty"><b>Execução ainda não iniciada</b>Todas as LS plaquetadas estão na etapa 1. Quando as etapas seguintes começarem a ser registradas, este mapa mostra onde elas travam.</div>';
+  h+='</div>';
+
+  h+='<div style="height:14px"></div>';
+  h+='<div class="grid2">'
+    +'<div class="panel"><div class="panel-h"><div class="tt">Pendências por serviço</div>'
+      +'<div class="q">Onde estão os "Não".</div></div>'
+      +(pend
+        ? '<div class="panel-b"><div class="cvbox" style="height:'+Math.max(180,servicos.length*32+60)+'px"><canvas id="cvPend"></canvas></div></div>'
+        : '<div class="empty"><b>Nenhuma pendência registrada</b>Nenhuma etapa foi respondida com "Não" até agora.</div>')
+      +'</div>'
+    +'<div class="panel"><div class="panel-h"><div class="tt">Avanço médio por serviço</div>'
+      +'<div class="q">Etapas registradas sobre o total de etapas do serviço.</div></div>'
+      +(avancadas
+        ? '<div class="panel-b"><div class="cvbox" style="height:'+Math.max(180,servicos.length*32+60)+'px"><canvas id="cvAvanco"></canvas></div></div>'
+          +'<div class="foot">Todas as etapas pesam igual — é a melhor aproximação possível sem duração por etapa. Quando o cronograma entrar, isso vira avanço físico.</div>'
+        : '<div class="empty"><b>Sem avanço para medir</b>Nenhuma LS passou da etapa 1.</div>')
+      +'</div>'
+    +'</div>';
+
+  document.getElementById('content').innerHTML=h;
+
+  desenharCobertura(rows,unidades,servicos);
+  desenharMaterial(rows,unidades);
+  desenharFunil(rows);
+  if(avancadas){ desenharHeatmap(rows); desenharAvanco(rows); }
+  if(pend) desenharPendencias(rows,servicos);
+}
+
+function kpi(n,l,cls){return '<div class="kpi '+(cls||'')+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';}
+function painel(tt,q,id,alt,extra){
+  return '<div class="panel"><div class="panel-h"><div class="tt">'+tt+'</div><div class="q">'+q+'</div></div>'
+    +'<div class="panel-b"><div class="cvbox" style="height:'+alt+'px"><canvas id="'+id+'"></canvas></div></div>'
+    +(extra||'')+'</div>';
+}
+function novo(id,cfg){
+  if(CHARTS[id]) CHARTS[id].destroy();
+  const el=document.getElementById(id); if(!el) return;
+  CHARTS[id]=new Chart(el,cfg);
+}
+const BASE={responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{padding:10,titleFont:{family:'Inter',weight:'700'},bodyFont:{family:'Inter'}}},
+  scales:{x:{grid:{color:'#EEF1F6'},ticks:{font:{family:'Inter',size:11},color:'#6B7280',precision:0}},
+          y:{grid:{display:false},ticks:{font:{family:'Inter',size:11.5},color:'#4B5563'}}}};
+
+function desenharCobertura(rows,unidades,servicos){
+  const agg=(chave,chaves)=>{
+    const m={}; chaves.forEach(k=>m[k]={i:0,a:0});
+    rows.filter(r=>!r.cancelada).forEach(r=>{
+      const k=r[chave]||'—'; if(!m[k])m[k]={i:0,a:0};
+      if(r.instalada)m[k].i++; else m[k].a++;
+    });
+    return chaves.filter(k=>m[k]&&(m[k].i+m[k].a)>0).map(k=>({k,...m[k]}));
+  };
+  [['cvUni','unidade',unidades],['cvSrv','servico',servicos]].forEach(([id,campo,chaves])=>{
+    const d=agg(campo,chaves).sort((a,b)=>(b.a)-(a.a));
+    novo(id,{type:'bar',
+      data:{labels:d.map(x=>x.k),datasets:[
+        {label:'Plaquetadas',data:d.map(x=>x.i),backgroundColor:'#16A34A',borderRadius:{topRight:4,bottomRight:0},borderSkipped:false,barThickness:20},
+        {label:'Aguardando',data:d.map(x=>x.a),backgroundColor:'#94A3B8',borderRadius:{topRight:4,bottomRight:4},borderSkipped:false,barThickness:20}
+      ]},
+      options:{...BASE,indexAxis:'y',
+        scales:{x:{...BASE.scales.x,stacked:true},y:{...BASE.scales.y,stacked:true}},
+        plugins:{...BASE.plugins,tooltip:{...BASE.plugins.tooltip,callbacks:{
+          afterBody:(it)=>{const i=it[0].dataIndex;const t=d[i].i+d[i].a;return 'Cobertura: '+Math.round(d[i].i/t*100)+'%';}}}}}});
+  });
+}
+
+function desenharMaterial(rows,unidades){
+  const m={};
+  const vistas={};
+  rows.filter(r=>!r.cancelada).forEach(r=>{
+    const k=(r.unidade||'—')+'|'+r.ls_codigo;
+    if(vistas[k])return; vistas[k]=1;
+    if(matDaLs(r.ls_codigo).atras>0){const u=r.unidade||'—'; m[u]=(m[u]||0)+1;}
+  });
+  const d=unidades.filter(u=>m[u]).map(u=>({u,n:m[u]})).sort((a,b)=>b.n-a.n);
+  novo('cvMat',{type:'bar',
+    data:{labels:d.length?d.map(x=>x.u):['Sem atraso'],
+      datasets:[{data:d.length?d.map(x=>x.n):[0],backgroundColor:'#EF4444',borderRadius:4,borderSkipped:false,barThickness:20}]},
+    options:{...BASE,indexAxis:'y'}});
+}
+
+function desenharFunil(rows){
+  const c={}; ORDEM_EST.forEach(e=>c[e]=0);
+  rows.forEach(r=>{ if(c[r.estado]!=null) c[r.estado]++; });
+  const usados=ORDEM_EST.filter(e=>c[e]>0);
+  novo('cvFunil',{type:'bar',
+    data:{labels:['LS'],datasets:usados.map((e,i)=>({
+      label:EST[e].l,data:[c[e]],backgroundColor:EST[e].c,barThickness:36,borderSkipped:false,
+      borderRadius:{topLeft:i===0?6:0,bottomLeft:i===0?6:0,topRight:i===usados.length-1?6:0,bottomRight:i===usados.length-1?6:0}
+    }))},
+    options:{...BASE,indexAxis:'y',
+      scales:{x:{...BASE.scales.x,stacked:true},y:{...BASE.scales.y,stacked:true,ticks:{display:false}}}}});
+  const lg=document.getElementById('lgFunil');
+  if(lg) lg.innerHTML=usados.map(e=>'<span><i class="dot" style="background:'+EST[e].c+'"></i>'+EST[e].l+' '+c[e]+'</span>').join('')
+    +'<span style="color:var(--muted);font-weight:600">Soma '+usados.reduce((s,e)=>s+c[e],0)+' de '+rows.length+'</span>';
+}
+
+function desenharHeatmap(rows){
+  const box=document.getElementById('hmBox'); if(!box) return;
+  const alvo=rows.filter(r=>!r.cancelada&&r.instalada);
+  const srvs=[...new Set(alvo.map(r=>r.servico))].sort();
+  const maxE=Math.max(...alvo.map(r=>r.max_etapa||1),1);
+  const g={}, maxCell=[0];
+  srvs.forEach(s=>{g[s]={};});
+  alvo.forEach(r=>{
+    const e=r.etapas_registradas||0; if(e<1) return;
+    g[r.servico][e]=(g[r.servico][e]||0)+1;
+    if(g[r.servico][e]>maxCell[0]) maxCell[0]=g[r.servico][e];
+  });
+  const etapaMax={}; alvo.forEach(r=>{etapaMax[r.servico]=Math.max(etapaMax[r.servico]||0,r.max_etapa||0);});
+  // rampa sequencial de um tom só — magnitude, não categoria
+  const cor=n=>{
+    if(!n) return null;
+    const t=Math.sqrt(n/(maxCell[0]||1));
+    const l=92-t*58;
+    return 'hsl(220 72% '+l.toFixed(0)+'%)';
+  };
+  let t='<table class="hm-t"><thead><tr><th class="rowh"></th>';
+  for(let e=1;e<=maxE;e++) t+='<th>'+e+'</th>';
+  t+='</tr></thead><tbody>';
+  srvs.forEach(s=>{
+    t+='<tr><th class="rowh" title="'+esc(s)+'">'+esc(s)+'</th>';
+    for(let e=1;e<=maxE;e++){
+      if(e>(etapaMax[s]||0)){ t+='<td class="na"></td>'; continue; }
+      const n=g[s][e]||0;
+      t+= n ? '<td style="background:'+cor(n)+'">'+n+'</td>' : '<td class="z">·</td>';
+    }
+    t+='</tr>';
+  });
+  box.innerHTML=t+'</tbody></table>';
+}
+
+function desenharPendencias(rows,servicos){
+  const m={};
+  rows.filter(r=>r.estado==='pendencia').forEach(r=>{m[r.servico]=(m[r.servico]||0)+1;});
+  const d=servicos.filter(s=>m[s]).map(s=>({s,n:m[s]})).sort((a,b)=>b.n-a.n);
+  novo('cvPend',{type:'bar',
+    data:{labels:d.map(x=>x.s),datasets:[{data:d.map(x=>x.n),
+      backgroundColor:d.map(x=>corSrv(x.s).fill),borderColor:d.map(x=>corSrv(x.s).stroke),borderWidth:1,
+      borderRadius:4,borderSkipped:false,barThickness:18}]},
+    options:{...BASE,indexAxis:'y'}});
+}
+
+function desenharAvanco(rows){
+  const m={};
+  rows.filter(r=>!r.cancelada&&r.instalada).forEach(r=>{
+    const max=r.max_etapa||1;
+    const p=Math.min(100,Math.round((r.etapas_registradas||0)/max*100));
+    (m[r.servico]=m[r.servico]||[]).push(p);
+  });
+  const d=Object.keys(m).map(s=>({s,p:Math.round(m[s].reduce((a,b)=>a+b,0)/m[s].length),n:m[s].length}))
+    .sort((a,b)=>b.p-a.p);
+  novo('cvAvanco',{type:'bar',
+    data:{labels:d.map(x=>x.s),datasets:[{data:d.map(x=>x.p),
+      backgroundColor:d.map(x=>corSrv(x.s).fill),borderColor:d.map(x=>corSrv(x.s).stroke),borderWidth:1,
+      borderRadius:4,borderSkipped:false,barThickness:18}]},
+    options:{...BASE,indexAxis:'y',
+      scales:{x:{...BASE.scales.x,max:100,ticks:{...BASE.scales.x.ticks,callback:v=>v+'%'}},y:BASE.scales.y},
+      plugins:{...BASE.plugins,tooltip:{...BASE.plugins.tooltip,callbacks:{
+        label:it=>it.parsed.x+'% médio · '+d[it.dataIndex].n+' LS'}}}}});
+}
+
+let t=null;
+db.channel('campo_graf')
+  .on('postgres_changes',{event:'*',schema:'public',table:'atividades_campo'},()=>{clearTimeout(t);t=setTimeout(carregar,1200);})
+  .on('postgres_changes',{event:'*',schema:'public',table:'plaquetas'},()=>{clearTimeout(t);t=setTimeout(carregar,1200);})
+  .on('postgres_changes',{event:'*',schema:'public',table:'materiais'},()=>{clearTimeout(t);t=setTimeout(carregar,1200);})
+  .subscribe();
+
+carregar();
+</script>
+</body>
+</html>
