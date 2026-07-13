@@ -312,10 +312,11 @@ function marcosHTML(){
     const unis=EVT.filter(e=>faseDe(e)===f);
 
     if(!rs.length){
-      // "Não iniciado" com data: a aba vazia passa a dizer QUANDO deixa de ser vazia.
+      // "Não iniciado" precisa dizer POR QUE está vazio. Unidade que já está na fase
+      // mas ainda não tem plaqueta é caso diferente de fase que nem chegou.
       let quando='';
-      if(f==='mobilizacao'){
-        quando='Nenhuma unidade nesta fase';
+      if(unis.length){
+        quando='Unidade '+unis.map(e=>esc(e.unidade)).join(', ')+' · sem LS cadastrada';
       }else{
         const prox=EVT.filter(e=>{
           const alvo = f==='pre_parada' ? e.inicio_pre_parada
