@@ -148,18 +148,34 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;',
 function toast(m,t){const w=document.getElementById('toastWrap');const e=document.createElement('div');e.className='toast '+(t||'ok');e.textContent=m;w.appendChild(e);setTimeout(()=>e.remove(),3600);}
 function fmtDate(s){if(!s)return'';const d=new Date(s);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
 
+// Supabase corta em 1000 linhas por padrão. Sem paginar, registros antigos somem
+// silenciosamente e LS instaladas voltam a aparecer como "aguardando".
+async function fetchAll(tabela, colunas, orderCol, asc){
+  const PAGE=1000; let de=0, out=[];
+  for(;;){
+    let q=db.from(tabela).select(colunas).range(de, de+PAGE-1);
+    if(orderCol) q=q.order(orderCol,{ascending:!!asc});
+    const {data,error}=await q;
+    if(error) throw error;
+    out=out.concat(data||[]);
+    if(!data || data.length<PAGE) break;
+    de+=PAGE;
+  }
+  return out;
+}
+
 async function carregar(){
   const content=document.getElementById('content');
   content.innerHTML='<div class="loading">Carregando registros…</div>';
   try{
-    const [regs,plaqs,servs,mats,wf]=await Promise.all([
-      db.from('atividades_campo').select('plaqueta_id,servico_id,etapa,pergunta,resposta,doc_cancelamento,observacoes,usuario_nome,usuario_funcao,data_criacao').order('data_criacao',{ascending:false}),
-      db.from('plaquetas').select('id,ls_codigo,tag,unidade,servico_id,created_at'),
-      db.from('tipos_servico').select('id,nome'),
-      db.from('materiais').select('ls_codigo,status,data_prevista,data_recebimento'),
-      db.from('workflow_tarefas').select('servico_id,etapa')
+    const [regsD,plaqsD,servsD,matsD,wfD]=await Promise.all([
+      fetchAll('atividades_campo','plaqueta_id,servico_id,etapa,pergunta,resposta,doc_cancelamento,observacoes,usuario_nome,usuario_funcao,data_criacao','data_criacao',false),
+      fetchAll('plaquetas','id,ls_codigo,tag,unidade,servico_id,created_at'),
+      fetchAll('tipos_servico','id,nome'),
+      fetchAll('materiais','ls_codigo,status,data_prevista,data_recebimento'),
+      fetchAll('workflow_tarefas','servico_id,etapa')
     ]);
-    if(regs.error) throw regs.error;
+    const regs={data:regsD}, plaqs={data:plaqsD}, servs={data:servsD}, mats={data:matsD}, wf={data:wfD};
     const pMap={}; sMap={};
     (plaqs.data||[]).forEach(p=>pMap[p.id]=p);
     (servs.data||[]).forEach(s=>sMap[s.id]=s);
@@ -182,11 +198,27 @@ async function carregar(){
 }
 
 function render(){
-  // estado atual por (plaqueta, etapa) — RAW já vem desc por data, então o 1º visto é o mais recente
+  // Estado atual por (plaqueta, etapa) — RAW já vem desc por data, o 1º visto é o mais recente.
+  // IMPORTANTE: 'cancelado' e 'reativado' são eventos DA LS, não respostas de etapa.
+  // Se entrassem aqui, sobrescreveriam a resposta da etapa em que foram gravados
+  // (uma válvula instalada "desinstalaria" ao ser cancelada).
   const seen={}, latest=[];
-  RAW.forEach(r=>{const k=r.plaqueta_id+'#'+r.etapa;if(!seen[k]){seen[k]=1;latest.push(r);}});
+  RAW.forEach(r=>{
+    if(r.resposta==='cancelado'||r.resposta==='reativado') return;
+    const k=r.plaqueta_id+'#'+r.etapa;
+    if(!seen[k]){seen[k]=1;latest.push(r);}
+  });
 
-  const plaquetasComCancel=new Set(RAW.filter(r=>r.resposta==='cancelado').map(r=>r.plaqueta_id));
+  // Cancelamento vale pelo ÚLTIMO evento entre 'cancelado' e 'reativado'.
+  // (RAW vem ordenado por data_criacao DESC → o primeiro que aparece é o mais recente)
+  const ultimoCancEvt={};
+  RAW.forEach(r=>{
+    if(r.resposta!=='cancelado' && r.resposta!=='reativado') return;
+    if(!ultimoCancEvt[r.plaqueta_id]) ultimoCancEvt[r.plaqueta_id]=r.resposta;
+  });
+  const plaquetasComCancel=new Set(
+    Object.keys(ultimoCancEvt).filter(id=>ultimoCancEvt[id]==='cancelado')
+  );
   const pendencias=latest.filter(r=>r.resposta==='nao');
   const lsAtivas=new Set(RAW.map(r=>r.plaqueta_id));
   const instaladas=new Set(latest.filter(r=>r.etapa===1&&r.resposta==='sim').map(r=>r.plaqueta_id));
@@ -211,7 +243,7 @@ function render(){
     const servico=(sMap[p.servico_id]||{}).nome||'—';
     const mat=matResumo(p.ls_codigo);
     const inst=instaladas.has(p.id);
-    const cancel=rows.some(r=>r.resposta==='cancelado');
+    const cancel=plaquetasComCancel.has(p.id);
     const pend=latest.some(r=>r.plaqueta_id===p.id&&r.resposta==='nao');
     const maxE=MAXETAPA[p.servico_id];
     const concluida=maxE!=null&&latest.some(r=>r.plaqueta_id===p.id&&r.etapa===maxE&&r.resposta==='sim');
