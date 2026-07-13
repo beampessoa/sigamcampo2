@@ -225,7 +225,7 @@ function render(){
     else if(pend)status='pend';
     else status='and';
     const ult=rows[0];
-    return {ls:p.ls_codigo,tag:(ult&&ult.tag)||p.tag||'',servico:(ult&&ult.servico)||servico,unidade:(ult&&ult.unidade)||p.unidade||'—',n:rows.length,status,inst,ultEtapa:ult?ult.etapa:null,ultPergunta:ult?(ult.pergunta||''):'',ultData:ult?ult.data_criacao:(p.created_at||null),mat};
+    return {ls:p.ls_codigo,tag:p.tag||(ult&&ult.tag)||'',servico:servico,unidade:p.unidade||'—',n:rows.length,status,inst,ultEtapa:ult?ult.etapa:null,ultPergunta:ult?(ult.pergunta||''):'',ultData:ult?ult.data_criacao:(p.created_at||null),mat};
   }).sort((a,b)=>{
     if(a.status==='aguardando'&&b.status!=='aguardando')return 1;
     if(b.status==='aguardando'&&a.status!=='aguardando')return -1;
@@ -238,11 +238,17 @@ function render(){
   const concluidasN=LSROWS.filter(r=>r.status==='concluida').length;
   const kCanc=plaquetasComCancel.size;
 
-  // mapa por unidade → serviço (todas as plaquetas; aguardando = não instalada)
+  // mapa por unidade → serviço
+  // CONTA LS (status por LS), não respostas de etapa — assim os chips SOMAM o total de LS.
+  // (antes: contava cada resposta de cada etapa, então uma LS de 6 etapas contava 6x)
   const byUni={};
-  function cell(u,k){const un=byUni[u]=byUni[u]||{};return un[k]=un[k]||{sim:0,nao:0,na:0,cancelado:0,aguardando:0,ls:new Set()};}
-  PLAQS.forEach(p=>{const u=p.unidade||'—';const k=(sMap[p.servico_id]||{}).nome||'—';const o=cell(u,k);o.ls.add(p.id);if(!instaladas.has(p.id)&&!plaquetasComCancel.has(p.id))o.aguardando++;});
-  latest.forEach(r=>{const o=cell(r.unidade||'—',r.servico||'—');if(o[r.resposta]!=null)o[r.resposta]++;});
+  function cell(u,k){const un=byUni[u]=byUni[u]||{};return un[k]=un[k]||{
+    concluida:0, raqueteada:0, and:0, pend:0, canc:0, aguardando:0, total:0 };}
+  LSROWS.forEach(r=>{
+    const o=cell(r.unidade||'—', r.servico||'—');
+    o.total++;
+    if(o[r.status]!=null) o[r.status]++;
+  });
 
   let html='';
   // KPIs
@@ -277,11 +283,16 @@ function render(){
   }else{
     html+=uniKeys.map(u=>{
       const svcs=byUni[u];
-      const cards=Object.keys(svcs).sort().map(k=>{const o=svcs[k];return '<div class="svc"><div class="nm">'+esc(k)+'</div><div class="ls">'+o.ls.size+' LS'+(o.aguardando?' · '+o.aguardando+' aguardando':'')+'</div><div class="chips">'
-        +(o.sim?'<span class="chip sim">Sim '+o.sim+'</span>':'')
-        +(o.nao?'<span class="chip nao">Não '+o.nao+'</span>':'')
-        +(o.na?'<span class="chip na">N/A '+o.na+'</span>':'')
-        +(o.cancelado?'<span class="chip canc">Cancel. '+o.cancelado+'</span>':'')
+      const cards=Object.keys(svcs).sort().map(k=>{const o=svcs[k];
+        const feitas=o.concluida+o.raqueteada+o.and+o.pend;
+        return '<div class="svc"><div class="nm">'+esc(k)+'</div>'
+        +'<div class="ls">'+o.total+' LS'+(o.aguardando?' · '+o.aguardando+' aguardando':'')+'</div>'
+        +'<div class="chips">'
+        +(o.concluida?'<span class="chip sim">Concluídas '+o.concluida+'</span>':'')
+        +(o.raqueteada?'<span class="chip na">Raqueteadas '+o.raqueteada+'</span>':'')
+        +(o.and?'<span class="chip na">Em andamento '+o.and+'</span>':'')
+        +(o.pend?'<span class="chip nao">Pendências '+o.pend+'</span>':'')
+        +(o.canc?'<span class="chip canc">Cancel. '+o.canc+'</span>':'')
         +(o.aguardando?'<span class="chip aguard">Aguard. '+o.aguardando+'</span>':'')
         +'</div></div>';}).join('');
       return '<div class="unihdr">Unidade '+esc(u)+'</div><div class="svcgrid">'+cards+'</div>';
