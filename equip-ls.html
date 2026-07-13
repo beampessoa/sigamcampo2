@@ -287,32 +287,45 @@ textarea:focus{outline:2px solid var(--blue-300);outline-offset:1px;background:#
   @page{margin:12mm}
   body{background:#fff;padding:0;display:block}
   .wrap{max-width:none}
-  .card{border:none;box-shadow:none;overflow:visible}
+  .card{border:none;box-shadow:none;overflow:visible;position:relative}
+  .card-pad{padding:0}
 
-  /* Esconde só o que é interação — o histórico e os materiais DEVEM sair impressos */
+  /* QR ancorado no CANTO SUPERIOR DIREITO da primeira página, menor.
+     .card é o bloco de referência (position:relative acima). */
+  .qr-panel{position:absolute;top:0;right:0;width:112px;margin:0;padding:6px;
+            border:1px solid #ccc;border-radius:6px;background:#fff;text-align:center}
+  .qr-box{width:96px;margin:0;padding:2px}
+  .qr-cap{font-size:7.5px;line-height:1.25;margin-top:4px;color:#555}
+  .qr-cap br{display:none}
+
+  /* abre espaço à direita do cabeçalho para o QR não sobrepor o texto */
+  .eyebrow,.ls-code,.chips,.tag-hero{padding-right:124px}
+
+  /* Esconde só o que é interação */
   .acts,.drive,.seg,.foot,.btn-registro,.overlay,.modal,.toast,.toast-wrap{display:none!important}
-  .qr-panel{border-color:#ccc}
 
-  /* Histórico de atividades: SAI impresso (antes estava em display:none!important).
-     O JS marca com .tem quando há registros — aqui forçamos a exibição, vencendo
-     qualquer style inline ou regra anterior. LS sem registro não imprime caixa vazia. */
+  /* Histórico de atividades: SAI impresso. O JS marca com .tem quando há registros. */
   .cdr-hist.tem,.mat-box.tem{display:block!important;visibility:visible!important}
   .cdr-hist.tem .cdr-item{display:flex!important}
-  .cdr-hist{margin-top:14px;border-top:1px solid #ccc;padding-top:12px;
+  .cdr-hist{margin-top:12px;border-top:1px solid #ccc;padding-top:10px;
             page-break-inside:auto;break-inside:auto}
-  .cdr-hist h3{page-break-after:avoid;break-after:avoid}
-  .cdr-item{page-break-inside:avoid;break-inside:avoid}   /* não parte um registro ao meio */
-  .cdr-foto{max-width:120px}
-  .cdr-foto img{max-width:120px;height:auto}
+  .cdr-hist h3{page-break-after:avoid;break-after:avoid;margin-bottom:8px}
+  .cdr-item{page-break-inside:avoid;break-inside:avoid;padding:6px 0}
+  .cdr-foto,.cdr-foto img{max-width:78px}
 
-  .valv-box{page-break-inside:avoid;break-inside:avoid}
+  /* compactação geral — a meta é fechar em uma folha */
+  .ls-code{font-size:20px}
+  .tag-hero{padding:8px 0;margin:8px 0}
+  .rows .row{padding:5px 0}
+  .valv-box,.mat-box{margin-top:10px;page-break-inside:avoid;break-inside:avoid}
+
   .cdr-cancel,.cdr-reativ{page-break-inside:avoid;break-inside:avoid;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
 
-  /* cores dos selos e bolinhas saem no papel (senão viram tudo branco) */
+  /* cores dos selos e bolinhas saem no papel */
   .cdr-dot,.badge,.chip,.selo{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
-  /* nada de container rolável escondendo conteúdo na impressão */
+  /* nada de container rolável escondendo conteúdo */
   *{overflow:visible!important;max-height:none!important}
 }
 </style>
