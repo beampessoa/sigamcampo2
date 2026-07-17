@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sigma Planejamento — Lista Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sigma.css">
+</head>
+<body data-page="listop" data-title="Lista Operacional">
+<div class="screen">
+  <header id="hdr"></header>
+  <main class="stage"><section class="panel">
+    <div class="toggle"><span class="on">PARADA</span><span>ROTINA</span></div>
+    <div class="grid" style="grid-template-columns:.7fr 3fr">
+      <div class="grid" style="grid-template-rows:1.2fr 1fr 1fr">
+        <div class="box"><div class="cap">% Realizado geral</div><div class="gauge"><div class="gaugebox" id="gOp"></div></div></div>
+        <div class="kbox"><span class="k">Total</span><span class="v num" id="opTot">—</span></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="kbox"><span class="k">Realizado</span><span class="v num" style="color:var(--ok)" id="opRea">—</span></div>
+          <div class="kbox"><span class="k">Pendente</span><span class="v num" style="color:var(--bad)" id="opPen">—</span></div>
+        </div>
+      </div>
+      <div class="box"><div class="cap">Lista operacional</div><div class="scroll"><table id="tOp"></table></div></div>
+    </div>
+  </section></main>
+  <footer id="ftr"></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="sigma.js"></script>
+</body>
+</html>

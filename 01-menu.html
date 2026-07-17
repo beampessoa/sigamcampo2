@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sigma Planejamento — Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sigma.css">
+</head>
+<body data-page="menu" data-title="Menu">
+<div class="screen">
+  <header id="hdr"></header>
+  <main class="stage"><section class="panel">
+    <div class="cover">
+      <div class="left">
+        <div class="eyebrow">PAINEL</div>
+        <h2>INTEGRADO DE<br>INDICADORES</h2>
+        <div class="tag">MANUTENÇÃO</div>
+        <div class="qr"><img id="qr" src="" alt="QR"><small>Aponte a câmera do seu celular para acessar os indicadores</small></div>
+      </div>
+      <div class="right">
+        <div class="unit"><b id="unidade">U-1510</b><span id="refinaria">REFINARIA DUQUE DE CAXIAS</span></div>
+        <div class="photo" id="photo"><span class="ph">FOTO DA<br>UNIDADE</span></div>
+        <div style="text-align:center;font-size:.72em;color:var(--mut)">Última atualização:<b id="updMenu" style="display:block;color:var(--txt);font-size:1.2em"></b></div>
+        <div class="gcb" id="gcbMenu" style="font-weight:900;color:var(--g2);letter-spacing:1px">GCB</div>
+      </div>
+    </div>
+  </section></main>
+  <footer id="ftr"></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="sigma.js"></script>
+</body>
+</html>

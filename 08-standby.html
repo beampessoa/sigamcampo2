@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sigma Planejamento — Stand By</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sigma.css">
+</head>
+<body data-page="standby" data-title="Stand By">
+<div class="screen">
+  <header id="hdr"></header>
+  <main class="stage"><section class="panel">
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="box"><div class="cap">Lista Stand By — Turno Diurno</div>
+        <div class="filters"><span class="chip">Turno <b>Dia</b></span><span class="chip">Supervisor <b id="supDia">—</b></span></div>
+        <div class="tree" id="treeDia"></div></div>
+      <div class="box"><div class="cap">Lista Stand By — Turno Noturno</div>
+        <div class="filters"><span class="chip">Turno <b>Noite</b></span><span class="chip">Supervisor <b id="supNoite">—</b></span></div>
+        <div class="tree" id="treeNoite"></div></div>
+    </div>
+  </section></main>
+  <footer id="ftr"></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="sigma.js"></script>
+</body>
+</html>

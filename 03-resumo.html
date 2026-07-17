@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sigma Planejamento — Resumo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sigma.css">
+</head>
+<body data-page="resumo" data-title="Report — Resumo">
+<div class="screen">
+  <header id="hdr"></header>
+  <main class="stage"><section class="panel">
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="grid" style="grid-template-rows:auto 1fr">
+        <div class="grid" style="grid-template-columns:.8fr 1.2fr; grid-template-rows:auto">
+          <div class="box"><div class="cap">% Realizado geral</div><div class="gauge"><div class="gaugebox" id="gRes"></div></div></div>
+          <div class="box"><div class="cap">Caminho crítico</div><table id="tCrit"></table></div>
+        </div>
+        <div class="box"><div class="cap">Status de execução — itens escopo</div><div class="scroll"><table id="tResumo"></table></div></div>
+      </div>
+      <div class="grid" style="grid-template-rows:auto auto 1fr">
+        <div class="box"><div class="cap">PSV's</div><table id="tPsv"></table></div>
+        <div class="box"><div class="cap">GM's, serviços específicos e vazamentos</div><table id="tGm"></table></div>
+        <div class="box"><div class="cap">Medidas de ZR's</div><table id="tZr"></table></div>
+      </div>
+    </div>
+  </section></main>
+  <footer id="ftr"></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="sigma.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sigma Planejamento — Linha 24"</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sigma.css">
+</head>
+<body data-page="lin24" data-title='Linha de 24" — Soldagem e Tratamento'>
+<div class="screen">
+  <header id="hdr"></header>
+  <main class="stage"><section class="panel">
+    <div class="box" style="flex:1">
+      <div class="gantt"><div class="axis" id="gAxis"></div><div id="gBody"></div></div>
+      <div class="legend">
+        <span><b style="background:var(--bad)"></b>Não iniciado</span>
+        <span><b style="background:var(--warn)"></b>Iniciado</span>
+        <span><b style="background:var(--g2)"></b>Concluído</span>
+      </div>
+    </div>
+  </section></main>
+  <footer id="ftr"></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="sigma.js"></script>
+</body>
+</html>
