@@ -10,6 +10,7 @@
 <style>
 :root{
   --blue:#0F4CBA;--blue-700:#0B3A91;--blue-300:#5B8AE6;
+  --green:#16A34A;--green-700:#15803D;--green-300:#4ADE80;
   --white:#fff;--canvas:#F1F4F9;
   --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
   --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
@@ -41,6 +42,9 @@ body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);-webki
 .cta{display:flex;align-items:center;gap:16px;background:var(--blue);color:#fff;border-radius:var(--r-lg);
   padding:22px 24px;text-decoration:none;box-shadow:var(--sh-md);transition:background .15s}
 .cta:hover{background:var(--blue-700)}
+.cta + .cta{margin-top:14px}
+.cta.green{background:var(--green)}
+.cta.green:hover{background:var(--green-700)}
 .cta .ico{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex:none}
 .cta .ico svg{width:23px;height:23px}
 .cta .txt h2{font-family:var(--font-d);font-size:18px;font-weight:700;margin-bottom:3px}
@@ -95,6 +99,17 @@ body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);-webki
     <div class="txt">
       <h2>Consultar equipamento</h2>
       <p>Busca por TAG ou por número da plaqueta + serviço</p>
+    </div>
+    <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+  </a>
+
+  <a class="cta green" href="01-menu.html">
+    <div class="ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4M6 13l3-3 2 2 4-4"/></svg>
+    </div>
+    <div class="txt">
+      <h2>Painel Gerencial</h2>
+      <p>Acompanhamento da parada: escopo, curva S, cronograma e report — em tempo real, pronto pra TV</p>
     </div>
     <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
   </a>
