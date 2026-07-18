@@ -5,7 +5,7 @@
 <title>Sigma Planejamento — Resumo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="sigma.css">
+<link rel="stylesheet" href="sigma.css?v=3">
 </head>
 <body data-page="resumo" data-title="Report — Resumo">
 <div class="screen">
@@ -29,7 +29,9 @@
   <footer id="ftr"></footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-<script src="sigma.js"></script>
+<script>
+/* anti-cache: carrega config + motor sempre na versão mais nova */
+(function(){var t=Date.now();["supabase-config.js","sigma.js"].forEach(function(f){document.write('<scr'+'ipt src="'+f+'?t='+t+'"><\/scr'+'ipt>');});})();
+</script>
 </body>
 </html>
