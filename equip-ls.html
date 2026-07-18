@@ -770,26 +770,25 @@ async function buscarUsuarioCDR(){
   __regUser=null;
   if(t.length<3){box.innerHTML='';return;}
   try{
-    const {data,error}=await db.from('usuarios_campo')
-      .select('id,nome,cpf,matricula,funcao,ativo')
-      .or(`nome.ilike.%${t}%,cpf.ilike.%${t}%,matricula.ilike.%${t}%`)
-      .eq('ativo',true).limit(6);
+    // Efetivo real vem do schema sigmatr (RPC devolve CPF mascarado — LGPD).
+    const {data,error}=await db.schema('sigmatr').rpc('buscar_efetivo_campo',{p_termo:t});
     if(error) throw error;
-    if(!data||!data.length){box.innerHTML='<div class="user-miss">Não encontrado. Confira nome, CPF ou matrícula.</div>';return;}
+    if(!data||!data.length){box.innerHTML='<div class="user-miss">Não encontrado no efetivo. Confira nome, CPF ou matrícula.</div>';return;}
     if(data.length===1){selecUserCDR(data[0]);return;}
     window.__ucache=data;
     box.innerHTML='<div class="pick-list">'+data.map((u,i)=>
-      `<button onclick="selecUserCDR(window.__ucache[${i}])"><div class="pn">${esc(u.nome)}</div><div class="ps">${esc(u.matricula)} · ${esc(u.funcao)}</div></button>`
+      `<button onclick="selecUserCDR(window.__ucache[${i}])"><div class="pn">${esc(u.nome)}</div><div class="ps">${esc(u.funcao||'')}${u.cpf_mascarado?(' · '+esc(u.cpf_mascarado)):''}</div></button>`
     ).join('')+'</div>';
   }catch(e){box.innerHTML='<div class="user-miss">Erro na busca. '+esc(e.message||'')+'</div>';}
 }
 
 function selecUserCDR(u){
+  // u = {pessoa_id, nome, cpf_mascarado, funcao, setor} vindo do sigmatr
   __regUser=u;
   document.getElementById('regBusca').value=u.nome;
   document.getElementById('regUserRes').innerHTML=
     '<div class="user-hit"><div class="ic">'+esc((u.nome||'?').trim().charAt(0).toUpperCase())+'</div>'+
-    '<div><div class="nm">'+esc(u.nome)+'</div><div class="fx">'+esc(u.matricula)+' · '+esc(u.funcao)+'</div></div></div>';
+    '<div><div class="nm">'+esc(u.nome)+'</div><div class="fx">'+esc(u.funcao||'')+(u.cpf_mascarado?(' · '+esc(u.cpf_mascarado)):'')+'</div></div></div>';
   iniciarTarefaCDR();
 }
 
@@ -848,14 +847,47 @@ function onRespCDR(){
   document.getElementById('cancWrap').style.display=(v==='cancelado')?'block':'none';
 }
 
+// ══ TRAVA DE FUNÇÃO POR ETAPA ══
+// Mapeia o "balde" da workflow_tarefas.funcao_requerida para os setores
+// (funcoes.setor) do efetivo que podem dar baixa naquela etapa.
+const BALDE_SETOR = {
+  'Planejamento':                      ['PLAN'],
+  'Caldeiraria / Produção':            ['CALD','PROD'],
+  'Caldeiraria e Soldagem / Produção': ['CALD','PROD'],
+  'Complementar / Produção':           ['PROD'],
+  'Inspeção':                          ['QUA'],
+  'Todos':                             null   // null = qualquer setor
+};
+// Funções com REGISTRO LIVRE (baixam qualquer etapa, ignoram a trava).
+const FUNCOES_COORDENADOR = [
+  'Coordenador de Planejamento','Coordenador de Produção',
+  'Coordenador de Controle da Qualidade','Engenheiro Coordenador',
+  'Gerente de Contrato','Supervisor de Caldeiraria','Supervisor de Montagem',
+  'Supervisor de Andaime','Supervisor Alpinista N3','Inspetor de Equipamento'
+];
+function ehCoordenador(u){ return !!u && FUNCOES_COORDENADOR.includes(u.funcao); }
+function podeBaixar(u, funcaoRequerida){
+  if(!u) return false;
+  if(ehCoordenador(u)) return true;            // coordenador: livre
+  if(funcaoRequerida==='Todos') return true;   // etapa aberta a todos
+  const setores = BALDE_SETOR[funcaoRequerida];
+  if(!setores) return true;                     // balde não mapeado: não bloqueia
+  return setores.includes(u.setor);
+}
+
 function renderTarefa(w){
   __tarefa=w;
   document.getElementById('taskMeta').textContent='Etapa '+w.etapa+' de '+__workflow.length;
   document.getElementById('taskQ').textContent=w.pergunta;
+
+  const liberado = podeBaixar(__regUser, w.funcao_requerida);
   let fn='Função prevista: <b>'+esc(w.funcao_requerida)+'</b>';
-  if(__regUser&&__regUser.funcao&&__regUser.funcao!==w.funcao_requerida)
-    fn+=' — você entrou como <b>'+esc(__regUser.funcao)+'</b>';
+  if(ehCoordenador(__regUser))
+    fn+=' — <b>registro livre (coordenação)</b>';
+  else if(__regUser&&__regUser.funcao&&!liberado)
+    fn+=' — você entrou como <b>'+esc(__regUser.funcao)+'</b>'+(__regUser.setor?(' ('+esc(__regUser.setor)+')'):'');
   document.getElementById('taskFn').innerHTML=fn;
+
   document.querySelectorAll('input[name=resp]').forEach(r=>r.checked=false);
   document.getElementById('cancWrap').style.display='none';
   document.getElementById('regDocCanc').value='';
@@ -864,6 +896,15 @@ function renderTarefa(w){
   document.getElementById('regDrop').textContent='Clique para selecionar (opcional)';
   document.getElementById('regDrop').classList.remove('has');
   regErrClear();
+
+  // Trava: quem não é da função prevista (nem coordenador) não dá baixa nesta etapa.
+  const btn=document.getElementById('regSalvar');
+  if(!liberado){
+    btn.disabled=true;
+    regErr('Esta etapa é da função "'+esc(w.funcao_requerida)+'". Você entrou como '+esc(__regUser?__regUser.funcao:'—')+' e não pode dar baixa aqui — um coordenador pode.');
+  }else{
+    btn.disabled=false;
+  }
   regStep('mStepTask');
 }
 
@@ -879,6 +920,7 @@ async function salvarRegistroCDR(){
   const resp=document.querySelector('input[name=resp]:checked');
   if(!__regUser){regErr('Identifique-se primeiro.');return;}
   if(!__tarefa){regErr('Nenhuma tarefa carregada.');return;}
+  if(!podeBaixar(__regUser,__tarefa.funcao_requerida)){regErr('Você não tem permissão para dar baixa nesta etapa. Um coordenador pode registrar.');return;}
   if(!resp){regErr('Marque Sim, Não, N/A ou Cancelado.');return;}
   const docCanc=document.getElementById('regDocCanc').value.trim();
   if(resp.value==='cancelado' && !docCanc){regErr('Informe qual documento cancela esta etapa.');return;}
@@ -900,7 +942,7 @@ async function salvarRegistroCDR(){
     }
     const ins=await db.from('atividades_campo').insert({
       plaqueta_id:p.id, servico_id:p.servico_id||null,
-      usuario_id:__regUser.id, usuario_nome:__regUser.nome, usuario_funcao:__regUser.funcao,
+      usuario_pessoa_id:__regUser.pessoa_id, usuario_nome:__regUser.nome, usuario_funcao:__regUser.funcao,
       etapa:__tarefa.etapa, pergunta:__tarefa.pergunta, resposta:resp.value,
       observacoes:document.getElementById('regObs').value.trim()||null,
       doc_cancelamento:(resp.value==='cancelado')?docCanc:null,
