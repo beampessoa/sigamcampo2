@@ -136,6 +136,7 @@ td.l,th.l{ text-align:left; }
 .cover .qr small{ color:var(--mut); font-size:.72em; max-width:12em; line-height:1.35; }
 .cover .right{ position:relative; z-index:1; display:flex; flex-direction:column; align-items:flex-end; justify-content:flex-start; gap:.4em; align-self:start; text-align:right; }
 .cover .unit b{ font-size:clamp(2.4em,6vw,4.2em); font-weight:900; color:var(--g2); display:block; line-height:1; }
+.cover .unit.multi b{ font-size:clamp(1.6em,3.6vw,2.7em); line-height:1.08; }
 .cover .unit span{ letter-spacing:3px; font-weight:600; color:var(--mut); font-size:.8em; }
 
 /* footer / nav */

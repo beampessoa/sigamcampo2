@@ -5,7 +5,7 @@
 const CONFIG = {
   SUPABASE_URL:      (typeof window!=="undefined" && window.SUPA_URL) || "https://kiwiykgzogcxiseynzyy.supabase.co",
   SUPABASE_ANON_KEY: (typeof window!=="undefined" && window.SUPA_KEY) || "COLE_SUA_ANON_KEY_AQUI",  // vem do supabase-config.js
-  UNIDADE:"U-1510", REFINARIA:"REFINARIA DUQUE DE CAXIAS",
+  UNIDADE:"U-2700 · U-3500 · U-3400", REFINARIA:"REFINARIA DUQUE DE CAXIAS",
   LOGO_GCB_URL:"", FOTO_URL:"", QR_URL:"https://campo.sigmacode.com.br",
   DIA_INICIO:6, DIA_FIM:29,      // faixa de dias da matriz/curva (dia do mês)
   STALE_HORAS:3,                 // sem atualização há + de X h => avisa "dado desatualizado"
@@ -16,7 +16,7 @@ const sb = DEMO ? null : supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPAB
 
 /* ---------- dados de demonstração (só quando não há anon key) ---------- */
 const DEMO_DATA = {
-  config:{ unidade:"U-1510", refinaria:"REFINARIA DUQUE DE CAXIAS", ultima_atualizacao:"01/06/2024 16:16:55",
+  config:{ unidade:"U-2700 · U-3500 · U-3400", refinaria:"REFINARIA DUQUE DE CAXIAS", ultima_atualizacao:"01/06/2024 16:16:55",
     parada_inicio:"2024-05-06", parada_fim:"2024-05-29", termino_planejado:"29/05/24 14:30", termino_real:"29/05/24 14:30",
     clima_temp:"27°C", clima_chuva:"2%", clima_umidade:"68%", clima_vento:"8 km/h", paralizacoes:"", analise:"",
     foto_url:"https://kiwiykgzogcxiseynzyy.supabase.co/storage/v1/object/public/LOGO-Empresas/Reduc%20Drone.jpeg",
@@ -259,7 +259,9 @@ async function renderStandby(){
 async function renderMenu(){
   const cfg=DEMO?DEMO_DATA.config:((await q("painel_config"))[0]||{});
   const set=(id,v)=>{const e=$(id); if(e)e.textContent=v;};
-  set("#unidade",cfg.unidade||CONFIG.UNIDADE); set("#refinaria",cfg.refinaria||CONFIG.REFINARIA); set("#updMenu",cfg.ultima_atualizacao||"—");
+  const units=String(cfg.unidade||CONFIG.UNIDADE).split(/[·,\/;]+/).map(s=>s.trim()).filter(Boolean);
+  const ub=$("#unidade"); if(ub){ ub.innerHTML=units.join("<br>"); if(ub.parentElement) ub.parentElement.classList.toggle("multi",units.length>1); }
+  set("#refinaria",cfg.refinaria||CONFIG.REFINARIA); set("#updMenu",cfg.ultima_atualizacao||"—");
   if($("#qr")) $("#qr").src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(cfg.qr_url||CONFIG.QR_URL);
   const fundo=cfg.foto_url||CONFIG.FOTO_URL; const cov=document.querySelector(".cover");
   if(fundo&&cov) cov.style.setProperty("--fundo",`url("${fundo}")`);
