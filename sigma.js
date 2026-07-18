@@ -18,7 +18,9 @@ const sb = DEMO ? null : supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPAB
 const DEMO_DATA = {
   config:{ unidade:"U-1510", refinaria:"REFINARIA DUQUE DE CAXIAS", ultima_atualizacao:"01/06/2024 16:16:55",
     parada_inicio:"2024-05-06", parada_fim:"2024-05-29", termino_planejado:"29/05/24 14:30", termino_real:"29/05/24 14:30",
-    clima_temp:"27°C", clima_chuva:"2%", clima_umidade:"68%", clima_vento:"8 km/h", paralizacoes:"", analise:"" },
+    clima_temp:"27°C", clima_chuva:"2%", clima_umidade:"68%", clima_vento:"8 km/h", paralizacoes:"", analise:"",
+    foto_url:"https://kiwiykgzogcxiseynzyy.supabase.co/storage/v1/object/public/LOGO-Empresas/Reduc%20Drone.jpeg",
+    logo_gcb_url:"https://kiwiykgzogcxiseynzyy.supabase.co/storage/v1/object/public/LOGO-Empresas/gcb.png" },
   escopo:[["EJETORES",7,7],["FILTRO",53,53],["GM'S",6,6],["HIDROJATO",16,16],["PSV'S",80,80],["REENGAXETAMENTO",92,92],["SERV. ESP.",21,21],["VÁLV. FLANGEADA",284,284],["VÁLV. RETENÇÃO",198,198],["VÁLV. ROSCADA",5,5],["VÁLV. SOLDADA",168,168],["VAZAMENTOS",8,8],["ZR'S",75,75]],
   extra:[["VAZAMENTOS",65,65],["ZR'S",113,113]],
   acumDia:[41,95,146,222,296,355,359,420,493,541,579,622,702,702,772,834,867,928,1002,1069,1108,1149,1167,1191],
@@ -259,7 +261,8 @@ async function renderMenu(){
   const set=(id,v)=>{const e=$(id); if(e)e.textContent=v;};
   set("#unidade",cfg.unidade||CONFIG.UNIDADE); set("#refinaria",cfg.refinaria||CONFIG.REFINARIA); set("#updMenu",cfg.ultima_atualizacao||"—");
   if($("#qr")) $("#qr").src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(cfg.qr_url||CONFIG.QR_URL);
-  const foto=cfg.foto_url||CONFIG.FOTO_URL; if(foto&&$("#photo")) $("#photo").innerHTML=`<img src="${foto}" alt="Unidade">`;
+  const fundo=cfg.foto_url||CONFIG.FOTO_URL; const cov=document.querySelector(".cover");
+  if(fundo&&cov) cov.style.setProperty("--fundo",`url("${fundo}")`);
   const logo=cfg.logo_gcb_url||CONFIG.LOGO_GCB_URL; if(logo&&$("#gcbMenu")) $("#gcbMenu").innerHTML=`<img src="${logo}" alt="GCB">`;
 }
 
