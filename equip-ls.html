@@ -770,11 +770,12 @@ async function buscarUsuarioCDR(){
   __regUser=null;
   if(t.length<3){box.innerHTML='';return;}
   try{
-    // Efetivo real vem do schema sigmatr (RPC devolve CPF mascarado — LGPD).
-    const {data,error}=await db.schema('sigmatr').rpc('buscar_efetivo_campo',{p_termo:t});
+    // Efetivo real: RPC no schema public (lê o sigmatr por dentro; CPF mascarado — LGPD).
+    const {data,error}=await db.rpc('buscar_efetivo_campo',{p_termo:t});
     if(error) throw error;
     if(!data||!data.length){box.innerHTML='<div class="user-miss">Não encontrado no efetivo. Confira nome, CPF ou matrícula.</div>';return;}
-    if(data.length===1){selecUserCDR(data[0]);return;}
+    // Nunca seleciona sozinho: mostra sempre a lista (mesmo com 1) para a
+    // pessoa tocar e confirmar — evita entrar no nome errado ao digitar.
     window.__ucache=data;
     box.innerHTML='<div class="pick-list">'+data.map((u,i)=>
       `<button onclick="selecUserCDR(window.__ucache[${i}])"><div class="pn">${esc(u.nome)}</div><div class="ps">${esc(u.funcao||'')}${u.cpf_mascarado?(' · '+esc(u.cpf_mascarado)):''}</div></button>`
