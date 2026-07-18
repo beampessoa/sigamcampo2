@@ -6,9 +6,10 @@ const CONFIG = {
   SUPABASE_URL:      (typeof window!=="undefined" && window.SUPA_URL) || "https://kiwiykgzogcxiseynzyy.supabase.co",
   SUPABASE_ANON_KEY: (typeof window!=="undefined" && window.SUPA_KEY) || "COLE_SUA_ANON_KEY_AQUI",  // vem do supabase-config.js
   UNIDADE:"U-2700 · U-3500 · U-3400", REFINARIA:"REFINARIA DUQUE DE CAXIAS",
-  LOGO_GCB_URL:"", FOTO_URL:"", QR_URL:"https://campo.sigmacode.com.br",
+  LOGO_GCB_URL:"", FOTO_URL:"", REFINARIA_LOGO_URL:"", QR_URL:"https://campo.sigmacode.com.br",
   DIA_INICIO:6, DIA_FIM:29,      // faixa de dias da matriz/curva (dia do mês)
   STALE_HORAS:3,                 // sem atualização há + de X h => avisa "dado desatualizado"
+  ROTATE_SECONDS:20,             // tempo em cada página no modo TV (?tv=1)
   TEMA:"claro",
 };
 const DEMO = CONFIG.SUPABASE_ANON_KEY.includes("COLE_");
@@ -20,7 +21,8 @@ const DEMO_DATA = {
     parada_inicio:"2024-05-06", parada_fim:"2024-05-29", termino_planejado:"29/05/24 14:30", termino_real:"29/05/24 14:30",
     clima_temp:"27°C", clima_chuva:"2%", clima_umidade:"68%", clima_vento:"8 km/h", paralizacoes:"", analise:"",
     foto_url:"https://kiwiykgzogcxiseynzyy.supabase.co/storage/v1/object/public/LOGO-Empresas/Reduc%20Drone.jpeg",
-    logo_gcb_url:"https://kiwiykgzogcxiseynzyy.supabase.co/storage/v1/object/public/LOGO-Empresas/gcb.png" },
+    logo_gcb_url:"https://kiwiykgzogcxiseynzyy.supabase.co/storage/v1/object/public/LOGO-Empresas/gcb.png",
+    refinaria_logo_url:"https://kiwiykgzogcxiseynzyy.supabase.co/storage/v1/object/public/LOGO-Empresas/Reduc.png" },
   escopo:[["EJETORES",7,7],["FILTRO",53,53],["GM'S",6,6],["HIDROJATO",16,16],["PSV'S",80,80],["REENGAXETAMENTO",92,92],["SERV. ESP.",21,21],["VÁLV. FLANGEADA",284,284],["VÁLV. RETENÇÃO",198,198],["VÁLV. ROSCADA",5,5],["VÁLV. SOLDADA",168,168],["VAZAMENTOS",8,8],["ZR'S",75,75]],
   extra:[["VAZAMENTOS",65,65],["ZR'S",113,113]],
   acumDia:[41,95,146,222,296,355,359,420,493,541,579,622,702,702,772,834,867,928,1002,1069,1108,1149,1167,1191],
@@ -92,7 +94,13 @@ function buildShell(page,title){
         <div class="c"><b class="num" id="cRes">—</b><span>Dias restantes</span></div></div>
       <div class="upd"><span class="lbl">Última atualização:</span><b id="upd">—</b>
         <div class="live off" id="live"><span class="dot"></span><span id="liveTxt">conectando</span></div></div></header>`;
-  } else { const h=$("#hdr"); if(h) h.remove(); }
+  } else {
+    const h=$("#hdr"); if(h) h.remove();
+    const fixMenu=()=>{ const sc=document.querySelector(".screen"); if(!sc) return;
+      if(window.innerWidth>820){ sc.style.gridTemplateRows="1fr auto"; sc.style.minHeight="100vh"; }
+      else { sc.style.gridTemplateRows="auto auto"; sc.style.minHeight="auto"; } };
+    fixMenu(); window.addEventListener("resize",fixMenu);
+  }
   $("#ftr").outerHTML=`<footer class="ftr" id="ftr"><button class="btn" id="themeBtn" title="Claro/Escuro (T)">🌙</button>
     <nav class="nav">${nav}</nav><div class="spacer"></div>
     ${DEMO?'<span class="demo">Demonstração</span>':''}</footer>`;
@@ -266,6 +274,8 @@ async function renderMenu(){
   const fundo=cfg.foto_url||CONFIG.FOTO_URL; const cov=document.querySelector(".cover");
   if(fundo&&cov) cov.style.setProperty("--fundo",`url("${fundo}")`);
   const logo=cfg.logo_gcb_url||CONFIG.LOGO_GCB_URL; if(logo&&$("#gcbMenu")) $("#gcbMenu").innerHTML=`<img src="${logo}" alt="GCB">`;
+  const refl=cfg.refinaria_logo_url||CONFIG.REFINARIA_LOGO_URL; const re=$("#refLogo");
+  if(re){ if(refl){ re.src=refl; re.style.display=""; } else re.style.display="none"; }
 }
 
 /* ---------- realtime + init ---------- */
@@ -282,5 +292,23 @@ async function SIGMA_init(){
     ch.subscribe(st=>setConn(st==="SUBSCRIBED")); }
   // rede de segurança: revê "dado velho" a cada minuto (mesmo sem evento)
   setInterval(liveState, 60000);
+  startTvLoop();
+}
+/* ---------- Modo TV: gira as páginas em loop (ativa com ?tv=1 na URL) ---------- */
+function startTvLoop(){
+  const params=new URLSearchParams(location.search);
+  if(!params.has("tv")) return;                       // só gira se a URL tiver ?tv=1
+  const secs=Math.max(5, parseInt(params.get("t"))||CONFIG.ROTATE_SECONDS);
+  try{ if("wakeLock" in navigator) navigator.wakeLock.request("screen"); }catch(e){}   // tela não dorme
+  // barra de progresso no topo (tempo até a próxima página)
+  const bar=document.createElement("div");
+  bar.style.cssText="position:fixed;top:0;left:0;height:5px;background:#16A34A;width:0;z-index:99999;transition:width "+secs+"s linear";
+  document.body.appendChild(bar);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ bar.style.width="100%"; }));
+  // vai para a próxima página, carregando o modo TV adiante
+  const cur=(location.pathname.split("/").pop())||"01-menu.html";
+  let i=PAGES.findIndex(p=>p[0]===cur); if(i<0) i=0;
+  const next=PAGES[(i+1)%PAGES.length][0];
+  setTimeout(()=>{ location.href=next+"?tv=1&t="+secs; }, secs*1000);
 }
 document.addEventListener("DOMContentLoaded",SIGMA_init);
