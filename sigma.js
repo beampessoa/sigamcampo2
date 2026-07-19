@@ -147,6 +147,8 @@ function buildShell(page,title){
   const cur=(location.pathname.split("/").pop())||page;
   const nav=PAGES.map(([h,l])=>`<a href="${h}" class="${h===cur?'on':''}">${l}</a>`).join("");
   const isMenu=page==="menu";
+  const sc=document.querySelector(".screen");
+  if(sc && !$("#alertbar")) sc.insertAdjacentHTML("afterbegin",`<div class="alertbar" id="alertbar"></div>`);
   if(!isMenu){
     $("#hdr").outerHTML=`<header class="hdr" id="hdr">
       <div class="brand"><div class="logo" id="logo">GCB</div><div><b style="font-size:1.1em">SIGMA</b><small>PLANEJAMENTO</small></div></div>
@@ -156,19 +158,18 @@ function buildShell(page,title){
         <div class="c"><b class="num" id="cRes">—</b><span>Dias restantes</span></div></div>
       <div class="upd"><span class="lbl">Última atualização:</span><b id="upd">—</b>
         <div class="live off" id="live"><span class="dot"></span><span id="liveTxt">conectando</span></div></div></header>`;
+    if(sc) sc.style.gridTemplateRows="auto auto 1fr auto";   // alerta, cabeçalho, conteúdo, rodapé
   } else {
     const h=$("#hdr"); if(h) h.remove();
-    const fixMenu=()=>{ const sc=document.querySelector(".screen"); if(!sc) return;
-      if(window.innerWidth>820){ sc.style.gridTemplateRows="1fr auto"; sc.style.minHeight="100vh"; }
-      else { sc.style.gridTemplateRows="auto auto"; sc.style.minHeight="auto"; } };
+    const fixMenu=()=>{ if(!sc) return;
+      if(window.innerWidth>820){ sc.style.gridTemplateRows="auto 1fr auto"; sc.style.minHeight="100vh"; }
+      else { sc.style.gridTemplateRows="auto auto auto"; sc.style.minHeight="auto"; } };
     fixMenu(); window.addEventListener("resize",fixMenu);
   }
   $("#ftr").outerHTML=`<footer class="ftr" id="ftr"><button class="btn" id="themeBtn" title="Claro/Escuro (T)">🌙</button>
     <nav class="nav">${nav}</nav><div class="spacer"></div>
     ${DEMO?'<span class="demo">Demonstração</span>':''}</footer>`;
   const logo=$("#logo"); if(logo&&CONFIG.LOGO_GCB_URL) logo.innerHTML=`<img src="${CONFIG.LOGO_GCB_URL}" alt="GCB">`;
-  const stage=document.querySelector("main.stage");
-  if(stage && !$("#alertbar")) stage.insertAdjacentHTML("beforebegin",`<div class="alertbar" id="alertbar" style="display:none"></div>`);
   initTheme();
 }
 /* faixa de alerta: itens atrasados + impeditivos SIM */
@@ -181,8 +182,8 @@ async function renderAlerts(){
   const msgs=[];
   if(atras) msgs.push(`${atras} ${atras>1?"itens atrasados":"item atrasado"}`);
   if(imped) msgs.push(`${imped} ${imped>1?"impeditivos":"impeditivo"} (SIM)`);
-  if(msgs.length){ bar.innerHTML=`<span class="ab-dot"></span> ATENÇÃO — ${msgs.join("  ·  ")}`; bar.style.display=""; }
-  else bar.style.display="none";
+  if(msgs.length){ bar.innerHTML=`<span class="ab-dot"></span> ATENÇÃO — ${msgs.join("  ·  ")}`; bar.classList.add("show"); }
+  else bar.classList.remove("show");
 }
 function applyTheme(dark){ document.body.classList.toggle("dark",dark); const b=$("#themeBtn"); if(b)b.textContent=dark?"☀️":"🌙"; try{localStorage.setItem("sigma-tema",dark?"escuro":"claro");}catch(e){} }
 function initTheme(){ let t=CONFIG.TEMA; try{t=localStorage.getItem("sigma-tema")||t;}catch(e){} applyTheme(t==="escuro");

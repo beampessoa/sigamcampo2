@@ -63,8 +63,9 @@ td.l,th.l{ text-align:left; }
 .cell-hi{ background:var(--hi); color:var(--ok); font-weight:700; border-radius:3px; padding:.05em .35em; }
 .seg{ text-align:left; font-weight:600; }
 .stat{ font-weight:600; } .stat.done{ color:var(--ok); } .stat.run{ color:var(--warn); } .stat.wait{ color:var(--mut); } .stat.bad{ color:var(--bad); }
-.alertbar{ background:var(--bad); color:#fff; font-weight:700; letter-spacing:.5px; text-align:center; padding:.45em 1em; font-size:.9em; display:flex; align-items:center; justify-content:center; gap:.5em; }
-.alertbar .ab-dot{ width:.7em; height:.7em; border-radius:99px; background:#fff; animation:pulse 1.4s infinite; }
+.alertbar{ background:var(--bad); color:#fff; font-weight:700; letter-spacing:.5px; text-align:center; font-size:.9em; display:flex; align-items:center; justify-content:center; gap:.5em; height:0; padding:0 1em; overflow:hidden; transition:height .2s; }
+.alertbar.show{ height:auto; padding:.5em 1em; }
+.alertbar .ab-dot{ width:.7em; height:.7em; border-radius:99px; background:#fff; animation:pulse 1.4s infinite; flex:none; }
 .badge{ font-size:.75em; font-weight:700; padding:.15em .55em; border-radius:99px; text-transform:uppercase; letter-spacing:.5px; }
 .b-sim{ background:rgba(220,38,38,.14); color:var(--bad);} .b-nao{ background:rgba(148,163,184,.18); color:var(--mut);}
 
