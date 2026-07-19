@@ -54,6 +54,7 @@ function _cenario(o){
   return {
     config:{ unidade:"U-4200 · U-4600 · U-5100", refinaria:"REFINARIA COSTA AZUL", ultima_atualizacao:o.upd,
       parada_inicio:"2025-09-01", parada_fim:"2025-09-26", termino_planejado:"26/09/25 18:00", termino_real:o.tr||"—",
+      dias_ocorridos:o.dias_oco,
       clima_temp:"29°C", clima_chuva:"10%", clima_umidade:"72%", clima_vento:"12 km/h",
       paralizacoes:"", analise:"", foto_url:"", refinaria_logo_url:"", logo_gcb_url:"" },
     escopo:o.escopo, extra:o.extra||[], acumDia, curva,
@@ -67,7 +68,7 @@ function _cenario(o){
 const _crew=m=>({DIA:{sup:"R. Andrade",f:[["CALDEIREIRO",Math.round(26*m)],["AJUDANTE",Math.round(12*m)],["MONTADOR DE ANDAIME",Math.round(11*m)],["SOLDADOR",Math.round(7*m)],["ALPINISTA",Math.round(3*m)],["INSPETOR",2],["MECÂNICO DE VÁLVULAS",Math.round(3*m)],["ELETRICISTA",Math.round(2*m)]]},
   NOITE:{sup:"M. Teixeira",f:[["CALDEIREIRO",Math.round(22*m)],["AJUDANTE",Math.round(10*m)],["MONTADOR DE ANDAIME",Math.round(9*m)],["SOLDADOR",Math.round(6*m)],["ALPINISTA",2],["INSPETOR",2],["MECÂNICO DE VÁLVULAS",2],["ELETRICISTA",1]]}});
 const CENARIOS={
-  cenario1:_cenario({ pct:0.16, upd:"05/09/2025 08:15", atrasados:3,
+  cenario1:_cenario({ pct:0.16, upd:"05/09/2025 08:15", atrasados:3, dias_oco:4,
     escopo:[["EJETORES",12,2,3,0],["FILTROS",60,10,12,0],["GM'S",8,1,2,0],["HIDROJATO",20,3,4,0],["PSV'S",96,14,20,0],["REENGAXETAMENTO",88,12,18,0],["SERV. ESP.",24,3,5,0],["VÁLV. FLANGEADA",310,60,70,0],["VÁLV. RETENÇÃO",210,40,45,0],["VÁLV. ROSCADA",6,1,1,0],["VÁLV. SOLDADA",180,20,30,3],["VAZAMENTOS",40,5,6,0],["ZR'S",90,12,15,0]],
     extra:[["VAZAMENTOS",22,4],["ZR'S",30,6]],
     crit:[{segmento:'LINHA 30" — SOLDAGEM',status:"EM ANDAMENTO",pct_planejado:30,pct_realizado:18,pct_desvio:12}],
@@ -77,7 +78,7 @@ const CENARIOS={
     gantt:[{grupo:'LINHA 30"',tarefa:"JUNTA 1",data_inicio:"2025-09-03",data_fim:"2025-09-04",status:"INICIADO"},{grupo:'LINHA 30"',tarefa:"JUNTA 2",data_inicio:"2025-09-04",data_fim:"2025-09-05",status:"NAO_INICIADO"},{grupo:'LINHA 16"',tarefa:"JUNTA 1",data_inicio:"2025-09-06",data_fim:"2025-09-07",status:"NAO_INICIADO"},{grupo:'LINHA 8"',tarefa:"JUNTA 1",data_inicio:"2025-09-08",data_fim:"2025-09-09",status:"NAO_INICIADO"}],
     listaOp:[[12,"P-4201A","BOMBA DE CARGA — AGUARDANDO LIBERAÇÃO DE ÁREA",20,"",true],[34,"V-4610","VASO SEPARADOR — ISOLAMENTO EM MONTAGEM",35,"",false],[47,"PSV-088","VÁLVULA DE SEGURANÇA REMOVIDA P/ BANCADA",60,"",false],[58,"FV-112","BY-PASS AGUARDANDO FLANGE",10,"Falta material",true]],
     standby:_crew(1.15) }),
-  cenario2:_cenario({ pct:0.56, upd:"14/09/2025 16:40", atrasados:25,
+  cenario2:_cenario({ pct:0.56, upd:"14/09/2025 16:40", atrasados:25, dias_oco:14,
     escopo:[["EJETORES",12,7,3,2],["FILTROS",60,34,15,0],["GM'S",8,5,2,0],["HIDROJATO",20,11,5,3],["PSV'S",96,54,20,0],["REENGAXETAMENTO",88,50,20,0],["SERV. ESP.",24,13,6,0],["VÁLV. FLANGEADA",310,175,60,12],["VÁLV. RETENÇÃO",210,120,40,0],["VÁLV. ROSCADA",6,3,2,0],["VÁLV. SOLDADA",180,95,40,8],["VAZAMENTOS",40,22,10,0],["ZR'S",90,50,20,0]],
     extra:[["VAZAMENTOS",22,12],["ZR'S",30,17]],
     crit:[{segmento:'LINHA 30" — SOLDAGEM',status:"ATRASADO",pct_planejado:65,pct_realizado:48,pct_desvio:17},{segmento:"VÁLV. FLANGEADA",status:"EM ANDAMENTO",pct_planejado:60,pct_realizado:56,pct_desvio:4}],
@@ -87,7 +88,7 @@ const CENARIOS={
     gantt:[{grupo:'LINHA 30"',tarefa:"JUNTA 1",data_inicio:"2025-09-03",data_fim:"2025-09-04",status:"CONCLUIDO"},{grupo:'LINHA 30"',tarefa:"JUNTA 2",data_inicio:"2025-09-04",data_fim:"2025-09-05",status:"CONCLUIDO"},{grupo:'LINHA 30"',tarefa:"JUNTA 3",data_inicio:"2025-09-06",data_fim:"2025-09-08",status:"INICIADO"},{grupo:'LINHA 16"',tarefa:"JUNTA 1",data_inicio:"2025-09-09",data_fim:"2025-09-10",status:"INICIADO"},{grupo:'LINHA 16"',tarefa:"JUNTA 2",data_inicio:"2025-09-11",data_fim:"2025-09-12",status:"NAO_INICIADO"},{grupo:'LINHA 8"',tarefa:"JUNTA 1",data_inicio:"2025-09-13",data_fim:"2025-09-14",status:"NAO_INICIADO"}],
     listaOp:[[12,"P-4201A","SPOOL DE DESCARGA REMOVIDO — NÃO RETORNOU",70,"Aguardando caldeiraria",true],[23,"T-4605","PSV-045 NÃO TORQUEADA",80,"2ª lista 12/09",true],[31,"H-5102","FV-053 FALTA REINSTALAR BLOQUEIO DO BY-PASS",60,"",true],[44,"D-4108","AMOSTRADOR DESCONECTADO",90,"",false],[59,"FV-5177","BY-PASS INSTALADA EM SENTIDO INVERTIDO",50,"Corrigir",true],[76,"E-4620","FEIXE REMOVIDO — INSPEÇÃO PENDENTE",40,"",true],[88,"V-5101","VÁLVULA DE SEGURANÇA — TESTE REPROVADO",30,"Reteste",true]],
     standby:_crew(1.0) }),
-  cenario3:_cenario({ pct:0.94, upd:"24/09/2025 19:05", atrasados:2,
+  cenario3:_cenario({ pct:0.94, upd:"24/09/2025 19:05", atrasados:2, dias_oco:23,
     escopo:[["EJETORES",12,12,0,0],["FILTROS",60,58,2,0],["GM'S",8,8,0,0],["HIDROJATO",20,19,1,0],["PSV'S",96,92,4,0],["REENGAXETAMENTO",88,86,2,0],["SERV. ESP.",24,23,1,0],["VÁLV. FLANGEADA",310,296,10,2],["VÁLV. RETENÇÃO",210,203,7,0],["VÁLV. ROSCADA",6,6,0,0],["VÁLV. SOLDADA",180,173,7,0],["VAZAMENTOS",40,39,1,0],["ZR'S",90,88,2,0]],
     extra:[["VAZAMENTOS",22,22],["ZR'S",30,29]],
     crit:[{segmento:'LINHA 30" — SOLDAGEM',status:"EM ANDAMENTO",pct_planejado:98,pct_realizado:96,pct_desvio:2}],
@@ -145,7 +146,10 @@ function setGauge(el,val,opts){ if(!el) return; opts=opts||{};
 const PAGES=[["01-menu.html","MENU"],["02-escopo.html","ESCOPO"],["03-resumo.html","RESUMO"],["04-lin24.html","LIN 24"],["05-punch.html","PUNCH LIST"],["06-curva-s.html","CURVA S"],["07-list-op.html","LIST OP"],["08-standby.html","STAND BY"]];
 function buildShell(page,title){
   const cur=(location.pathname.split("/").pop())||page;
-  const nav=PAGES.map(([h,l])=>`<a href="${h}" class="${h===cur?'on':''}">${l}</a>`).join("");
+  const cq=new URLSearchParams(location.search);
+  const keep=[]; if(cq.get("theme")) keep.push("theme="+cq.get("theme")); if(cq.get("demo")) keep.push("demo="+cq.get("demo"));
+  const qs=keep.length?"?"+keep.join("&"):"";
+  const nav=PAGES.map(([h,l])=>`<a href="${h}${qs}" class="${h===cur?'on':''}">${l}</a>`).join("");
   const isMenu=page==="menu";
   const sc=document.querySelector(".screen");
   if(sc && !$("#alertbar")) sc.insertAdjacentHTML("afterbegin",`<div class="alertbar" id="alertbar"></div>`);
@@ -197,7 +201,8 @@ async function fillHeader(){
   if($("#upd"))   $("#upd").textContent=cfg.ultima_atualizacao||"—";
   if(cfg.parada_inicio && cfg.parada_fim && $("#cMan")){
     const tot=daysBetween(cfg.parada_inicio,cfg.parada_fim), oco=Math.max(0,Math.min(tot,daysBetween(cfg.parada_inicio,new Date().toISOString().slice(0,10))));
-    $("#cMan").textContent=tot; $("#cOco").textContent=DEMO?tot:oco; $("#cRes").textContent=DEMO?0:Math.max(0,tot-oco);
+    const ocoFinal = (cfg.dias_ocorridos!=null) ? cfg.dias_ocorridos : (DEMO?tot:oco);
+    $("#cMan").textContent=tot; $("#cOco").textContent=ocoFinal; $("#cRes").textContent=Math.max(0,tot-ocoFinal);
   }
   STATE.lastUpd=parseUpd(cfg.ultima_atualizacao);
   const hl=$("#logo"); if(hl && cfg.logo_gcb_url) hl.innerHTML=`<img src="${cfg.logo_gcb_url}" alt="">`;
