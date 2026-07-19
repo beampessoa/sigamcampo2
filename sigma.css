@@ -8,6 +8,10 @@
   --cover:radial-gradient(circle at 82% 25%, #E7F6EE, #F1F4F9 62%); --pattern:rgba(22,163,74,.05);
   --font-d:'Exo 2',system-ui,sans-serif; --font-ui:'Inter',system-ui,sans-serif;
 }
+/* Tema Sigma Code (azul) — ativa com ?theme=sigma. O verde é da GCB; este é o da Sigma. */
+body.sigma{ --g1:#0B3A91; --g2:#0F4CBA; --g3:#3B6FD6; --hi:#DBEAFE;
+  --cover:radial-gradient(circle at 82% 25%, #E6EEFB, #F1F4F9 62%); --pattern:rgba(15,76,186,.06); }
+body.sigma .cover .tag{ color:#fff; } body.sigma .cover .tag::before{ border-color:#fff; }
 body.dark{
   --g1:#0B3D22; --g2:#15803D; --g3:#22C55E;
   --bg:#0C1411; --panel:#131E18; --line:#233530; --line2:#2C433B;
@@ -136,6 +140,7 @@ td.l,th.l{ text-align:left; }
 .cover .qr small{ color:var(--mut); font-size:.72em; max-width:12em; line-height:1.35; }
 .cover .right{ position:relative; z-index:1; display:flex; flex-direction:column; align-items:flex-end; justify-content:flex-start; gap:.4em; align-self:start; text-align:right; }
 .cover .unit b{ font-size:clamp(2.4em,6vw,4.2em); font-weight:900; color:var(--g2); display:block; line-height:1; }
+.cover .ref-logo{ max-height:3.2em; max-width:14em; object-fit:contain; margin-bottom:.5em; }
 .cover .unit.multi b{ font-size:clamp(1.6em,3.6vw,2.7em); line-height:1.08; }
 .cover .unit span{ letter-spacing:3px; font-weight:600; color:var(--mut); font-size:.8em; }
 

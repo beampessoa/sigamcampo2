@@ -43,6 +43,7 @@ const DEMO_DATA = {
 const $=s=>document.querySelector(s);
 const pct=(r,p)=> p? Math.min(100,(r/p)*100):0;
 const pf=n=>(Number(n)||0).toFixed(2).replace(".",",")+"%";          // 87.3 -> "87,30%"
+const brandCol=v=>{ try{ return getComputedStyle(document.body).getPropertyValue(v).trim()||"#16A34A"; }catch(e){ return "#16A34A"; } };
 const pc=(r,p)=>pf(pct(r,p));                                        // razão -> "%"
 const br=n=>(Number(n)||0).toLocaleString("pt-BR");
 const dom=d=> d? new Date(d).getUTCDate():null;                    // dia do mês
@@ -239,7 +240,7 @@ async function renderCurvaS(){
   const totA=Math.max(1,...rows.map(r=>Math.max(r.previsto_acum||0,r.real_acum||0)));
   let out=""; rows.forEach((r,i)=>{ const x=pad+i*bw;
     const hp=((r.previsto_dia||0)/maxD)*(H-2*pad), hr=((r.real_dia||0)/maxD)*(H-2*pad);
-    out+=`<rect x="${x+bw*0.16}" y="${H-pad-hp}" width="${bw*0.32}" height="${hp}" fill="#16A34A"/><rect x="${x+bw*0.52}" y="${H-pad-hr}" width="${bw*0.32}" height="${hr}" fill="#7BD8A6"/>`; });
+    out+=`<rect x="${x+bw*0.16}" y="${H-pad-hp}" width="${bw*0.32}" height="${hp}" fill="${brandCol('--g2')}"/><rect x="${x+bw*0.52}" y="${H-pad-hr}" width="${bw*0.32}" height="${hr}" fill="${brandCol('--g3')}"/>`; });
   const line=(key,col)=>{ let pts=rows.map((r,i)=>`${pad+i*bw+bw/2},${H-pad-((r[key]||0)/totA)*(H-2*pad)}`).join(" "); return `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="3"/>`; };
   out+=line("previsto_acum","#D9A441")+line("real_acum","#0EA5A0")+`<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#CBD5D0"/>`;
   svg.innerHTML=out;
@@ -282,6 +283,8 @@ async function renderMenu(){
 const RENDER={menu:renderMenu,escopo:renderEscopo,resumo:renderResumo,lin24:renderGantt,punch:renderPunch,curvas:renderCurvaS,listop:renderListOp,standby:renderStandby};
 const TABLES={escopo:["planejamento_itens"],resumo:["planejamento_itens","caminho_critico","psv","gm_servicos","medidas_zr"],lin24:["gantt_tarefas"],punch:["punch_list"],curvas:["curva_s","curva_resumo"],listop:["lista_operacional"],standby:["stand_by"],menu:["painel_config"]};
 async function SIGMA_init(){
+  const _qp=new URLSearchParams(location.search);
+  if(_qp.get("theme")==="sigma") document.body.classList.add("sigma");
   const page=document.body.dataset.page, title=document.body.dataset.title||"";
   buildShell(page,title);
   await fillHeader();
@@ -302,13 +305,14 @@ function startTvLoop(){
   try{ if("wakeLock" in navigator) navigator.wakeLock.request("screen"); }catch(e){}   // tela não dorme
   // barra de progresso no topo (tempo até a próxima página)
   const bar=document.createElement("div");
-  bar.style.cssText="position:fixed;top:0;left:0;height:5px;background:#16A34A;width:0;z-index:99999;transition:width "+secs+"s linear";
+  bar.style.cssText="position:fixed;top:0;left:0;height:5px;background:"+brandCol('--g2')+";width:0;z-index:99999;transition:width "+secs+"s linear";
   document.body.appendChild(bar);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ bar.style.width="100%"; }));
-  // vai para a próxima página, carregando o modo TV adiante
+  // vai para a próxima página, carregando o modo TV (e o tema) adiante
+  const theme=params.get("theme")==="sigma"?"&theme=sigma":"";
   const cur=(location.pathname.split("/").pop())||"01-menu.html";
   let i=PAGES.findIndex(p=>p[0]===cur); if(i<0) i=0;
   const next=PAGES[(i+1)%PAGES.length][0];
-  setTimeout(()=>{ location.href=next+"?tv=1&t="+secs; }, secs*1000);
+  setTimeout(()=>{ location.href=next+"?tv=1&t="+secs+theme; }, secs*1000);
 }
 document.addEventListener("DOMContentLoaded",SIGMA_init);

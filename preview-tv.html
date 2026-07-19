@@ -3,68 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sigma Planejamento — Prévia TV</title>
+<title>Sigma Planejamento — Prévia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{ --g:#22C55E; --g2:#16A34A; }
+  :root{ --blue:#0F4CBA; --blue-2:#5B8AE6; --navy:#0B1220; }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{ height:100%; }
-  body{ font-family:"Inter",system-ui,sans-serif; color:#E8F1EC; overflow:hidden;
+  body{ font-family:"Inter",system-ui,sans-serif; color:#E8EDF7; overflow:hidden;
     background:
-      radial-gradient(1200px 700px at 50% 18%, rgba(34,197,94,.18), transparent 60%),
-      radial-gradient(900px 600px at 80% 90%, rgba(15,76,186,.12), transparent 60%),
-      linear-gradient(180deg, #0a1410 0%, #070d0b 100%);
+      radial-gradient(1200px 700px at 50% 16%, rgba(15,76,186,.28), transparent 60%),
+      radial-gradient(900px 600px at 82% 92%, rgba(91,138,230,.14), transparent 60%),
+      linear-gradient(180deg, #0b1424 0%, #070b13 100%);
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2.2vh; }
-  /* piso com leve reflexo */
   body::after{ content:""; position:fixed; left:0; right:0; bottom:0; height:34vh;
-    background:linear-gradient(180deg, transparent, rgba(34,197,94,.04)); pointer-events:none; }
+    background:linear-gradient(180deg, transparent, rgba(15,76,186,.05)); pointer-events:none; }
 
-  .top{ text-align:center; z-index:2; }
-  .top .brand{ display:inline-flex; align-items:center; gap:.55em; font-family:"Exo 2",sans-serif; font-weight:800; letter-spacing:2px; font-size:clamp(14px,1.8vh,22px); }
-  .top .brand .dot{ width:1.5em; height:1.5em; border-radius:.35em; background:linear-gradient(135deg,var(--g),var(--g2)); display:grid; place-items:center; color:#04240f; font-weight:900; }
-  .top .sub{ margin-top:.5em; color:#8BA598; font-size:clamp(11px,1.4vh,15px); letter-spacing:3px; text-transform:uppercase; }
+  .top{ display:flex; flex-direction:column; align-items:center; gap:.8vh; z-index:2; }
+  .logo-chip{ background:#fff; border-radius:12px; padding:10px 18px; box-shadow:0 10px 30px -12px rgba(0,0,0,.5); }
+  .logo-chip img{ height:clamp(26px,4.4vh,46px); display:block; }
+  .top .sub{ color:#8FA6C9; font-size:clamp(11px,1.5vh,15px); letter-spacing:4px; text-transform:uppercase; }
 
-  /* moldura da TV (escalada por JS pra caber na tela) */
   .frame{ transform-origin:center center; }
   .tv{ position:relative; padding:22px; border-radius:26px;
-    background:linear-gradient(160deg,#191c1f,#0c0e10); box-shadow:0 40px 90px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.04) inset, 0 2px 0 rgba(255,255,255,.05) inset; }
-  .tv::after{ content:""; position:absolute; left:50%; bottom:-3px; transform:translateX(-50%); width:38%; height:4px; border-radius:0 0 8px 8px; background:#0a0c0d; }
+    background:linear-gradient(160deg,#141924,#0a0e16); box-shadow:0 40px 90px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.05) inset; }
+  .tv::after{ content:""; position:absolute; left:50%; bottom:-3px; transform:translateX(-50%); width:38%; height:4px; border-radius:0 0 8px 8px; background:#080b11; }
   .screen-area{ width:1280px; height:720px; border-radius:8px; overflow:hidden; position:relative; background:#000; }
   .screen-area iframe{ width:1280px; height:720px; border:0; display:block; background:#F1F4F9; }
-  /* brilho de vidro */
   .gloss{ position:absolute; inset:0; pointer-events:none; border-radius:8px;
     background:linear-gradient(115deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 22%, rgba(255,255,255,0) 100%); }
   .live{ position:absolute; top:16px; left:16px; z-index:3; display:inline-flex; align-items:center; gap:.5em;
-    background:rgba(7,13,11,.6); backdrop-filter:blur(4px); padding:.35em .8em; border-radius:99px; font-size:13px; font-weight:700; letter-spacing:1px; color:#fff; }
-  .live .b{ width:.65em; height:.65em; border-radius:99px; background:#3BE38A; box-shadow:0 0 0 0 rgba(59,227,138,.6); animation:p 1.6s infinite; }
-  @keyframes p{0%{box-shadow:0 0 0 0 rgba(59,227,138,.5)}70%{box-shadow:0 0 0 .7em rgba(59,227,138,0)}100%{box-shadow:0 0 0 0 rgba(59,227,138,0)}}
+    background:rgba(7,11,19,.6); backdrop-filter:blur(4px); padding:.35em .8em; border-radius:99px; font-size:13px; font-weight:700; letter-spacing:1px; color:#fff; }
+  .live .b{ width:.65em; height:.65em; border-radius:99px; background:#4D8DF6; box-shadow:0 0 0 0 rgba(77,141,246,.6); animation:p 1.6s infinite; }
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(77,141,246,.5)}70%{box-shadow:0 0 0 .7em rgba(77,141,246,0)}100%{box-shadow:0 0 0 0 rgba(77,141,246,0)}}
 
-  /* pedestal */
   .stand{ width:220px; height:70px; margin:0 auto; position:relative; }
-  .stand::before{ content:""; position:absolute; top:0; left:50%; transform:translateX(-50%); width:26px; height:44px; background:linear-gradient(180deg,#15181b,#0c0e10); }
-  .stand::after{ content:""; position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:200px; height:14px; border-radius:50%; background:radial-gradient(ellipse at center, #15181b 0%, rgba(0,0,0,0) 72%); }
+  .stand::before{ content:""; position:absolute; top:0; left:50%; transform:translateX(-50%); width:26px; height:44px; background:linear-gradient(180deg,#121826,#0a0e16); }
+  .stand::after{ content:""; position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:200px; height:14px; border-radius:50%; background:radial-gradient(ellipse at center, #12182688 0%, rgba(0,0,0,0) 72%); }
 
   .bottom{ text-align:center; z-index:2; }
   .bottom h1{ font-family:"Exo 2",sans-serif; font-weight:800; font-size:clamp(15px,2.2vh,26px); letter-spacing:.5px; }
-  .bottom p{ margin-top:.35em; color:#8BA598; font-size:clamp(11px,1.5vh,15px); }
+  .bottom p{ margin-top:.35em; color:#8FA6C9; font-size:clamp(11px,1.5vh,15px); }
   .bottom .tags{ margin-top:.7em; display:flex; gap:.5em; justify-content:center; flex-wrap:wrap; }
-  .bottom .tags span{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9fb3a8; border:1px solid rgba(255,255,255,.12); border-radius:99px; padding:.3em .8em; }
+  .bottom .tags span{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#A7B8D4; border:1px solid rgba(255,255,255,.14); border-radius:99px; padding:.3em .8em; }
 </style>
 </head>
 <body>
 
   <div class="top">
-    <div class="brand"><span class="dot">S</span> SIGMA PLANEJAMENTO</div>
-    <div class="sub">Painel Gerencial da Parada</div>
+    <div class="logo-chip"><img src="https://kiwiykgzogcxiseynzyy.supabase.co/storage/v1/object/public/LOGO-Empresas/sigmacode.png" alt="Sigma Code"></div>
+    <div class="sub">Sigma Planejamento</div>
   </div>
 
   <div class="frame" id="frame">
     <div class="tv">
       <div class="screen-area">
         <span class="live"><span class="b"></span>AO VIVO</span>
-        <!-- painel real girando (modo TV). Trocar o src pela URL completa se abrir localmente. -->
-        <iframe id="tela" src="01-menu.html?tv=1&t=8" title="Painel"></iframe>
+        <!-- painel real girando, tema Sigma (azul), 10s por tela -->
+        <iframe id="tela" src="01-menu.html?tv=1&t=10&theme=sigma" title="Painel"></iframe>
         <div class="gloss"></div>
       </div>
     </div>
@@ -72,18 +68,16 @@
   </div>
 
   <div class="bottom">
-    <h1>Acompanhamento em tempo real, na sua sala de controle</h1>
-    <p>Escopo · Curva S · Cronograma · Report · Stand By — atualização automática do campo pra TV</p>
-    <div class="tags"><span>Tempo real</span><span>REDUC · U-2700 / U-3500 / U-3400</span><span>GCB · Sigma Code</span></div>
+    <h1>Do campo direto pra TV — em tempo real</h1>
+    <p>Escopo · Curva S · Cronograma · Report · Stand By — 8 telas girando automaticamente</p>
+    <div class="tags"><span>Tempo real</span><span>Sem digitação</span><span>Qualquer TV ou celular</span></div>
   </div>
 
 <script>
-  /* escala a TV pra sempre caber na tela, mantendo o painel em 1280px (layout de TV) */
   function fit(){
     const f=document.getElementById('frame');
-    const availW=window.innerWidth*0.92;
-    const availH=window.innerHeight*0.62;   // deixa espaço p/ textos em cima e embaixo
-    const baseW=1280+44, baseH=720+44+70;   // moldura + pedestal
+    const availW=window.innerWidth*0.92, availH=window.innerHeight*0.60;
+    const baseW=1280+44, baseH=720+44+70;
     const s=Math.min(availW/baseW, availH/baseH, 1.1);
     f.style.transform='scale('+s+')';
   }
