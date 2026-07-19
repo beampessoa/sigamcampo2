@@ -151,7 +151,7 @@ function buildShell(page,title){
   if(sc && !$("#alertbar")) sc.insertAdjacentHTML("afterbegin",`<div class="alertbar" id="alertbar"></div>`);
   if(!isMenu){
     $("#hdr").outerHTML=`<header class="hdr" id="hdr">
-      <div class="brand"><div class="logo" id="logo">GCB</div><div><b style="font-size:1.1em">SIGMA</b><small>PLANEJAMENTO</small></div></div>
+      <div class="brand"><div class="logo" id="logo"><span>SUA EMPRESA</span></div><div><b style="font-size:1.1em">SIGMA</b><small>PLANEJAMENTO</small></div></div>
       <div class="htitle"><h1 id="hTitle">${title||""}</h1><div class="unit" id="hUnit">${CONFIG.UNIDADE}</div></div>
       <div class="counters"><div class="c"><b class="num" id="cMan">—</b><span>Dias de manutenção</span></div>
         <div class="c"><b class="num" id="cOco">—</b><span>Dias ocorridos</span></div>
@@ -200,6 +200,7 @@ async function fillHeader(){
     $("#cMan").textContent=tot; $("#cOco").textContent=DEMO?tot:oco; $("#cRes").textContent=DEMO?0:Math.max(0,tot-oco);
   }
   STATE.lastUpd=parseUpd(cfg.ultima_atualizacao);
+  const hl=$("#logo"); if(hl && cfg.logo_gcb_url) hl.innerHTML=`<img src="${cfg.logo_gcb_url}" alt="">`;
   STATE.connected=!DEMO ? STATE.connected : true;
   liveState();
   return cfg;

@@ -31,8 +31,9 @@ body{ background:var(--bg); color:var(--txt); overflow:hidden; font-family:var(-
 header.hdr{ background:linear-gradient(90deg,var(--g1) 0%,var(--g2) 55%,var(--g3) 100%); color:#fff;
   display:flex; align-items:center; padding:.7em 1.3em; gap:1em; flex-wrap:wrap; }
 .hdr .brand{ display:flex; align-items:center; gap:.55em; min-width:9em; }
-.hdr .logo{ height:2.4em; min-width:2.4em; border-radius:.4em; background:rgba(255,255,255,.16); border:1.5px solid rgba(255,255,255,.55);
-  display:grid; place-items:center; font-weight:900; padding:0 .4em; } .hdr .logo img{ height:1.9em; display:block; }
+.hdr .logo{ height:2.4em; min-width:2.4em; max-width:7.5em; border-radius:.4em; background:rgba(255,255,255,.16); border:1.5px solid rgba(255,255,255,.55);
+  display:grid; place-items:center; font-weight:900; padding:0 .5em; } .hdr .logo img{ height:1.9em; max-width:6.5em; object-fit:contain; display:block; }
+.hdr .logo span{ font-size:.56em; line-height:1.04; text-align:center; letter-spacing:.5px; }
 .hdr .brand small{ display:block; font-size:.55em; letter-spacing:2px; opacity:.85; }
 .hdr .htitle{ flex:1; text-align:center; min-width:8em; }
 .hdr .htitle h1{ font-size:1.8em; font-weight:800; letter-spacing:.5px; text-transform:uppercase; }
