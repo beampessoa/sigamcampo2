@@ -147,8 +147,14 @@ const PAGES=[["01-menu.html","MENU"],["02-escopo.html","ESCOPO"],["03-resumo.htm
 function buildShell(page,title){
   const cur=(location.pathname.split("/").pop())||page;
   const cq=new URLSearchParams(location.search);
-  const keep=[]; if(cq.get("theme")) keep.push("theme="+cq.get("theme")); if(cq.get("demo")) keep.push("demo="+cq.get("demo"));
+  const keep=[]; if(cq.get("theme")) keep.push("theme="+cq.get("theme")); if(cq.get("demo")) keep.push("demo="+cq.get("demo")); if(cq.get("t")) keep.push("t="+cq.get("t"));
   const qs=keep.length?"?"+keep.join("&"):"";
+  const isTv=!!cq.get("tv"), tSec=cq.get("t")||CONFIG.ROTATE_SECONDS, inDemo=!!cq.get("demo");
+  let ctrl="";
+  if(inDemo){ const sep=qs?"&":"?";
+    ctrl = isTv ? `<a class="tvctrl" href="${cur}${qs}" title="Segurar nesta tela">⏸ Pausar</a>`
+                : `<a class="tvctrl play" href="${cur}${qs}${sep}tv=1" title="Voltar a girar">▶ Retomar</a>`;
+  }
   const nav=PAGES.map(([h,l])=>`<a href="${h}${qs}" class="${h===cur?'on':''}">${l}</a>`).join("");
   const isMenu=page==="menu";
   const sc=document.querySelector(".screen");
@@ -172,7 +178,7 @@ function buildShell(page,title){
   }
   $("#ftr").outerHTML=`<footer class="ftr" id="ftr"><button class="btn" id="themeBtn" title="Claro/Escuro (T)">🌙</button>
     <nav class="nav">${nav}</nav><div class="spacer"></div>
-    ${DEMO?'<span class="demo">Demonstração</span>':''}</footer>`;
+    ${ctrl}${DEMO?'<span class="demo">Demonstração</span>':''}</footer>`;
   const logo=$("#logo"); if(logo&&CONFIG.LOGO_GCB_URL) logo.innerHTML=`<img src="${CONFIG.LOGO_GCB_URL}" alt="GCB">`;
   initTheme();
 }

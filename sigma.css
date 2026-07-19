@@ -66,6 +66,8 @@ td.l,th.l{ text-align:left; }
 .stat{ font-weight:600; } .stat.done{ color:var(--ok); } .stat.run{ color:var(--warn); } .stat.wait{ color:var(--mut); } .stat.bad{ color:var(--bad); }
 .alertbar{ background:var(--bad); color:#fff; font-weight:700; letter-spacing:.5px; text-align:center; font-size:.9em; display:flex; align-items:center; justify-content:center; gap:.5em; height:0; padding:0 1em; overflow:hidden; transition:height .2s; }
 .alertbar.show{ height:auto; padding:.5em 1em; }
+.ftr .tvctrl{ text-decoration:none; font-size:.82em; font-weight:700; padding:.32em 1.1em; border-radius:99px; border:1.5px solid var(--line2); color:var(--txt); background:var(--panel); white-space:nowrap; }
+.ftr .tvctrl.play{ background:var(--g2); color:#fff; border-color:var(--g2); }
 .alertbar .ab-dot{ width:.7em; height:.7em; border-radius:99px; background:#fff; animation:pulse 1.4s infinite; flex:none; }
 .badge{ font-size:.75em; font-weight:700; padding:.15em .55em; border-radius:99px; text-transform:uppercase; letter-spacing:.5px; }
 .b-sim{ background:rgba(220,38,38,.14); color:var(--bad);} .b-nao{ background:rgba(148,163,184,.18); color:var(--mut);}
