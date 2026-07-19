@@ -12,11 +12,11 @@ const CONFIG = {
   ROTATE_SECONDS:20,             // tempo em cada página no modo TV (?tv=1)
   TEMA:"claro",
 };
-const DEMO = CONFIG.SUPABASE_ANON_KEY.includes("COLE_");
+let DEMO = CONFIG.SUPABASE_ANON_KEY.includes("COLE_");
 const sb = DEMO ? null : supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 /* ---------- dados de demonstração (só quando não há anon key) ---------- */
-const DEMO_DATA = {
+let DEMO_DATA = {
   config:{ unidade:"U-2700 · U-3500 · U-3400", refinaria:"REFINARIA DUQUE DE CAXIAS", ultima_atualizacao:"01/06/2024 16:16:55",
     parada_inicio:"2024-05-06", parada_fim:"2024-05-29", termino_planejado:"29/05/24 14:30", termino_real:"29/05/24 14:30",
     clima_temp:"27°C", clima_chuva:"2%", clima_umidade:"68%", clima_vento:"8 km/h", paralizacoes:"", analise:"",
@@ -38,6 +38,67 @@ const DEMO_DATA = {
   standby:{DIA:{sup:"Carlinhos",f:[["CALDEIREIRO",24],["AJUDANTE",10],["MONTADOR DE ANDAIME",10],["SOLDADOR",6],["ALPINISTA",2],["INSPETOR",2],["MECÂNICO DE VÁLVULAS",2],["ELETRICISTA",1]]},
             NOITE:{sup:"Cícero",f:[["CALDEIREIRO",24],["AJUDANTE",10],["MONTADOR DE ANDAIME",10],["SOLDADOR",6],["ALPINISTA",2],["INSPETOR",2],["MECÂNICO DE VÁLVULAS",2],["ELETRICISTA",1]]}},
 };
+
+/* ============ CENÁRIOS FICTÍCIOS (apresentação) — ativa com ?demo=cenario1|2|3 ============ */
+const SIGMA_LOGO_DEMO="https://kiwiykgzogcxiseynzyy.supabase.co/storage/v1/object/public/LOGO-Empresas/sigmacode.png";
+function _curvaDemo(prevTotal,pctDone,dias){
+  const arr=[]; let pA=0,rA=0; const today=Math.round(dias*pctDone);
+  const S=t=>Math.round(prevTotal*(1/(1+Math.exp(-9*(t-0.5)))));
+  for(let i=0;i<dias;i++){ const p=S((i+1)/dias); const pDia=p-pA; pA=p;
+    let r=rA; if(i<=today) r=Math.round(S((i+1)/dias)*0.95); const rDia=Math.max(0,r-rA); rA=r;
+    arr.push({dia:`2025-09-${String(1+i).padStart(2,"0")}`,previsto_dia:pDia,real_dia:rDia,previsto_acum:pA,real_acum:rA}); }
+  return arr;
+}
+function _cenario(o){
+  const dias=24, curva=_curvaDemo(1200,o.pct,dias), acumDia=curva.map(p=>p.real_acum), ativ=4820, hh=17240;
+  return {
+    config:{ unidade:"U-4200 · U-4600 · U-5100", refinaria:"REFINARIA COSTA AZUL", ultima_atualizacao:o.upd,
+      parada_inicio:"2025-09-01", parada_fim:"2025-09-26", termino_planejado:"26/09/25 18:00", termino_real:o.tr||"—",
+      clima_temp:"29°C", clima_chuva:"10%", clima_umidade:"72%", clima_vento:"12 km/h",
+      paralizacoes:"", analise:"", foto_url:"", refinaria_logo_url:"", logo_gcb_url:"" },
+    escopo:o.escopo, extra:o.extra||[], acumDia, curva,
+    curvaResumo:[{tipo:"PERCENTUAL",previsto:100,realizado:Math.round(o.pct*100),restante:100-Math.round(o.pct*100)},
+      {tipo:"ATIVIDADES",previsto:ativ,realizado:Math.round(ativ*o.pct),restante:ativ-Math.round(ativ*o.pct)},
+      {tipo:"HH",previsto:hh,realizado:Math.round(hh*o.pct),restante:hh-Math.round(hh*o.pct)}],
+    crit:o.crit, psv:o.psv, gm:o.gm, zr:o.zr, gantt:o.gantt,
+    listaOp:o.listaOp, punch:o.punch||[], standby:o.standby, atrasados:o.atrasados||0
+  };
+}
+const _crew=m=>({DIA:{sup:"R. Andrade",f:[["CALDEIREIRO",Math.round(26*m)],["AJUDANTE",Math.round(12*m)],["MONTADOR DE ANDAIME",Math.round(11*m)],["SOLDADOR",Math.round(7*m)],["ALPINISTA",Math.round(3*m)],["INSPETOR",2],["MECÂNICO DE VÁLVULAS",Math.round(3*m)],["ELETRICISTA",Math.round(2*m)]]},
+  NOITE:{sup:"M. Teixeira",f:[["CALDEIREIRO",Math.round(22*m)],["AJUDANTE",Math.round(10*m)],["MONTADOR DE ANDAIME",Math.round(9*m)],["SOLDADOR",Math.round(6*m)],["ALPINISTA",2],["INSPETOR",2],["MECÂNICO DE VÁLVULAS",2],["ELETRICISTA",1]]}});
+const CENARIOS={
+  cenario1:_cenario({ pct:0.16, upd:"05/09/2025 08:15", atrasados:3,
+    escopo:[["EJETORES",12,2,3,0],["FILTROS",60,10,12,0],["GM'S",8,1,2,0],["HIDROJATO",20,3,4,0],["PSV'S",96,14,20,0],["REENGAXETAMENTO",88,12,18,0],["SERV. ESP.",24,3,5,0],["VÁLV. FLANGEADA",310,60,70,0],["VÁLV. RETENÇÃO",210,40,45,0],["VÁLV. ROSCADA",6,1,1,0],["VÁLV. SOLDADA",180,20,30,3],["VAZAMENTOS",40,5,6,0],["ZR'S",90,12,15,0]],
+    extra:[["VAZAMENTOS",22,4],["ZR'S",30,6]],
+    crit:[{segmento:'LINHA 30" — SOLDAGEM',status:"EM ANDAMENTO",pct_planejado:30,pct_realizado:18,pct_desvio:12}],
+    psv:{total:96,removido:60,manutencao:40,instalado:12,pct_real:12},
+    gm:[{categoria:"GM'S",total:8,pendente:5,iniciado:2,concluido:1},{categoria:"SERV. ESP.",total:24,pendente:16,iniciado:5,concluido:3},{categoria:"VAZAMENTOS",total:40,pendente:29,iniciado:6,concluido:5}],
+    zr:[{item:"ESCOPO",total:90,pendente:63,iniciado:15,concluido:12},{item:"EXTRA",total:30,pendente:20,iniciado:4,concluido:6}],
+    gantt:[{grupo:'LINHA 30"',tarefa:"JUNTA 1",data_inicio:"2025-09-03",data_fim:"2025-09-04",status:"INICIADO"},{grupo:'LINHA 30"',tarefa:"JUNTA 2",data_inicio:"2025-09-04",data_fim:"2025-09-05",status:"NAO_INICIADO"},{grupo:'LINHA 16"',tarefa:"JUNTA 1",data_inicio:"2025-09-06",data_fim:"2025-09-07",status:"NAO_INICIADO"},{grupo:'LINHA 8"',tarefa:"JUNTA 1",data_inicio:"2025-09-08",data_fim:"2025-09-09",status:"NAO_INICIADO"}],
+    listaOp:[[12,"P-4201A","BOMBA DE CARGA — AGUARDANDO LIBERAÇÃO DE ÁREA",20,"",true],[34,"V-4610","VASO SEPARADOR — ISOLAMENTO EM MONTAGEM",35,"",false],[47,"PSV-088","VÁLVULA DE SEGURANÇA REMOVIDA P/ BANCADA",60,"",false],[58,"FV-112","BY-PASS AGUARDANDO FLANGE",10,"Falta material",true]],
+    standby:_crew(1.15) }),
+  cenario2:_cenario({ pct:0.56, upd:"14/09/2025 16:40", atrasados:25,
+    escopo:[["EJETORES",12,7,3,2],["FILTROS",60,34,15,0],["GM'S",8,5,2,0],["HIDROJATO",20,11,5,3],["PSV'S",96,54,20,0],["REENGAXETAMENTO",88,50,20,0],["SERV. ESP.",24,13,6,0],["VÁLV. FLANGEADA",310,175,60,12],["VÁLV. RETENÇÃO",210,120,40,0],["VÁLV. ROSCADA",6,3,2,0],["VÁLV. SOLDADA",180,95,40,8],["VAZAMENTOS",40,22,10,0],["ZR'S",90,50,20,0]],
+    extra:[["VAZAMENTOS",22,12],["ZR'S",30,17]],
+    crit:[{segmento:'LINHA 30" — SOLDAGEM',status:"ATRASADO",pct_planejado:65,pct_realizado:48,pct_desvio:17},{segmento:"VÁLV. FLANGEADA",status:"EM ANDAMENTO",pct_planejado:60,pct_realizado:56,pct_desvio:4}],
+    psv:{total:96,removido:96,manutencao:70,instalado:52,pct_real:54},
+    gm:[{categoria:"GM'S",total:8,pendente:1,iniciado:2,concluido:5},{categoria:"SERV. ESP.",total:24,pendente:5,iniciado:6,concluido:13},{categoria:"VAZAMENTOS",total:40,pendente:8,iniciado:10,concluido:22}],
+    zr:[{item:"ESCOPO",total:90,pendente:20,iniciado:20,concluido:50},{item:"EXTRA",total:30,pendente:6,iniciado:7,concluido:17}],
+    gantt:[{grupo:'LINHA 30"',tarefa:"JUNTA 1",data_inicio:"2025-09-03",data_fim:"2025-09-04",status:"CONCLUIDO"},{grupo:'LINHA 30"',tarefa:"JUNTA 2",data_inicio:"2025-09-04",data_fim:"2025-09-05",status:"CONCLUIDO"},{grupo:'LINHA 30"',tarefa:"JUNTA 3",data_inicio:"2025-09-06",data_fim:"2025-09-08",status:"INICIADO"},{grupo:'LINHA 16"',tarefa:"JUNTA 1",data_inicio:"2025-09-09",data_fim:"2025-09-10",status:"INICIADO"},{grupo:'LINHA 16"',tarefa:"JUNTA 2",data_inicio:"2025-09-11",data_fim:"2025-09-12",status:"NAO_INICIADO"},{grupo:'LINHA 8"',tarefa:"JUNTA 1",data_inicio:"2025-09-13",data_fim:"2025-09-14",status:"NAO_INICIADO"}],
+    listaOp:[[12,"P-4201A","SPOOL DE DESCARGA REMOVIDO — NÃO RETORNOU",70,"Aguardando caldeiraria",true],[23,"T-4605","PSV-045 NÃO TORQUEADA",80,"2ª lista 12/09",true],[31,"H-5102","FV-053 FALTA REINSTALAR BLOQUEIO DO BY-PASS",60,"",true],[44,"D-4108","AMOSTRADOR DESCONECTADO",90,"",false],[59,"FV-5177","BY-PASS INSTALADA EM SENTIDO INVERTIDO",50,"Corrigir",true],[76,"E-4620","FEIXE REMOVIDO — INSPEÇÃO PENDENTE",40,"",true],[88,"V-5101","VÁLVULA DE SEGURANÇA — TESTE REPROVADO",30,"Reteste",true]],
+    standby:_crew(1.0) }),
+  cenario3:_cenario({ pct:0.94, upd:"24/09/2025 19:05", atrasados:2,
+    escopo:[["EJETORES",12,12,0,0],["FILTROS",60,58,2,0],["GM'S",8,8,0,0],["HIDROJATO",20,19,1,0],["PSV'S",96,92,4,0],["REENGAXETAMENTO",88,86,2,0],["SERV. ESP.",24,23,1,0],["VÁLV. FLANGEADA",310,296,10,2],["VÁLV. RETENÇÃO",210,203,7,0],["VÁLV. ROSCADA",6,6,0,0],["VÁLV. SOLDADA",180,173,7,0],["VAZAMENTOS",40,39,1,0],["ZR'S",90,88,2,0]],
+    extra:[["VAZAMENTOS",22,22],["ZR'S",30,29]],
+    crit:[{segmento:'LINHA 30" — SOLDAGEM',status:"EM ANDAMENTO",pct_planejado:98,pct_realizado:96,pct_desvio:2}],
+    psv:{total:96,removido:96,manutencao:96,instalado:90,pct_real:94},
+    gm:[{categoria:"GM'S",total:8,pendente:0,iniciado:0,concluido:8},{categoria:"SERV. ESP.",total:24,pendente:0,iniciado:1,concluido:23},{categoria:"VAZAMENTOS",total:40,pendente:0,iniciado:1,concluido:39}],
+    zr:[{item:"ESCOPO",total:90,pendente:0,iniciado:2,concluido:88},{item:"EXTRA",total:30,pendente:0,iniciado:1,concluido:29}],
+    gantt:[{grupo:'LINHA 30"',tarefa:"JUNTA 1",data_inicio:"2025-09-03",data_fim:"2025-09-04",status:"CONCLUIDO"},{grupo:'LINHA 30"',tarefa:"JUNTA 2",data_inicio:"2025-09-04",data_fim:"2025-09-05",status:"CONCLUIDO"},{grupo:'LINHA 16"',tarefa:"JUNTA 1",data_inicio:"2025-09-09",data_fim:"2025-09-10",status:"CONCLUIDO"},{grupo:'LINHA 16"',tarefa:"JUNTA 2",data_inicio:"2025-09-11",data_fim:"2025-09-12",status:"CONCLUIDO"},{grupo:'LINHA 8"',tarefa:"JUNTA 1",data_inicio:"2025-09-20",data_fim:"2025-09-22",status:"INICIADO"}],
+    listaOp:[[95,"P-4201A","ALINHAMENTO FINAL DA BOMBA",95,"",false],[112,"T-4605","TORQUE FINAL PSV-045",90,"",true],[130,"FV-112","REINSTALAÇÃO DE BLOQUEIO",85,"",false]],
+    standby:_crew(0.6) })
+};
+(function(){ try{ const d=new URLSearchParams(location.search).get("demo"); if(d && CENARIOS[d]){ DEMO_DATA=CENARIOS[d]; DEMO=true; } }catch(e){} })();
 
 /* ---------- helpers ---------- */
 const $=s=>document.querySelector(s);
@@ -114,7 +175,7 @@ function buildShell(page,title){
 async function renderAlerts(){
   const bar=$("#alertbar"); if(!bar) return;
   let atras=0, imped=0;
-  if(DEMO){ imped=DEMO_DATA.listaOp.filter(r=>r[5]).length; }
+  if(DEMO){ imped=(DEMO_DATA.listaOp||[]).filter(r=>r[5]).length; atras=DEMO_DATA.atrasados||0; }
   else{ const its=await q("planejamento_itens"); atras=its.filter(isOverdue).length;
     const lo=await q("lista_operacional"); imped=lo.filter(r=>r.impeditivo).length; }
   const msgs=[];
@@ -148,8 +209,9 @@ const dias=()=>{ const a=[]; for(let d=CONFIG.DIA_INICIO; d<=CONFIG.DIA_FIM; d++
 async function escopoAgg(){
   const DIAS=dias();
   if(DEMO){
-    const mk=arr=>arr.map(([seg,prev,real])=>{ const daily={}; let rest=real; DIAS.forEach(d=>{ let v=(d%4===0&&rest>0)?Math.min(rest,Math.ceil(real/8)):0; rest-=v; daily[d]=v; }); return {seg,prev,real,daily,started:0,overdue:0}; });
-    return { escopo:mk(DEMO_DATA.escopo), extra:mk(DEMO_DATA.extra), acum:DEMO_DATA.acumDia, geral:100 };
+    const mk=arr=>arr.map(([seg,prev,real,started=0,overdue=0])=>{ const daily={}; let rest=real; DIAS.forEach(d=>{ let v=(d%4===0&&rest>0)?Math.min(rest,Math.ceil(real/8)):0; rest-=v; daily[d]=v; }); return {seg,prev,real,daily,started,overdue}; });
+    const sp=DEMO_DATA.escopo.reduce((a,r)=>a+r[1],0), sr=DEMO_DATA.escopo.reduce((a,r)=>a+r[2],0);
+    return { escopo:mk(DEMO_DATA.escopo), extra:mk(DEMO_DATA.extra), acum:DEMO_DATA.acumDia, geral: sp?Math.round(sr/sp*100):0 };
   }
   const items=await q("planejamento_itens");
   const build=tipo=>{ const g={}; items.filter(i=>String(i.tipo_lista||"ESCOPO").toUpperCase()===tipo).forEach(i=>{ const s=i.segmento||"—"; (g[s]=g[s]||[]).push(i); });
@@ -310,9 +372,10 @@ function startTvLoop(){
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ bar.style.width="100%"; }));
   // vai para a próxima página, carregando o modo TV (e o tema) adiante
   const theme=params.get("theme")==="sigma"?"&theme=sigma":"";
+  const demo=params.get("demo"); const demoP=demo?"&demo="+demo:"";
   const cur=(location.pathname.split("/").pop())||"01-menu.html";
   let i=PAGES.findIndex(p=>p[0]===cur); if(i<0) i=0;
   const next=PAGES[(i+1)%PAGES.length][0];
-  setTimeout(()=>{ location.href=next+"?tv=1&t="+secs+theme; }, secs*1000);
+  setTimeout(()=>{ location.href=next+"?tv=1&t="+secs+theme+demoP; }, secs*1000);
 }
 document.addEventListener("DOMContentLoaded",SIGMA_init);
