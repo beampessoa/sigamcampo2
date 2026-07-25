@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Data Book — SIGMA CODE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#0F4CBA;--blue-700:#0B3A91;--blue-300:#5B8AE6;
+  --white:#fff;--canvas:#F1F4F9;
+  --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
+  --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
+  --font-d:'Exo 2',system-ui,sans-serif;--font-ui:'Inter',system-ui,sans-serif;
+  --r:8px;--r-md:12px;--r-lg:16px;--sh:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);padding:24px 16px 60px}
+.wrap{max-width:900px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex:none}
+.brand .logo svg{width:18px;height:18px;color:#fff}
+.brand .t{font-family:var(--font-d);font-size:16px;font-weight:800}
+.brand .t small{display:block;font-family:var(--font-ui);font-size:11px;font-weight:600;color:var(--muted)}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh);overflow:hidden}
+.crumb{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:14px 18px;border-bottom:1px solid var(--line);font-size:13px}
+.crumb a{color:var(--blue);text-decoration:none;font-weight:700;cursor:pointer}
+.crumb a:hover{text-decoration:underline}
+.crumb span.sep{color:var(--muted)}
+.crumb span.cur{color:var(--ink);font-weight:700}
+.list{}
+.item{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid #F1F4F9}
+.item:last-child{border-bottom:none}
+.item .ico{width:34px;height:34px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center}
+.item .ico svg{width:18px;height:18px}
+.ico.folder{background:#EAF0FB;color:var(--blue)}
+.ico.file{background:#F3F4F6;color:var(--ink-soft)}
+.item .info{flex:1;min-width:0}
+.item .nm{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .mt{font-size:11.5px;color:var(--muted);margin-top:1px}
+.item.folder{cursor:pointer}
+.item.folder:hover{background:#F7F9FC}
+.acts{display:flex;gap:8px;flex:none}
+.abtn{display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:var(--r);border:1px solid var(--line);
+  background:#fff;font-size:12px;font-weight:700;color:var(--ink-soft);text-decoration:none;cursor:pointer}
+.abtn:hover{background:var(--field);border-color:var(--blue-300);color:var(--blue)}
+.abtn svg{width:13px;height:13px}
+.state{padding:40px 20px;text-align:center;color:var(--muted);font-size:13.5px}
+.spin{width:30px;height:30px;margin:0 auto 12px;border-radius:50%;border:3px solid #E3E9F5;border-top-color:var(--blue);animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.foot{text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></div>
+    <div class="t">Data Book<small>Entrega da obra · SGI REDUC TUBULAÇÃO</small></div>
+  </div>
+
+  <div class="card">
+    <div class="crumb" id="crumb"></div>
+    <div class="list" id="list">
+      <div class="state"><div class="spin"></div>Carregando…</div>
+    </div>
+  </div>
+  <div class="foot">SIGMA CODE Engenharia · E-Sigma · somente leitura</div>
+</div>
+
+<script>
+const FN = 'https://kiwiykgzogcxiseynzyy.supabase.co/functions/v1/databook-drive';
+let path = []; // pilha {id, nome}
+
+function esc(s){return (s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtSize(b){ if(!b) return ''; b=+b; const u=['B','KB','MB','GB']; let i=0; while(b>=1024&&i<u.length-1){b/=1024;i++;} return b.toFixed(b<10&&i>0?1:0)+' '+u[i]; }
+function fmtDate(s){ if(!s) return ''; try{const d=new Date(s);return d.toLocaleDateString('pt-BR');}catch(e){return '';} }
+const isImg = m => /^image\//.test(m||'');
+const isPdf = m => (m||'')==='application/pdf';
+
+function fileUrl(id, download){ return FN + '?action=file&id=' + encodeURIComponent(id) + (download?'&download=1':''); }
+
+function renderCrumb(){
+  const c = document.getElementById('crumb');
+  c.innerHTML = path.map((p,i)=>{
+    if(i===path.length-1) return `<span class="cur">${esc(p.nome)}</span>`;
+    return `<a onclick="irPara(${i})">${esc(p.nome)}</a><span class="sep">›</span>`;
+  }).join('');
+}
+
+function irPara(i){ path = path.slice(0, i+1); carregar(path[i].id); }
+function entrar(id, nome){ path.push({id, nome}); carregar(id); }
+
+async function carregar(id){
+  const list = document.getElementById('list');
+  list.innerHTML = '<div class="state"><div class="spin"></div>Carregando…</div>';
+  renderCrumb();
+  try{
+    const resp = await fetch(FN + '?action=list&id=' + encodeURIComponent(id||''));
+    const r = await resp.json();
+    if(!resp.ok || !r.ok) throw new Error(r.erro || ('HTTP '+resp.status));
+    // ajusta nome do nível atual (a raiz vem como "Entrega")
+    if(path.length){ path[path.length-1].nome = r.nome || path[path.length-1].nome; renderCrumb(); }
+
+    const folders = r.folders||[], files = r.files||[];
+    if(!folders.length && !files.length){ list.innerHTML = '<div class="state">Pasta vazia.</div>'; return; }
+
+    let html = '';
+    folders.forEach(f=>{
+      html += `<div class="item folder" onclick="entrar('${esc(f.id)}','${esc(f.name)}')">
+        <div class="ico folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></div>
+        <div class="info"><div class="nm">${esc(f.name)}</div><div class="mt">Pasta</div></div>
+        <svg style="width:18px;height:18px;color:var(--muted);flex:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+      </div>`;
+    });
+    files.forEach(f=>{
+      const meta = [f.mimeType? f.mimeType.split('/').pop().toUpperCase():'', fmtSize(f.size), fmtDate(f.modifiedTime)].filter(Boolean).join(' · ');
+      const podeAbrir = isImg(f.mimeType) || isPdf(f.mimeType);
+      html += `<div class="item">
+        <div class="ico file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="info"><div class="nm">${esc(f.name)}</div><div class="mt">${esc(meta)}</div></div>
+        <div class="acts">
+          ${podeAbrir?`<a class="abtn" href="${fileUrl(f.id,false)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Abrir</a>`:''}
+          <a class="abtn" href="${fileUrl(f.id,true)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Baixar</a>
+        </div>
+      </div>`;
+    });
+    list.innerHTML = html;
+  }catch(e){
+    list.innerHTML = '<div class="state">Não foi possível abrir o data book agora.<br><span style="font-size:11px">'+esc(e.message||'')+'</span></div>';
+  }
+}
+
+// início: raiz
+path = [{ id: '', nome: 'Entrega' }];
+carregar('');
+</script>
+</body>
+</html>
