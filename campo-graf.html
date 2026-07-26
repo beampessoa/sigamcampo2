@@ -266,7 +266,9 @@ async function carregar(){
 
     render();
   }catch(e){
-    content.innerHTML='<div class="empty"><b>Não foi possível carregar</b>'+esc(e.message||e)+'</div>';
+    console.error('[painel] falha ao carregar dados:',e);
+    content.innerHTML='<div class="empty"><b>Não foi possível carregar os dados</b>'
+      +'Verifique a conexão e use o botão Atualizar. O detalhe técnico está no console do navegador.</div>';
   }
 }
 
@@ -286,9 +288,10 @@ function setFase(f){ if(fFase===f) return; fFase=f; render(); window.scrollTo({t
 // do todo. A aba filtra; a faixa contextualiza.
 function marcosHTML(){
   if(!temEventos){
-    return '<div class="mk-warn"><b>Calendário de paradas ainda não carregado.</b> '
-      +'Rode <code>mt29_paradas_eventos.sql</code> para ativar as abas por fase. '
-      +'Enquanto isso, o painel mostra todas as LS juntas.</div>';
+    console.info('[painel] paradas_eventos vazio ou indisponível — rode mt29_paradas_eventos.sql para ativar as abas por fase.');
+    return '<div class="mk-warn"><b>Calendário da parada ainda não cadastrado.</b> '
+      +'As abas por fase são ativadas quando as datas de cada unidade forem lançadas. '
+      +'Até lá, o painel exibe todas as LS em conjunto.</div>';
   }
   // Unidade sem evento cadastrado sai de todas as abas. Isso precisa gritar, não sumir.
   const orfas=LS.filter(r=>!r.fase);
@@ -296,9 +299,9 @@ function marcosHTML(){
 
   let h='';
   if(orfas.length){
-    h+='<div class="mk-warn"><b>'+orfas.length+' LS em unidades fora do calendário.</b> '
-      +'Não aparecem em nenhuma aba de fase: <code>'+unisOrfas.map(esc).join('</code> <code>')+'</code>. '
-      +'O nome da unidade em <code>paradas_eventos</code> precisa bater com o de <code>plaquetas</code>.</div>';
+    h+='<div class="mk-warn"><b>'+orfas.length+' LS em unidades sem calendário cadastrado.</b> '
+      +'Não entram em nenhuma aba de fase: <code>'+unisOrfas.map(esc).join('</code> <code>')+'</code>. '
+      +'Para incluí-las, o nome da unidade no calendário precisa ser idêntico ao nome usado na plaqueta.</div>';
   }
 
   h+='<div class="mk-all">'
@@ -356,12 +359,12 @@ function marcosHTML(){
                 : f==='parada'      ? unis.map(e=>e.termino_manutencao)
                 : [];
       const prox=lim.filter(Boolean).sort()[0];
-      if(prox){ const d=diasAte(prox); if(d!=null&&d>=0) restam=' · '+d+'d p/ próxima fase'; }
+      if(prox){ const d=diasAte(prox); if(d!=null&&d>=0) restam=' · '+d+' dia'+(d===1?'':'s')+' para a próxima fase'; }
     }
 
     h+='<button class="mk'+(fFase===f?' on':'')+'" onclick="setFase(\''+f+'\')">'
       +'<div class="fase">'+FASE_L[f]+'</div>'
-      +'<div class="n">'+rs.length+'</div><div class="l">LS · '+cob+'% plaquetadas</div>'
+      +'<div class="n">'+rs.length+'</div><div class="l">LS · '+cob+'% já emplaquetadas</div>'
       +'<div class="bar"><i style="width:'+cob+'%"></i></div>'
       +'<div class="ni-l" style="margin-top:7px">'+esc(evs||'—')+restam+'</div>'
       +'</button>';
@@ -388,8 +391,8 @@ function render(){
 
   if(!total){
     h+='<div class="panel"><div class="empty"><b>Não iniciado</b>'
-      +'Nenhuma LS neste recorte'+(fFase?' na fase '+FASE_L[fFase]:'')+'. '
-      +'Quando as LS forem cadastradas, o painel preenche sozinho.</div></div>';
+      +'Nenhuma LS no filtro atual'+(fFase?' na fase '+FASE_L[fFase]:'')+'. '
+      +'O painel é preenchido automaticamente conforme as LS forem cadastradas.</div></div>';
     document.getElementById('content').innerHTML=h;
     return;
   }
@@ -401,15 +404,15 @@ function render(){
     +'<label for="fs">Serviço</label><select id="fs" onchange="setF(\'s\',this.value)">'
     +'<option value="">Todos</option>'+servicos.map(s=>'<option'+(fSrv===s?' selected':'')+'>'+esc(s)+'</option>').join('')+'</select>'
     +'<div class="sp"></div>'
-    +'<div class="scope"><b>'+total+'</b> LS no recorte · de <b>'+LS.length+'</b> cadastradas</div>'
+    +'<div class="scope">Exibindo <b>'+total+'</b> de <b>'+LS.length+'</b> LS cadastradas</div>'
     +'</div>';
 
   // KPIs
   h+='<div class="kpis">'
-    +kpi(total,'LS cadastradas','')
-    +kpi(inst,'Plaquetadas','ok')
-    +kpi(aguard,'Aguardando plaqueta','canc')
-    +kpi(cobertura+'%','Cobertura de plaquetagem','')
+    +kpi(total,'LS no filtro atual','')
+    +kpi(inst,'Emplaquetadas','ok')
+    +kpi(aguard,'Aguardando plaqueta','')
+    +kpi(cobertura+'%','Cobertura de emplaquetamento','','% sobre LS não canceladas')
     +kpi(conc,'Concluídas','ok')
     +kpi(pend,'Com pendência','warn')
     +kpi(lsComAtraso.size,'LS com material atrasado','warn')
@@ -418,13 +421,13 @@ function render(){
 
   // ---------- FRENTE DE INSTALAÇÃO ----------
   h+='<h2 class="sec">Frente de instalação</h2>'
-   +'<p class="seclead">Onde a plaqueta ainda não chegou. Esta é a operação de agora — sem plaqueta instalada, nenhuma etapa pode ser registrada.</p>';
+   +'<p class="seclead">Situação do emplaquetamento em campo. Sem plaqueta instalada, nenhuma etapa pode ser registrada.</p>';
 
   h+='<div class="grid2">'
-    +painel('Cobertura por unidade','Para onde a equipe de plaquetagem ainda precisa ir?','cvUni',Math.max(180,unidades.length*38+60),
-        '<div class="legend"><span><i class="dot" style="background:#16A34A"></i>Plaquetadas</span><span><i class="dot" style="background:#94A3B8"></i>Aguardando</span></div>')
-    +painel('Cobertura por serviço','Qual serviço está atrasado na plaquetagem?','cvSrv',Math.max(180,servicos.length*38+60),
-        '<div class="legend"><span><i class="dot" style="background:#16A34A"></i>Plaquetadas</span><span><i class="dot" style="background:#94A3B8"></i>Aguardando</span></div>')
+    +painel('Cobertura por unidade','LS emplaquetadas e aguardando plaqueta, por unidade.','cvUni',Math.max(180,unidades.length*38+60),
+        '<div class="legend"><span><i class="dot" style="background:#16A34A"></i>Emplaquetadas</span><span><i class="dot" style="background:#94A3B8"></i>Aguardando</span></div>')
+    +painel('Cobertura por serviço','LS emplaquetadas e aguardando plaqueta, por tipo de serviço.','cvSrv',Math.max(180,servicos.length*38+60),
+        '<div class="legend"><span><i class="dot" style="background:#16A34A"></i>Emplaquetadas</span><span><i class="dot" style="background:#94A3B8"></i>Aguardando</span></div>')
     +'</div>';
 
   // ---------- MATERIAL ----------
@@ -435,10 +438,10 @@ function render(){
     .sort((a,b)=>matDaLs(b.ls_codigo).atras-matDaLs(a.ls_codigo).atras);
 
   h+='<div class="grid2">'
-    +painel('Material atrasado por unidade','Onde o suprimento está segurando a obra?','cvMat',Math.max(180,unidades.length*38+60),
+    +painel('Material atrasado por unidade','LS com ao menos um item de material em atraso, por unidade.','cvMat',Math.max(180,unidades.length*38+60),
         '<div class="foot">Conta LS distintas com ao menos um item atrasado. Uma LS que apareça em duas unidades é contada nas duas.</div>')
     +'<div class="panel"><div class="panel-h"><div class="tt">Prontas para avançar, sem material</div>'
-      +'<div class="q">Plaquetada, sem pendência, e o material não chegou. É a pauta da reunião com suprimento.</div></div>'
+      +'<div class="q">LS emplaquetadas, sem pendência, com material pendente de recebimento.</div></div>'
       +(prontasSemMat.length
         ? '<div class="tbl-wrap"><table class="dt"><thead><tr><th>LS</th><th>TAG</th><th>Serviço</th><th>Unid.</th><th>Itens atrasados</th></tr></thead><tbody>'
           +prontasSemMat.slice(0,40).map(r=>'<tr>'
@@ -447,7 +450,7 @@ function render(){
             +'<td><span class="badge pend">'+matDaLs(r.ls_codigo).atras+'</span></td></tr>').join('')
           +'</tbody></table></div>'
           +(prontasSemMat.length>40?'<div class="foot">Mostrando as 40 com mais itens atrasados, de '+prontasSemMat.length+'.</div>':'')
-        : '<div class="empty"><b>Nenhuma LS travada por material</b>Toda LS plaquetada e sem pendência tem o material que precisa.</div>')
+        : '<div class="empty"><b>Nenhuma LS travada por material</b>Toda LS emplaquetada e sem pendência tem o material que precisa.</div>')
       +'</div>'
     +'</div>';
 
@@ -456,24 +459,24 @@ function render(){
   h+='<h2 class="sec">Frente de execução</h2>'
    +'<p class="seclead">'+(avancadas
       ? avancadas+' LS já passaram da instalação. Esta seção cresce à medida que a parada avança.'
-      : 'A execução ainda não começou — as LS plaquetadas estão todas na etapa 1. Os gráficos desta seção acendem sozinhos quando as primeiras etapas forem registradas.')+'</p>';
+      : 'A execução ainda não começou — as LS emplaquetadas estão todas na etapa 1. Os gráficos desta seção são preenchidos automaticamente quando as primeiras etapas forem registradas.')+'</p>';
 
-  h+=painel('Situação de todas as LS','Quanto do escopo já fechou, e quanto nem foi tocado?','cvFunil',110,
+  h+=painel('Situação de todas as LS','Distribuição das LS por estado atual.','cvFunil',110,
       '<div class="legend" id="lgFunil"></div>');
 
   // heatmap: só faz sentido quando existe alguma LS além da etapa 1
   h+='<div style="height:14px"></div>';
-  h+='<div class="panel"><div class="panel-h"><div class="tt">Onde as LS empilham</div>'
-    +'<div class="q">Cada célula é o número de LS cuja última etapa registrada é aquela. A coluna que engorda é o gargalo.</div></div>';
+  h+='<div class="panel"><div class="panel-h"><div class="tt">Distribuição das LS por etapa</div>'
+    +'<div class="q">Cada célula é o número de LS cuja última etapa registrada é aquela. Concentração em uma coluna indica gargalo naquela etapa.</div></div>';
   h+= avancadas
-    ? '<div class="panel-b hm" id="hmBox"></div><div class="foot">Só LS plaquetadas e não canceladas. Quanto mais escura a célula, mais LS paradas ali.</div>'
-    : '<div class="empty"><b>Execução ainda não iniciada</b>Todas as LS plaquetadas estão na etapa 1. Quando as etapas seguintes começarem a ser registradas, este mapa mostra onde elas travam.</div>';
+    ? '<div class="panel-b hm" id="hmBox"></div><div class="foot">Só LS emplaquetadas e não canceladas. Quanto mais escura a célula, mais LS nessa etapa.</div>'
+    : '<div class="empty"><b>Execução ainda não iniciada</b>Todas as LS emplaquetadas estão na etapa 1. Quando as etapas seguintes começarem a ser registradas, este mapa mostra onde elas travam.</div>';
   h+='</div>';
 
   h+='<div style="height:14px"></div>';
   h+='<div class="grid2">'
     +'<div class="panel"><div class="panel-h"><div class="tt">Pendências por serviço</div>'
-      +'<div class="q">Onde estão os "Não".</div></div>'
+      +'<div class="q">LS com ao menos uma etapa respondida como "Não".</div></div>'
       +(pend
         ? '<div class="panel-b"><div class="cvbox" style="height:'+Math.max(180,servicos.length*32+60)+'px"><canvas id="cvPend"></canvas></div></div>'
         : '<div class="empty"><b>Nenhuma pendência registrada</b>Nenhuma etapa foi respondida com "Não" até agora.</div>')
@@ -482,7 +485,7 @@ function render(){
       +'<div class="q">Etapas registradas sobre o total de etapas do serviço.</div></div>'
       +(avancadas
         ? '<div class="panel-b"><div class="cvbox" style="height:'+Math.max(180,servicos.length*32+60)+'px"><canvas id="cvAvanco"></canvas></div></div>'
-          +'<div class="foot">Todas as etapas pesam igual — é a melhor aproximação possível sem duração por etapa. Quando o cronograma entrar, isso vira avanço físico.</div>'
+          +'<div class="foot">Todas as etapas pesam igual — é a melhor aproximação possível sem duração por etapa. Com o cronograma integrado, passa a refletir avanço físico.</div>'
         : '<div class="empty"><b>Sem avanço para medir</b>Nenhuma LS passou da etapa 1.</div>')
       +'</div>'
     +'</div>';
@@ -496,7 +499,8 @@ function render(){
   if(pend) desenharPendencias(rows,servicos);
 }
 
-function kpi(n,l,cls){return '<div class="kpi '+(cls||'')+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';}
+function kpi(n,l,cls,sub){return '<div class="kpi '+(cls||'')+'"><div class="n">'+n+'</div><div class="l">'+l+'</div>'
+  +(sub?'<div class="sub">'+sub+'</div>':'')+'</div>';}
 function painel(tt,q,id,alt,extra){
   return '<div class="panel"><div class="panel-h"><div class="tt">'+tt+'</div><div class="q">'+q+'</div></div>'
     +'<div class="panel-b"><div class="cvbox" style="height:'+alt+'px"><canvas id="'+id+'"></canvas></div></div>'
@@ -525,7 +529,7 @@ function desenharCobertura(rows,unidades,servicos){
     const d=agg(campo,chaves).sort((a,b)=>(b.a)-(a.a));
     novo(id,{type:'bar',
       data:{labels:d.map(x=>x.k),datasets:[
-        {label:'Plaquetadas',data:d.map(x=>x.i),backgroundColor:'#16A34A',borderRadius:{topRight:4,bottomRight:0},borderSkipped:false,barThickness:20},
+        {label:'Emplaquetadas',data:d.map(x=>x.i),backgroundColor:'#16A34A',borderRadius:{topRight:4,bottomRight:0},borderSkipped:false,barThickness:20},
         {label:'Aguardando',data:d.map(x=>x.a),backgroundColor:'#94A3B8',borderRadius:{topRight:4,bottomRight:4},borderSkipped:false,barThickness:20}
       ]},
       options:{...BASE,indexAxis:'y',
