@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sigma Treinamentos · Qualificação e Aptidão — Sigma Code Engenharia</title>
+<meta name="description" content="Trabalhador qualificado antes de entrar na área. Vídeo com controle de conclusão, prova por procedimento e selo de aptidão da função — tudo por um link.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#0F4CBA;--blue-deep:#0B3A91;--blue-soft:#EAF1FF;
+    --green:#2E7D46;--green-deep:#1C5E33;--green-soft:#E8F2EA;
+    --ink:#16202B;--muted:#647084;--paper:#F5F7FA;--line:#E5E7EB;--amber:#B45309;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;line-height:1.5}
+  h1,h2,h3,.exo{font-family:'Exo 2','Inter',sans-serif}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;color:var(--blue)}
+
+  nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav-in{max-width:1140px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:14px}
+  .wm{display:flex;align-items:center;gap:9px;font-family:'Exo 2';font-weight:800;font-size:16px}
+  .wm .sq{width:16px;height:16px;border-radius:4px;background:var(--blue)}
+  .wm small{font-weight:500;color:var(--muted);font-family:'Inter';font-size:12px}
+  .emp{font-family:'Exo 2';font-weight:800;font-size:13px;color:var(--blue-deep);background:var(--blue-soft);border:1px solid #D6E2FB;border-radius:7px;padding:5px 10px;letter-spacing:.4px}
+  .nav-cta{margin-left:auto;background:var(--blue);color:#fff;font-weight:700;font-size:13.5px;padding:9px 16px;border-radius:9px}
+  .nav-cta:hover{background:var(--blue-deep)}
+
+  .hero{background:linear-gradient(150deg,#0B2E77,#0F4CBA 60%,#1763D8);color:#fff;overflow:hidden}
+  .hero-in{max-width:1140px;margin:0 auto;padding:64px 24px 72px;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+  .hero .k{font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#9CC2FF}
+  .hero h1{font-size:50px;font-weight:800;line-height:1.06;letter-spacing:-1px;margin:16px 0 16px}
+  .hero .sub{font-size:18px;line-height:1.55;color:#DCE8FF;max-width:520px}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+  .chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:99px;padding:8px 15px;font-size:13px;font-weight:600}
+  .hero-art{display:flex;justify-content:center}
+
+  section{padding:76px 0}
+  .center{text-align:center;max-width:660px;margin:0 auto 46px}
+  .center h2{font-size:34px;font-weight:800;letter-spacing:-.5px;margin-top:10px}
+  .center p{color:var(--muted);font-size:16px;margin-top:12px}
+
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .step{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px 22px}
+  .step .num{font-family:'Exo 2';font-weight:800;font-size:15px;color:#fff;background:var(--blue);width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .step:nth-child(4) .num{background:var(--green)}
+  .step h3{font-size:18px;font-weight:800;margin-bottom:8px}
+  .step p{font-size:13.5px;color:var(--muted);line-height:1.55}
+
+  .feat{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .feat .title{font-size:32px;font-weight:800;line-height:1.14;margin:12px 0 14px;letter-spacing:-.5px}
+  .feat .lead{font-size:16px;color:var(--muted);line-height:1.6}
+  .vlist{list-style:none;margin-top:20px;display:flex;flex-direction:column;gap:13px}
+  .vlist li{display:flex;gap:11px;align-items:flex-start;font-size:15px;line-height:1.5}
+  .vlist .ic{flex:none;width:24px;height:24px;border-radius:7px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;margin-top:1px}
+  .art{display:flex;justify-content:center;align-items:center}
+  .panel-soft{background:linear-gradient(160deg,#F3F7FF,#EAF1FF);border:1px solid #DCE7FB;border-radius:22px;padding:40px;width:100%;display:flex;justify-content:center}
+
+  /* telefone + casca Sigma Treinamentos */
+  .phone{width:216px;background:#0E1726;border-radius:44px;padding:9px;box-shadow:0 30px 60px -22px rgba(10,23,38,.55);position:relative} .phone::before{content:"";position:absolute;top:17px;left:50%;transform:translateX(-50%);width:74px;height:19px;background:#000;border-radius:99px;z-index:6}
+  .phone .scr{background:#F5F7FA;border-radius:36px;overflow:hidden;position:relative;min-height:452px} .hero-art .phone .scr{min-height:470px}
+  .ph-hd{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:30px 12px 8px}
+  .ph-hd .sc{font-family:'Exo 2';font-weight:800;font-size:11px}
+  .ph-hd .sc .sq{width:11px;height:11px;border-radius:3px;background:var(--blue);display:inline-block;vertical-align:-1px;margin-right:4px}
+  .ph-hd .sep{width:1px;height:20px;background:var(--line)}
+  .ph-hd .t{font-family:'Exo 2';font-weight:700;font-size:11px}
+  .ph-hd .s{font-size:8.5px;color:var(--muted)}
+  .ph-hd .emp2{margin-left:auto;font-family:'Exo 2';font-weight:800;font-size:9px;color:var(--blue-deep);background:var(--blue-soft);border-radius:5px;padding:3px 6px}
+  .ph-body{padding:15px 13px 20px}
+
+  .pdoc{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:11px}
+  .pdoc .e{font-size:7.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9AA6B2}
+  .pdoc .n{font-family:'Exo 2';font-weight:700;font-size:12px;line-height:1.2;margin-top:3px}
+  .pdoc .r{font-size:9px;color:var(--muted);margin-top:2px}
+  .pvid{background:#0E1726;border-radius:10px;height:104px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .pvid:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,#1B3A6B,#0E1726)}
+  .pvid .play{position:relative;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
+  .pvid .play:after{content:"";border-left:12px solid var(--blue);border-top:8px solid transparent;border-bottom:8px solid transparent;margin-left:3px}
+  .pbarwrap{margin-top:12px}
+  .pbar{height:7px;background:var(--blue-soft);border-radius:99px;overflow:hidden}
+  .pbar span{display:block;height:100%;background:var(--blue);border-radius:99px}
+  .pbar-lbl{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:6px}
+  .pbtn{margin-top:12px;background:var(--blue);color:#fff;font-family:'Exo 2';font-weight:700;font-size:12px;border-radius:9px;padding:11px;text-align:center}
+  .pbtn.off{background:#E7ECF3;color:#9AA6B2}
+
+  /* prova */
+  .pv-top{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .pv-q{font-size:11.5px;font-weight:600;line-height:1.35;margin-bottom:11px}
+  .pv-opt{border:1.4px solid var(--line);border-radius:9px;padding:9px 11px;font-size:10.5px;margin-bottom:7px;color:var(--ink)}
+  .pv-opt.sel{border-color:var(--blue);background:var(--blue-soft);color:var(--blue-deep);font-weight:600}
+  .pv-res{background:var(--green-soft);border:1px solid #CBE7D3;border-radius:11px;padding:14px;text-align:center}
+  .pv-res .nota{font-family:'Exo 2';font-weight:800;font-size:26px;color:var(--green-deep);line-height:1}
+  .pv-res .st{font-size:10.5px;color:var(--green-deep);font-weight:700;margin-top:4px}
+
+  /* selo */
+  .tselo{background:linear-gradient(135deg,#0F4CBA,#0B3A91);color:#fff;border-radius:16px;padding:18px 16px;text-align:center;margin-top:6px}
+  .tselo .chk{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);border-radius:99px;padding:4px 10px;font-size:9px;font-weight:800;letter-spacing:.5px;margin-bottom:9px}
+  .tselo .nm{font-family:'Exo 2';font-weight:800;font-size:15px}
+  .tselo .fn{font-size:10px;opacity:.9;margin-bottom:11px}
+  .tselo .qr{background:#fff;border-radius:9px;padding:8px;display:inline-block;line-height:0}
+  .tselo .val{font-size:9.5px;opacity:.92;margin-top:9px}
+  .tselo .cod{font-family:'Exo 2';font-weight:800;letter-spacing:2px;font-size:10px;opacity:.9;margin-top:3px}
+
+  /* janela / painel */
+  .win{width:100%;max-width:560px;background:#fff;border-radius:14px;box-shadow:0 26px 60px -24px rgba(10,23,38,.4);overflow:hidden;border:1px solid #E7ECF3}
+  .win-bar{height:38px;background:#F0F3F8;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:7px;padding:0 14px}
+  .win-bar .dot{width:11px;height:11px;border-radius:50%}
+  .dot.r{background:#FF5F57}.dot.y{background:#FEBC2E}.dot.g{background:#28C840}
+  .win-url{margin-left:12px;background:#fff;border:1px solid #E2E8F0;border-radius:7px;height:23px;flex:1;max-width:320px;display:flex;align-items:center;padding:0 10px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden}
+  .win-body{padding:18px 20px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .kpi{border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+  .kpi .n{font-family:'Exo 2';font-weight:800;font-size:28px;line-height:1}
+  .kpi .l{font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.3}
+  .kpi.b .n{color:var(--blue)}.kpi.g .n{color:var(--green-deep)}.kpi.a .n{color:var(--amber)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  thead th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AA6B2;padding:9px 12px;border-bottom:1px solid var(--line)}
+  tbody td{padding:10px 12px;border-bottom:1px solid #F1F4F8}
+  tbody tr:last-child td{border-bottom:none}
+  .tg{font-size:9px;font-weight:700;padding:3px 8px;border-radius:99px}
+  .tg.apta{background:var(--green-soft);color:var(--green-deep)}
+  .tg.pend{background:#FEF3E2;color:var(--amber)}
+  .tick{color:var(--green-deep);font-weight:700}.mut{color:var(--muted)}
+
+  /* integração */
+  .integ{background:var(--paper);border-top:1px solid var(--line)}
+  .integ-in{max-width:1140px;margin:0 auto;padding:56px 24px;display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap}
+  .integ h3{font-size:24px;font-weight:800;margin-bottom:8px}
+  .integ p{color:var(--muted);font-size:15px;max-width:520px}
+  .integ a{flex:none;background:var(--blue);color:#fff;font-weight:700;font-size:14.5px;padding:14px 24px;border-radius:11px}
+  .integ a:hover{background:var(--blue-deep)}
+
+  .cta{background:linear-gradient(150deg,#0B2E77,#0F4CBA 60%,#1763D8);color:#fff;text-align:center}
+  .cta-in{padding:72px 24px}
+  .cta h2{font-size:38px;font-weight:800;letter-spacing:-.5px;margin-bottom:14px}
+  .cta p{font-size:17px;color:#DCE8FF;max-width:560px;margin:0 auto 28px}
+  .cta a{display:inline-block;background:#fff;color:var(--blue-deep);font-weight:800;font-size:15px;padding:15px 30px;border-radius:12px}
+
+  footer{background:#0E1726;color:#9AA6B2;font-size:13px;padding:34px 0}
+  .foot-in{max-width:1140px;margin:0 auto;padding:0 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+  footer b{color:#fff;font-family:'Exo 2'}
+
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media(max-width:900px){
+    .hero-in,.feat{grid-template-columns:1fr;gap:32px}.hero h1{font-size:36px}
+    .steps{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr 1fr}
+    .feat .art{order:2}.panel-soft{padding:26px}
+  }
+  @media(max-width:560px){
+    .steps,.kpis{grid-template-columns:1fr}.center h2,.feat .title{font-size:26px}
+    .cta h2{font-size:28px}.win-url,.nav-cta{display:none}.integ a{width:100%;text-align:center}
+  }
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<nav><div class="nav-in">
+  <div class="wm"><span class="sq"></span>Sigma Treinamentos <small>· Qualificação e Aptidão</small></div>
+  <div class="emp">Sua Empresa</div>
+  <a class="nav-cta" href="#contato">Solicitar demonstração</a>
+</div></nav>
+
+<header class="hero"><div class="hero-in">
+  <div>
+    <div class="k">Sigma Treinamentos · Qualificação e Aptidão</div>
+    <h1>Trabalhador qualificado antes de pisar na área.</h1>
+    <p class="sub">Do vídeo à prova ao selo de aptidão — por um link, sem app. O sistema mede quem realmente assistiu e libera a prova só então.</p>
+    <div class="chips">
+      <span class="chip">Acesso por link · sem senha</span>
+      <span class="chip">Vídeo com controle real</span>
+      <span class="chip">Selo por função</span>
+    </div>
+  </div>
+  <div class="hero-art">
+    <div class="phone"><div class="scr">
+      <div class="ph-hd"><span class="sc"><span class="sq"></span>SIGMA</span><span class="sep"></span><div><div class="t">Treinamentos</div><div class="s">Qualificação</div></div><span class="emp2">Sua Empresa</span></div>
+      <div class="ph-body">
+        <div class="pdoc"><div class="e">Procedimento</div><div class="n">Manual do Sistema de Gestão</div><div class="r">· Rev. 4</div></div>
+        <div class="pvid"><div class="play"></div></div>
+        <div class="pbarwrap"><div class="pbar"><span style="width:78%"></span></div><div class="pbar-lbl"><span>78% assistido</span><span>faltam 0:45</span></div></div>
+        <div class="pbtn off">Fazer a prova</div>
+      </div>
+    </div></div>
+  </div>
+</div></header>
+
+<section><div class="wrap">
+  <div class="center reveal">
+    <div class="eyebrow">Como funciona</div>
+    <h2>Do acesso ao selo, em quatro passos</h2>
+    <p>Um caminho simples para o trabalhador e uma trilha auditável para o RH e a qualidade.</p>
+  </div>
+  <div class="steps reveal">
+    <div class="step"><div class="num">1</div><h3>Acesso</h3><p>O RH envia um link individual. A pessoa abre no celular e vê os treinamentos exigidos pela função dela.</p></div>
+    <div class="step"><div class="num">2</div><h3>Vídeo</h3><p>Assiste ao treinamento. O sistema mede a cobertura real — a prova só libera ao concluir.</p></div>
+    <div class="step"><div class="num">3</div><h3>Prova</h3><p>Responde a prova do procedimento. A correção é no servidor, com nota mínima e tentativas.</p></div>
+    <div class="step"><div class="num">4</div><h3>Selo</h3><p>Ao cumprir todos os procedimentos da função, recebe o selo de aptidão — com QR e validade.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap feat reveal">
+  <div>
+    <div class="eyebrow">Passo 1 · Acesso</div>
+    <div class="title">Um link, e a pessoa vê o que precisa fazer</div>
+    <p class="lead">Identidade por token: sem cadastro, sem senha. A ficha mostra só os treinamentos exigidos pela função dela.</p>
+    <ul class="vlist">
+      <li><span class="ic">✓</span><span>Link individual enviado pelo RH.</span></li>
+      <li><span class="ic">✓</span><span>Ficha filtrada pela matriz da função.</span></li>
+      <li><span class="ic">✓</span><span>Funciona no celular de campo.</span></li>
+    </ul>
+  </div>
+  <div class="art"><div class="panel-soft">
+    <div class="phone"><div class="scr">
+      <div class="ph-hd"><span class="sc"><span class="sq"></span>SIGMA</span><span class="sep"></span><div><div class="t">Treinamentos</div><div class="s">Ficha</div></div><span class="emp2">Sua Empresa</span></div>
+      <div class="ph-body">
+        <div style="font-size:12px;font-weight:700;margin:2px 0 10px">Olá, Ana Paula 👋</div>
+        <div class="pdoc" style="display:flex;align-items:center;gap:9px"><div style="flex:1"><div class="n" style="font-size:11px">Manual do Sistema de Gestão</div><div class="r">Rev. 4 · vídeo + prova</div></div><span class="tg pend">Fazer</span></div>
+        <div class="pdoc" style="display:flex;align-items:center;gap:9px"><div style="flex:1"><div class="n" style="font-size:11px">Plano da Qualidade</div><div class="r">Rev. 2 · vídeo + prova</div></div><span class="tg apta">Apta</span></div>
+        <div class="pdoc" style="display:flex;align-items:center;gap:9px"><div style="flex:1"><div class="n" style="font-size:11px">Controle de Medição</div><div class="r">Rev. 1 · vídeo + prova</div></div><span class="tg pend">Fazer</span></div>
+      </div>
+    </div></div>
+  </div></div>
+</div></section>
+
+<section style="background:var(--paper)"><div class="wrap feat reveal">
+  <div class="art"><div class="panel-soft">
+    <div class="phone"><div class="scr">
+      <div class="ph-hd"><span class="sc"><span class="sq"></span>SIGMA</span><span class="sep"></span><div><div class="t">Treinamentos</div></div><span class="emp2">Sua Empresa</span></div>
+      <div class="ph-body">
+        <div class="pdoc"><div class="e">Procedimento</div><div class="n">Manual do Sistema de Gestão</div><div class="r">· Rev. 4</div></div>
+        <div class="pvid"><div class="play"></div></div>
+        <div class="pbarwrap"><div class="pbar"><span style="width:100%"></span></div><div class="pbar-lbl"><span>100% assistido</span><span>concluído</span></div></div>
+        <div class="pbtn">Fazer a prova →</div>
+      </div>
+    </div></div>
+  </div></div>
+  <div>
+    <div class="eyebrow">Passo 2 · Vídeo</div>
+    <div class="title">Mede quem assistiu de verdade</div>
+    <p class="lead">Nada de "dar play e sair". O sistema acompanha a cobertura real do vídeo e só libera a prova quando a pessoa chega ao fim.</p>
+    <ul class="vlist">
+      <li><span class="ic">✓</span><span>Cobertura medida no servidor, não no navegador.</span></li>
+      <li><span class="ic">✓</span><span>A prova só abre com o vídeo concluído.</span></li>
+      <li><span class="ic">✓</span><span>Reciclagem: revisão nova exige reassistir.</span></li>
+    </ul>
+  </div>
+</div></section>
+
+<section><div class="wrap feat reveal">
+  <div>
+    <div class="eyebrow">Passo 3 · Prova</div>
+    <div class="title">Uma prova por procedimento, corrigida no servidor</div>
+    <p class="lead">As questões são sorteadas de um banco, a correção acontece no servidor (o gabarito nunca chega ao celular) e a nota mínima é sua.</p>
+    <ul class="vlist">
+      <li><span class="ic">✓</span><span>Banco de questões por procedimento.</span></li>
+      <li><span class="ic">✓</span><span>Nota mínima, tentativas e intervalo configuráveis.</span></li>
+      <li><span class="ic">✓</span><span>Registro de cada tentativa para auditoria.</span></li>
+    </ul>
+  </div>
+  <div class="art"><div class="panel-soft">
+    <div class="phone"><div class="scr">
+      <div class="ph-hd"><span class="sc"><span class="sq"></span>SIGMA</span><span class="sep"></span><div><div class="t">Treinamentos</div><div class="s">Prova</div></div><span class="emp2">Sua Empresa</span></div>
+      <div class="ph-body">
+        <div class="pv-top">Questão 2 de 3</div>
+        <div class="pv-q">Encontrando um componente danificado durante a montagem, o profissional deve:</div>
+        <div class="pv-opt sel">Segregar o componente e comunicar — não usar</div>
+        <div class="pv-opt">Usar na parte de cima, onde há menos carga</div>
+        <div class="pv-opt">Reforçar com arame e seguir</div>
+        <div class="pbtn" style="margin-top:10px">Enviar prova</div>
+      </div>
+    </div></div>
+  </div></div>
+</div></section>
+
+<section style="background:var(--paper)"><div class="wrap feat reveal">
+  <div class="art"><div class="panel-soft">
+    <div class="phone"><div class="scr">
+      <div class="ph-hd"><span class="sc"><span class="sq"></span>SIGMA</span><span class="sep"></span><div><div class="t">Treinamentos</div><div class="s">Meu selo</div></div><span class="emp2">Sua Empresa</span></div>
+      <div class="ph-body">
+        <div class="tselo">
+          <div class="chk">● APTO PARA A ÁREA</div>
+          <div class="nm">Ana Paula Souza</div>
+          <div class="fn">Auxiliar de Manutenção</div>
+          <div class="qr">
+            <svg width="86" height="86" viewBox="0 0 29 29" shape-rendering="crispEdges">
+              <rect width="29" height="29" fill="#fff"/>
+              <g fill="#0B3A91">
+                <path d="M0 0h7v7h-7z M1 1v5h5v-5z M2 2h3v3h-3z"/>
+                <path d="M22 0h7v7h-7z M23 1v5h5v-5z M24 2h3v3h-3z"/>
+                <path d="M0 22h7v7h-7z M1 23v5h5v-5z M2 24h3v3h-3z"/>
+                <rect x="9" y="1" width="1" height="1"/><rect x="11" y="0" width="1" height="2"/><rect x="13" y="1" width="2" height="1"/><rect x="16" y="0" width="1" height="1"/><rect x="19" y="1" width="1" height="1"/>
+                <rect x="1" y="9" width="1" height="1"/><rect x="3" y="10" width="2" height="1"/><rect x="0" y="12" width="1" height="2"/><rect x="5" y="11" width="1" height="2"/>
+                <rect x="9" y="9" width="2" height="2"/><rect x="12" y="9" width="1" height="1"/><rect x="14" y="10" width="2" height="1"/><rect x="17" y="9" width="1" height="2"/><rect x="19" y="10" width="1" height="1"/><rect x="21" y="9" width="1" height="1"/>
+                <rect x="9" y="13" width="1" height="2"/><rect x="12" y="14" width="2" height="1"/><rect x="15" y="13" width="1" height="1"/><rect x="18" y="14" width="1" height="1"/><rect x="20" y="13" width="2" height="2"/>
+                <rect x="10" y="17" width="1" height="1"/><rect x="13" y="18" width="1" height="2"/><rect x="16" y="17" width="2" height="1"/><rect x="19" y="18" width="1" height="1"/><rect x="22" y="17" width="1" height="2"/>
+                <rect x="9" y="21" width="2" height="1"/><rect x="12" y="22" width="1" height="1"/><rect x="14" y="21" width="1" height="2"/><rect x="17" y="22" width="2" height="1"/><rect x="21" y="21" width="1" height="1"/>
+                <rect x="9" y="24" width="1" height="2"/><rect x="11" y="25" width="2" height="1"/><rect x="14" y="24" width="1" height="1"/><rect x="16" y="25" width="1" height="2"/><rect x="19" y="24" width="2" height="1"/><rect x="23" y="25" width="2" height="1"/><rect x="27" y="24" width="1" height="2"/>
+                <rect x="24" y="9" width="1" height="2"/><rect x="26" y="10" width="2" height="1"/><rect x="25" y="13" width="1" height="1"/><rect x="27" y="14" width="1" height="2"/><rect x="24" y="17" width="2" height="1"/><rect x="27" y="18" width="1" height="1"/><rect x="24" y="20" width="1" height="1"/>
+              </g>
+            </svg>
+          </div>
+          <div class="val">Válido até 24/01/2028 · 730 dias</div>
+          <div class="cod">EEFDQW52</div>
+        </div>
+      </div>
+    </div></div>
+  </div></div>
+  <div>
+    <div class="eyebrow">Passo 4 · Selo</div>
+    <div class="title">O selo do crachá acende quando tudo está cumprido</div>
+    <p class="lead">Não é um selo por prova — é a <b>aptidão da função</b>. Ele só aparece quando todos os procedimentos obrigatórios foram cumpridos, e vence junto com o primeiro procedimento.</p>
+    <ul class="vlist">
+      <li><span class="ic">✓</span><span>QR verificável e código público.</span></li>
+      <li><span class="ic">✓</span><span>Validade herdada do procedimento mais próximo de vencer.</span></li>
+      <li><span class="ic">✓</span><span>Enquanto falta algum, mostra "faltam X".</span></li>
+    </ul>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="center reveal">
+    <div class="eyebrow">Matriz de aptidão</div>
+    <h2>Quem está pronto para entrar — por função</h2>
+    <p>A qualidade e o RH enxergam a matriz inteira: exigido, cumprido e vencendo.</p>
+  </div>
+  <div class="reveal" style="display:flex;justify-content:center">
+    <div class="win" style="max-width:920px">
+      <div class="win-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><div class="win-url">sigma-treinamentos.app › Matriz de aptidão</div></div>
+      <div class="win-body">
+        <div class="kpis">
+          <div class="kpi g"><div class="n">28</div><div class="l">Aptos para entrar</div></div>
+          <div class="kpi b"><div class="n">19</div><div class="l">Em treinamento</div></div>
+          <div class="kpi a"><div class="n">6</div><div class="l">Vencendo em 30 dias</div></div>
+          <div class="kpi b"><div class="n">40</div><div class="l">Procedimentos ativos</div></div>
+        </div>
+        <table>
+          <thead><tr><th>Colaborador</th><th>Função</th><th>Procedimentos</th><th>Selo válido até</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Ana Paula Souza</td><td class="mut">Auxiliar de Manutenção</td><td class="tick">✓ 4/4</td><td class="mut">24/01/2028</td><td><span class="tg apta">Apta</span></td></tr>
+            <tr><td>João Mendes Lima</td><td class="mut">Soldador</td><td class="mut">3/4</td><td class="mut">—</td><td><span class="tg pend">Em treinamento</span></td></tr>
+            <tr><td>Carla Ribeiro</td><td class="mut">Inspetora</td><td class="tick">✓ 5/5</td><td class="mut">12/09/2027</td><td><span class="tg apta">Apta</span></td></tr>
+            <tr><td>Marcos Vinícius</td><td class="mut">Caldeireiro</td><td class="mut">2/5</td><td class="mut">—</td><td><span class="tg pend">Em treinamento</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- INTEGRAÇÃO -->
+<section class="integ"><div class="integ-in">
+  <div>
+    <div class="eyebrow">Integra com o Sigma RH</div>
+    <h3>Da admissão à área, no mesmo fluxo</h3>
+    <p>A pessoa é admitida no Sigma RH, envia os documentos e — apta — cai direto nos treinamentos, com o mesmo link. Um caminho só, do convite ao crachá.</p>
+  </div>
+  <a href="RH.html">Conheça o Sigma RH →</a>
+</div></section>
+
+<section class="cta" id="contato"><div class="cta-in">
+  <div class="eyebrow" style="color:#9CC2FF">Sigma Treinamentos · Qualificação e Aptidão</div>
+  <h2>Mão de obra qualificada, comprovada e no prazo.</h2>
+  <p>Do vídeo ao selo, com controle real de quem assistiu, prova por procedimento e aptidão por função — tudo pelo celular.</p>
+  <a href="mailto:contato@sigmacode.com.br?subject=Demonstração Sigma Treinamentos">Solicitar demonstração</a>
+</div></section>
+
+<footer><div class="foot-in">
+  <div><b>Sigma Code Engenharia</b> · plataforma Sigma</div>
+  <div>Sigma Treinamentos — Qualificação e Aptidão</div>
+</div></footer>
+
+<script>
+  const io = new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
