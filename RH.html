@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sigma RH · Admissão Digital — Sigma Code Engenharia</title>
+<meta name="description" content="Do convite ao colaborador apto, sem papel. Admissão digital com envio pelo celular, organização automática no Drive e painel para o RH.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#0F4CBA;--blue-deep:#0B3A91;--blue-soft:#EAF1FF;
+    --green:#2E7D46;--green-deep:#1C5E33;--green-soft:#E8F2EA;
+    --ink:#16202B;--muted:#647084;--paper:#F5F7FA;--line:#E5E7EB;--amber:#B45309;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;line-height:1.5}
+  h1,h2,h3,.exo{font-family:'Exo 2','Inter',sans-serif}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;color:var(--blue)}
+  .eyebrow.g{color:var(--green-deep)}
+
+  /* NAV */
+  nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav-in{max-width:1140px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:14px}
+  .wm{display:flex;align-items:center;gap:9px;font-family:'Exo 2';font-weight:800;font-size:16px}
+  .wm .sq{width:16px;height:16px;border-radius:4px;background:var(--blue)}
+  .wm small{font-weight:500;color:var(--muted);font-family:'Inter';font-size:12px}
+  .gcb{font-family:'Exo 2';font-weight:800;font-size:13px;color:#fff;background:var(--green);border-radius:7px;padding:5px 10px;letter-spacing:.5px}
+  .nav-cta{margin-left:auto;background:var(--blue);color:#fff;font-weight:700;font-size:13.5px;padding:9px 16px;border-radius:9px}
+  .nav-cta:hover{background:var(--blue-deep)}
+
+  /* HERO */
+  .hero{background:linear-gradient(150deg,#0B2E77,#0F4CBA 60%,#1763D8);color:#fff;overflow:hidden}
+  .hero-in{max-width:1140px;margin:0 auto;padding:64px 24px 72px;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+  .hero .k{font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#9CC2FF}
+  .hero h1{font-size:52px;font-weight:800;line-height:1.05;letter-spacing:-1px;margin:16px 0 16px}
+  .hero .sub{font-size:18px;line-height:1.55;color:#DCE8FF;max-width:520px}
+  .hero .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+  .chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:99px;padding:8px 15px;font-size:13px;font-weight:600}
+  .hero-art{display:flex;justify-content:center}
+
+  section{padding:76px 0}
+  .center{text-align:center;max-width:640px;margin:0 auto 46px}
+  .center h2{font-size:34px;font-weight:800;letter-spacing:-.5px;margin-top:10px}
+  .center p{color:var(--muted);font-size:16px;margin-top:12px}
+
+  /* STEPS */
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .step{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px 22px}
+  .step .num{font-family:'Exo 2';font-weight:800;font-size:15px;color:#fff;background:var(--blue);width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .step:nth-child(4) .num{background:var(--green)}
+  .step h3{font-size:18px;font-weight:800;margin-bottom:8px}
+  .step p{font-size:13.5px;color:var(--muted);line-height:1.55}
+
+  /* FEATURE */
+  .feat{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .feat.alt{background:var(--paper)}
+  .feat .title{font-size:32px;font-weight:800;line-height:1.14;margin:12px 0 14px;letter-spacing:-.5px}
+  .feat .lead{font-size:16px;color:var(--muted);line-height:1.6}
+  .vlist{list-style:none;margin-top:20px;display:flex;flex-direction:column;gap:13px}
+  .vlist li{display:flex;gap:11px;align-items:flex-start;font-size:15px;line-height:1.5}
+  .vlist .ic{flex:none;width:24px;height:24px;border-radius:7px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;margin-top:1px}
+  .vlist.g .ic{background:var(--green-soft);color:var(--green-deep)}
+  .art{display:flex;justify-content:center;align-items:center}
+  .panel-soft{background:linear-gradient(160deg,#F3F7FF,#EAF1FF);border:1px solid #DCE7FB;border-radius:22px;padding:40px;width:100%;display:flex;justify-content:center;position:relative}
+  .panel-soft.g{background:linear-gradient(160deg,#F1F8F3,#E8F2EA);border-color:#D3E8D9}
+
+  /* telefone */
+  .phone{width:262px;background:#0E1726;border-radius:34px;padding:11px;box-shadow:0 26px 60px -22px rgba(10,23,38,.5)}
+  .phone .scr{background:#F5F7FA;border-radius:24px;overflow:hidden;position:relative}
+  .ph-hd{background:#fff;border-bottom:1px solid var(--line);height:50px;display:flex;align-items:center;gap:8px;padding:0 12px}
+  .ph-hd .sc{font-family:'Exo 2';font-weight:800;font-size:11px}
+  .ph-hd .sc .sq{width:11px;height:11px;border-radius:3px;background:var(--blue);display:inline-block;vertical-align:-1px;margin-right:4px}
+  .ph-hd .sep{width:1px;height:20px;background:var(--line)}
+  .ph-hd .t{font-family:'Exo 2';font-weight:700;font-size:11px}
+  .ph-hd .s{font-size:8.5px;color:var(--muted)}
+  .ph-hd .gg{margin-left:auto;font-family:'Exo 2';font-weight:800;font-size:9px;color:#fff;background:var(--green);border-radius:5px;padding:3px 6px}
+  .ph-body{padding:16px 14px 22px}
+  .wcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 16px;text-align:center;margin-top:24px}
+  .wseal{width:56px;height:56px;border-radius:50%;background:var(--green-soft);border:2px solid var(--green);margin:0 auto 14px;display:flex;align-items:center;justify-content:center}
+  .wseal svg{width:28px;height:28px;stroke:var(--green-deep);fill:none;stroke-width:2.6}
+  .weye{font-size:9px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--green-deep);margin-bottom:7px}
+  .wtitle{font-family:'Exo 2';font-weight:800;font-size:17px;line-height:1.15;margin-bottom:9px;color:var(--ink)}
+  .wtitle .hl{color:var(--green-deep)}
+  .wsub{font-size:11px;line-height:1.5;color:var(--muted);margin-bottom:16px}
+  .wbtn{background:var(--green);color:#fff;font-family:'Exo 2';font-weight:700;font-size:12.5px;border-radius:9px;padding:11px;text-align:center}
+  .dprog{background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 13px;margin-bottom:13px}
+  .dprog .top{display:flex;justify-content:space-between;align-items:baseline;font-size:10px;color:var(--muted);margin-bottom:8px}
+  .dprog .top b{font-family:'Exo 2';font-size:15px;color:var(--ink)}
+  .dbar{height:7px;background:var(--green-soft);border-radius:99px;overflow:hidden}
+  .dbar span{display:block;height:100%;background:var(--green);border-radius:99px}
+  .dgt{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .drow{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .drow .nm{flex:1;font-size:11px;font-weight:600}
+  .pill{font-size:8px;font-weight:700;padding:3px 7px;border-radius:99px}
+  .pill.ok{background:var(--green-soft);color:var(--green-deep)}
+  .pill.pd{background:#FEF3E2;color:var(--amber)}
+
+  /* janela */
+  .win{width:100%;max-width:560px;background:#fff;border-radius:14px;box-shadow:0 26px 60px -24px rgba(10,23,38,.4);overflow:hidden;border:1px solid #E7ECF3}
+  .win-bar{height:38px;background:#F0F3F8;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:7px;padding:0 14px}
+  .win-bar .dot{width:11px;height:11px;border-radius:50%}
+  .dot.r{background:#FF5F57}.dot.y{background:#FEBC2E}.dot.g{background:#28C840}
+  .win-url{margin-left:12px;background:#fff;border:1px solid #E2E8F0;border-radius:7px;height:23px;flex:1;max-width:320px;display:flex;align-items:center;padding:0 10px;font-size:11px;color:var(--muted);overflow:hidden;white-space:nowrap}
+  .win-body{padding:18px 20px}
+  .dv-head{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .dv-fold{width:26px;height:20px;background:var(--blue);border-radius:4px;position:relative}
+  .dv-fold:before{content:"";position:absolute;top:-4px;left:2px;width:11px;height:5px;background:var(--blue);border-radius:2px 2px 0 0}
+  .dv-title{font-family:'Exo 2';font-weight:700;font-size:15px}
+  .dv-title small{display:block;font-family:'Inter';font-weight:500;font-size:10.5px;color:var(--muted)}
+  .dv-list{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .dv-item{display:flex;align-items:center;gap:11px;padding:10px 13px;border-bottom:1px solid #F1F4F8;font-size:12.5px}
+  .dv-item:last-child{border-bottom:none}
+  .dv-item .fic{width:22px;height:26px;background:#fff;border:1.5px solid #D64B4B;border-radius:3px;position:relative;flex:none}
+  .dv-item .fic:after{content:"PDF";position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:6px;font-weight:800;color:#D64B4B}
+  .dv-item .fn{flex:1;font-weight:600}
+  .dv-item .fm{font-size:10px;color:#9AA6B2}
+  .zoom{margin-top:16px;background:#0E1726;color:#fff;border-radius:14px;padding:16px 18px;max-width:320px}
+  .zoom .zt{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#7FB6FF;margin-bottom:10px}
+  .zoom .old{font-size:12px;color:#9AA6B2;text-decoration:line-through}
+  .zoom .arw{color:#7FB6FF;font-size:15px;margin:4px 0}
+  .zoom .new{font-size:14px;font-weight:700}
+  .zoom .new b{color:#8CE0A6}
+
+  /* notif */
+  .notif{width:100%;max-width:400px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 22px 50px -22px rgba(10,23,38,.35);overflow:hidden}
+  .notif-hd{background:var(--blue);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:10px}
+  .notif-hd .b{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-family:'Exo 2';font-weight:800;font-size:11px}
+  .notif-hd .t{font-family:'Exo 2';font-weight:700;font-size:14px}
+  .notif-hd .s{font-size:10.5px;opacity:.85}
+  .notif-bd{padding:18px}
+  .notif-bd .who{font-family:'Exo 2';font-weight:800;font-size:18px;margin-bottom:4px}
+  .notif-bd .msg{font-size:13px;line-height:1.5;color:var(--muted)}
+  .notif-chip{display:inline-flex;align-items:center;gap:7px;background:var(--green-soft);color:var(--green-deep);font-weight:700;font-size:12px;border-radius:99px;padding:7px 13px;margin-top:14px}
+  .notif-tok{margin-top:12px;font-size:11px;color:var(--muted)}
+  .notif-tok b{font-family:'Exo 2';font-weight:800;letter-spacing:2px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:3px 9px;margin-left:4px}
+  .stack2{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:center}
+
+  /* painel */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .kpi{border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+  .kpi .n{font-family:'Exo 2';font-weight:800;font-size:28px;line-height:1}
+  .kpi .l{font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.3}
+  .kpi.b .n{color:var(--blue)}.kpi.g .n{color:var(--green-deep)}.kpi.a .n{color:var(--amber)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  thead th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9AA6B2;padding:9px 12px;border-bottom:1px solid var(--line)}
+  tbody td{padding:10px 12px;border-bottom:1px solid #F1F4F8}
+  tbody tr:last-child td{border-bottom:none}
+  .tg{font-size:9px;font-weight:700;padding:3px 8px;border-radius:99px}
+  .tg.apta{background:var(--green-soft);color:var(--green-deep)}
+  .tg.pend{background:#FEF3E2;color:var(--amber)}
+  .tick{color:var(--green-deep);font-weight:700}.mut{color:var(--muted)}
+
+  /* CTA */
+  .cta{background:linear-gradient(150deg,#123A2A,#1C5E33 60%,#2E7D46);color:#fff;text-align:center}
+  .cta-in{padding:72px 24px}
+  .cta h2{font-size:38px;font-weight:800;letter-spacing:-.5px;margin-bottom:14px}
+  .cta p{font-size:17px;color:#DCF0E2;max-width:560px;margin:0 auto 28px}
+  .cta a{display:inline-block;background:#fff;color:var(--green-deep);font-weight:800;font-size:15px;padding:15px 30px;border-radius:12px}
+
+  .integ{background:#fff;border-top:1px solid var(--line)}
+  .integ-in{max-width:1140px;margin:0 auto;padding:56px 24px;display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap}
+  .integ h3{font-size:24px;font-weight:800;margin-bottom:8px}
+  .integ p{color:var(--muted);font-size:15px;max-width:520px}
+  .integ a{flex:none;background:var(--green);color:#fff;font-weight:700;font-size:14.5px;padding:14px 24px;border-radius:11px}
+  .integ a:hover{background:var(--green-deep)}
+  @media(max-width:560px){.integ a{width:100%;text-align:center}}
+  footer{background:#0E1726;color:#9AA6B2;font-size:13px;padding:34px 0}
+  .foot-in{max-width:1140px;margin:0 auto;padding:0 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+  footer b{color:#fff;font-family:'Exo 2'}
+
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  @media(max-width:900px){
+    .hero-in,.feat{grid-template-columns:1fr;gap:32px}
+    .hero h1{font-size:38px}
+    .steps{grid-template-columns:1fr 1fr}
+    .kpis{grid-template-columns:1fr 1fr}
+    .feat .art{order:2}
+    .panel-soft{padding:26px}
+  }
+  @media(max-width:560px){
+    .steps,.kpis{grid-template-columns:1fr}
+    .center h2,.feat .title{font-size:26px}
+    .cta h2{font-size:28px}
+    .win-url{display:none}
+    .nav-cta{display:none}
+    table{font-size:11px}
+  }
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="wm"><span class="sq"></span>Sigma RH <small>· Admissão</small></div>
+    <div class="gcb">Sua Empresa</div>
+    <a class="nav-cta" href="#contato">Solicitar demonstração</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-in">
+    <div>
+      <div class="k">Sigma RH · Admissão Digital</div>
+      <h1>Do convite ao colaborador apto, sem papel.</h1>
+      <p class="sub">A pessoa recebe um link, envia os documentos pelo celular e o RH acompanha tudo — automático, rastreável e pronto para os treinamentos.</p>
+      <div class="chips">
+        <span class="chip">Envio por link · sem app</span>
+        <span class="chip">Arquivos no Drive da sua empresa</span>
+        <span class="chip">RH avisado na hora</span>
+      </div>
+    </div>
+    <div class="hero-art">
+      <div class="phone"><div class="scr">
+        <div class="ph-hd"><span class="sc"><span class="sq"></span>SIGMA</span><span class="sep"></span><div><div class="t">Sigma RH</div><div class="s">Admissão</div></div><span class="gg">Empresa</span></div>
+        <div class="ph-body">
+          <div class="wcard">
+            <div class="wseal"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+            <div class="weye">Boas-vindas</div>
+            <div class="wtitle">Você foi <span class="hl">selecionado</span> para trabalhar conosco</div>
+            <div class="wsub">Bem-vinda à nossa equipe. O próximo passo é enviar seus documentos de admissão.</div>
+            <div class="wbtn">Enviar meus documentos →</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="center reveal">
+      <div class="eyebrow">Como funciona</div>
+      <h2>Quatro passos, do link ao apto</h2>
+      <p>Um fluxo simples para a pessoa e sem retrabalho para o RH.</p>
+    </div>
+    <div class="steps reveal">
+      <div class="step"><div class="num">1</div><h3>Convite</h3><p>O RH envia um link individual. A pessoa abre no celular — sem senha, sem instalar nada.</p></div>
+      <div class="step"><div class="num">2</div><h3>Documentos</h3><p>Ela envia cada documento em PDF e vê, em tempo real, o que já entregou e o que falta.</p></div>
+      <div class="step"><div class="num">3</div><h3>Organização</h3><p>Cada arquivo vai para a pasta da pessoa no Drive da sua empresa, renomeado automaticamente.</p></div>
+      <div class="step"><div class="num">4</div><h3>Liberação</h3><p>Ao completar os obrigatórios, o RH é avisado e a pessoa fica apta para os treinamentos.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="feat-sec">
+  <div class="wrap feat reveal">
+    <div>
+      <div class="eyebrow g">Passo 1 · Convite</div>
+      <div class="title">Um link, e a pessoa já sabe que foi escolhida</div>
+      <p class="lead">Sem cadastro, sem senha, sem aplicativo. O link do RH identifica a pessoa e abre direto no celular dela.</p>
+      <ul class="vlist g">
+        <li><span class="ic">✓</span><span>Identidade por token individual — cada link é único e pessoal.</span></li>
+        <li><span class="ic">✓</span><span>Mensagem de boas-vindas com a marca da sua empresa.</span></li>
+        <li><span class="ic">✓</span><span>Funciona no celular de campo, em poucos segundos.</span></li>
+      </ul>
+    </div>
+    <div class="art"><div class="panel-soft g">
+      <div class="phone"><div class="scr">
+        <div class="ph-hd"><span class="sc"><span class="sq"></span>SIGMA</span><span class="sep"></span><div><div class="t">Sigma RH</div><div class="s">Admissão</div></div><span class="gg">Empresa</span></div>
+        <div class="ph-body"><div class="wcard">
+          <div class="wseal"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div class="weye">Boas-vindas</div>
+          <div class="wtitle">Você foi <span class="hl">selecionado</span> para trabalhar conosco</div>
+          <div class="wsub">Bem-vinda à nossa equipe.</div>
+          <div class="wbtn">Enviar meus documentos →</div>
+        </div></div>
+      </div></div>
+    </div></div>
+  </div>
+</section>
+
+<section style="background:var(--paper)">
+  <div class="wrap feat reveal">
+    <div class="art"><div class="panel-soft g">
+      <div class="phone"><div class="scr">
+        <div class="ph-hd"><span class="sc"><span class="sq"></span>SIGMA</span><span class="sep"></span><div><div class="t">Sigma RH</div><div class="s">Admissão</div></div><span class="gg">Empresa</span></div>
+        <div class="ph-body">
+          <div class="dprog"><div class="top"><span>Obrigatórios enviados</span><b>9/15</b></div><div class="dbar"><span style="width:60%"></span></div></div>
+          <div class="dgt">Obrigatórios</div>
+          <div class="drow"><div class="nm">RG (frente e verso)</div><span class="pill ok">Enviado</span></div>
+          <div class="drow"><div class="nm">CPF</div><span class="pill ok">Enviado</span></div>
+          <div class="drow"><div class="nm">Título de Eleitor</div><span class="pill ok">Enviado</span></div>
+          <div class="drow"><div class="nm">Comprovante de Residência</div><span class="pill pd">Pendente</span></div>
+          <div class="drow"><div class="nm">Cartão SUS</div><span class="pill pd">Pendente</span></div>
+        </div>
+      </div></div>
+    </div></div>
+    <div>
+      <div class="eyebrow g">Passo 2 · Documentos</div>
+      <div class="title">Envia pelo celular e vê o que falta na hora</div>
+      <p class="lead">A checklist separa o que é obrigatório do que é "se houver". A barra mostra o progresso e nada se perde.</p>
+      <ul class="vlist g">
+        <li><span class="ic">✓</span><span>Cada documento vira <b>Pendente → Enviado</b> ao anexar.</span></li>
+        <li><span class="ic">✓</span><span>Só os obrigatórios travam a liberação.</span></li>
+        <li><span class="ic">✓</span><span>Progresso salvo — dá para continuar depois.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap feat reveal">
+    <div>
+      <div class="eyebrow">Passo 3 · Drive da sua empresa</div>
+      <div class="title">Arquivos organizados e renomeados sozinhos</div>
+      <p class="lead">Via API do Google Drive, cada envio cai na pasta da pessoa — e é renomeado pelo tipo do documento + o nome dela. Nada de "IMG_2381.jpg".</p>
+      <ul class="vlist">
+        <li><span class="ic">✓</span><span>Uma pasta por pessoa, no Drive da sua empresa.</span></li>
+        <li><span class="ic">✓</span><span>Padrão de nome consistente para auditoria.</span></li>
+        <li><span class="ic">✓</span><span>O dado sensível fica com a sua empresa — LGPD respeitada.</span></li>
+      </ul>
+    </div>
+    <div class="art"><div class="panel-soft" style="flex-direction:column;align-items:center">
+      <div class="win">
+        <div class="win-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><div class="win-url">drive.google.com › Sua Empresa · Admissão › Ana Paula Souza</div></div>
+        <div class="win-body">
+          <div class="dv-head"><div class="dv-fold"></div><div class="dv-title">Ana Paula Souza<small>Pasta de admissão · 9 arquivos</small></div></div>
+          <div class="dv-list">
+            <div class="dv-item"><div class="fic"></div><div class="fn">RG - Ana Paula Souza.pdf</div><div class="fm">1,2 MB</div></div>
+            <div class="dv-item"><div class="fic"></div><div class="fn">CPF - Ana Paula Souza.pdf</div><div class="fm">640 KB</div></div>
+            <div class="dv-item"><div class="fic"></div><div class="fn">Título de Eleitor - Ana Paula Souza.pdf</div><div class="fm">710 KB</div></div>
+            <div class="dv-item"><div class="fic"></div><div class="fn">PIS - Ana Paula Souza.pdf</div><div class="fm">520 KB</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="zoom">
+        <div class="zt">Renomeado automaticamente</div>
+        <div class="old">IMG_20240612_154233.jpg</div>
+        <div class="arw">↓</div>
+        <div class="new"><b>RG</b> - Ana Paula Souza.pdf</div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<section style="background:var(--paper)">
+  <div class="wrap feat reveal">
+    <div class="art"><div class="panel-soft g"><div class="stack2">
+      <div class="phone" style="width:200px"><div class="scr">
+        <div class="ph-hd"><span class="sc"><span class="sq"></span>SIGMA</span><span class="sep"></span><div><div class="t">Sigma RH</div></div><span class="gg">Empresa</span></div>
+        <div class="ph-body"><div style="background:var(--green);color:#fff;border-radius:14px;padding:20px 16px;text-align:center;margin-top:14px">
+          <div class="wseal" style="background:rgba(255,255,255,.2);border-color:#fff;margin-bottom:12px"><svg viewBox="0 0 24 24" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div style="font-family:'Exo 2';font-weight:800;font-size:14px;margin-bottom:8px">Documentos concluídos</div>
+          <div style="font-size:10.5px;line-height:1.5;opacity:.95">O RH foi avisado e você está liberada para os treinamentos.</div>
+        </div></div>
+      </div></div>
+      <div class="notif">
+        <div class="notif-hd"><div class="b">SR</div><div><div class="t">Sigma RH</div><div class="s">Nova conclusão de admissão</div></div></div>
+        <div class="notif-bd">
+          <div class="who">Ana Paula Souza</div>
+          <div class="msg">concluiu o envio de todos os documentos obrigatórios.</div>
+          <div class="notif-chip">● Apta para os treinamentos</div>
+          <div class="notif-tok">Token da pessoa: <b>7K2P-9QX4</b></div>
+        </div>
+      </div>
+    </div></div></div>
+    <div>
+      <div class="eyebrow g">Passo 4 · Conclusão</div>
+      <div class="title">Concluiu tudo? O RH sabe na mesma hora</div>
+      <p class="lead">Quando o último obrigatório entra, a pessoa vê a confirmação e o RH recebe o aviso automático — com nome, token e status de apta.</p>
+      <ul class="vlist g">
+        <li><span class="ic">✓</span><span>Confirmação clara para a pessoa.</span></li>
+        <li><span class="ic">✓</span><span>Aviso ao RH por e-mail e no painel.</span></li>
+        <li><span class="ic">✓</span><span>Marca a pessoa como <b>apta para os treinamentos</b>.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="center reveal">
+      <div class="eyebrow">Painel do RH</div>
+      <h2>Uma visão de quem está pronto para entrar</h2>
+      <p>Documentos, treinamentos e aptidão — tudo num lugar só.</p>
+    </div>
+    <div class="reveal" style="display:flex;justify-content:center">
+      <div class="win" style="max-width:920px">
+        <div class="win-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><div class="win-url">sigma-rh.app › Painel de admissão</div></div>
+        <div class="win-body">
+          <div class="kpis">
+            <div class="kpi g"><div class="n">42</div><div class="l">Documentos concluídos</div></div>
+            <div class="kpi b"><div class="n">31</div><div class="l">Treinamentos concluídos</div></div>
+            <div class="kpi g"><div class="n">28</div><div class="l">Aptas para entrar</div></div>
+            <div class="kpi a"><div class="n">14</div><div class="l">Pendências</div></div>
+          </div>
+          <table>
+            <thead><tr><th>Colaborador</th><th>Função</th><th>Documentos</th><th>Treinamentos</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Ana Paula Souza</td><td class="mut">Auxiliar de Manutenção</td><td class="tick">✓ 15/15</td><td class="tick">✓ 4/4</td><td><span class="tg apta">Apta</span></td></tr>
+              <tr><td>João Mendes Lima</td><td class="mut">Soldador</td><td class="tick">✓ 15/15</td><td class="mut">3/4</td><td><span class="tg pend">Em treinamento</span></td></tr>
+              <tr><td>Carla Ribeiro</td><td class="mut">Inspetora</td><td class="tick">✓ 15/15</td><td class="tick">✓ 5/5</td><td><span class="tg apta">Apta</span></td></tr>
+              <tr><td>Marcos Vinícius</td><td class="mut">Caldeireiro</td><td class="mut">11/15</td><td class="mut">—</td><td><span class="tg pend">Documentos pendentes</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta" id="contato">
+  <div class="cta-in">
+    <div class="eyebrow" style="color:#B7E4C6">Sigma RH · Admissão Digital</div>
+    <h2>Menos papel. Mais gente pronta para o trabalho.</h2>
+    <p>Do convite ao apto em minutos, pelo celular — com documentos organizados no Drive da sua empresa e o RH com visão em tempo real.</p>
+    <a href="mailto:contato@sigmacode.com.br?subject=Demonstração Sigma RH">Solicitar demonstração</a>
+  </div>
+</section>
+
+<section class="integ"><div class="integ-in">
+  <div>
+    <div class="eyebrow g">Integra com o Sigma Treinamentos</div>
+    <h3>Da admissão à área, no mesmo fluxo</h3>
+    <p>Assim que é admitida, a pessoa segue direto para a qualificação — com o mesmo link, do convite ao selo de apto. Um caminho só.</p>
+  </div>
+  <a href="apresentacao-sigma-treinamentos.html">Conheça a integração com o Sigma Treinamentos →</a>
+</div></section>
+
+<footer>
+  <div class="foot-in">
+    <div><b>Sigma Code Engenharia</b> · plataforma Sigma</div>
+    <div>Sigma RH — Admissão Digital · pronto para a sua empresa</div>
+  </div>
+</footer>
+
+<script>
+  // revela seções ao rolar (com respeito a reduced-motion)
+  const io = new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
