@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SIGMA CODE — Conferir Escopo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --blue:#0F4CBA;--blue-700:#0B3A91;--blue-300:#5B8AE6;
+  --graphite:#1F2937;--graphite-900:#141B26;
+  --green:#22C55E;--green-600:#16A34A;
+  --white:#fff;--canvas:#F1F4F9;
+  --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
+  --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
+  --danger:#EF4444;--warning:#F59E0B;
+  --font-d:'Exo 2',system-ui,sans-serif;
+  --font-ui:'Inter',system-ui,sans-serif;
+  --r:8px;--r-md:12px;--r-lg:16px;
+  --side-w:260px;--header-h:64px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --sh:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+  --sh-md:0 10px 24px -12px rgba(16,24,40,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased}
+button,input,select{font-family:inherit}
+.app{display:grid;grid-template-columns:var(--side-w) 1fr;grid-template-rows:var(--header-h) 1fr;
+     grid-template-areas:"head head" "side main";min-height:100vh}
+.es-header{grid-area:head}.es-side{grid-area:side}.main{grid-area:main}
+.content{padding:28px 32px;max-width:1240px}
+@media(max-width:900px){.app{grid-template-columns:1fr;grid-template-areas:"head" "main"}.es-side{display:none}.content{padding:20px 16px}}
+
+.crumb{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);margin-bottom:16px;flex-wrap:wrap}
+.crumb a{color:var(--muted);text-decoration:none}
+.crumb a:hover{color:var(--blue)}
+.crumb svg{width:13px;height:13px;flex:none}
+.crumb .here{color:var(--ink);font-weight:600}
+
+.page-head{margin-bottom:22px}
+.page-head h1{font-family:var(--font-d);font-size:24px;font-weight:800;margin-bottom:4px}
+.page-head p{font-size:13.5px;color:var(--muted);max-width:74ch}
+
+.safe{display:flex;gap:12px;align-items:flex-start;background:#EFF6FF;border:1px solid #BFDBFE;
+  border-radius:var(--r-md);padding:14px 16px;margin-bottom:20px;font-size:13px;color:#1E3A8A;line-height:1.55}
+.safe svg{width:18px;height:18px;flex:none;margin-top:1px}
+.safe b{font-weight:700}
+
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh);overflow:hidden;margin-bottom:20px}
+.card-head{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.card-head .num{width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;
+  font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.card-head h2{font-family:var(--font-d);font-size:15px;font-weight:700}
+.card-head .sub{font-size:12px;color:var(--muted);margin-left:auto;text-align:right}
+.card-body{padding:20px}
+
+.fg{display:grid;gap:6px}
+.fg label{font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+select,input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--field-line);
+  border-radius:var(--r);background:var(--field);font-size:13.5px;color:var(--ink)}
+select:focus,input:focus{outline:2px solid var(--blue-300);outline-offset:1px}
+
+.dropzone{border:2px dashed var(--field-line);border-radius:var(--r-md);padding:32px;text-align:center;
+  cursor:pointer;transition:border-color .15s,background .15s}
+.dropzone:hover,.dropzone.drag{border-color:var(--blue);background:#EFF4FF}
+.dropzone svg{width:32px;height:32px;color:var(--blue-300);margin-bottom:10px}
+.dropzone .main-txt{font-size:13.5px;font-weight:600;margin-bottom:2px}
+.dropzone .sub-txt{font-size:12px;color:var(--muted)}
+.file-chip{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--field);font-size:13px;margin-top:10px}
+.file-chip svg{width:18px;height:18px;color:var(--blue);flex:none}
+.file-chip .name{font-weight:600}
+.file-chip .size{color:var(--muted);margin-left:auto}
+.file-chip .rm{cursor:pointer;color:var(--danger);font-weight:700;padding:2px 6px}
+
+/* PRÉVIA / ESCOLHA DA LINHA DE CABEÇALHO */
+.prev-note{font-size:12.5px;color:var(--muted);line-height:1.6;margin:16px 0 8px;max-width:82ch}
+.prev-note b{color:var(--ink)}
+.prev-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md)}
+table.prev{border-collapse:collapse;font-size:12px;width:100%}
+table.prev td{padding:7px 10px;border-bottom:1px solid #F1F4F9;white-space:nowrap;
+  max-width:190px;overflow:hidden;text-overflow:ellipsis}
+table.prev tr:last-child td{border-bottom:none}
+table.prev tr.prev-row{cursor:pointer}
+table.prev tr.prev-row:hover td{background:#EFF4FF}
+table.prev tr.prev-row.on td{background:#EAF0FB;font-weight:700;color:var(--blue-700)}
+table.prev td.prev-n{position:sticky;left:0;background:var(--field);color:var(--muted);
+  font-weight:700;text-align:right;width:1%;font-variant-numeric:tabular-nums}
+table.prev tr.prev-row.on td.prev-n{background:#DCE6F9;color:var(--blue-700)}
+.badge-h{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:99px;
+  background:var(--blue);color:#fff;font-size:10px;font-weight:800;letter-spacing:.03em}
+.prev-vazia{color:#B0B7C3;font-style:italic}
+
+.map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.req{color:var(--danger)}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md);margin-top:14px}
+table.t{width:100%;border-collapse:collapse;font-size:12.5px}
+table.t th{background:var(--field);text-align:left;padding:9px 12px;font-weight:700;color:var(--ink-soft);
+  white-space:nowrap;border-bottom:1px solid var(--line)}
+table.t td{padding:8px 12px;border-bottom:1px solid #F1F4F9;vertical-align:top}
+table.t tr:last-child td{border-bottom:none}
+table.t td.nowrap{white-space:nowrap}
+table.t td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.t th.num{text-align:right}
+.mono{font-family:'Consolas','SFMono-Regular','Menlo',monospace;font-size:12px}
+.warnrow{background:#FFFBEB}
+.dangerrow{background:#FEF2F2}
+
+.prova{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;margin-top:4px}
+.prova-head{display:flex;align-items:center;gap:9px;padding:12px 16px;font-size:13px;font-weight:700}
+.prova-head svg{width:17px;height:17px;flex:none}
+.prova.ok .prova-head{background:#DCFCE7;color:#166534}
+.prova.bad .prova-head{background:#FEE2E2;color:#B91C1C}
+.prova-body{padding:14px 16px;background:#fff}
+.eq{font-size:12.5px;line-height:1.9;font-family:'Consolas','SFMono-Regular','Menlo',monospace}
+.eq .lbl{color:var(--muted)}
+.eq b{font-variant-numeric:tabular-nums}
+.eq .res{font-weight:700}
+.eq .res.ok{color:#166534}
+.eq .res.bad{color:#B91C1C}
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:0 20px}
+.tab{padding:12px 16px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;
+  border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:7px}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.tab .cnt{background:var(--field);color:var(--ink-soft);border-radius:99px;padding:1px 8px;font-size:11.5px}
+.tab.on .cnt{background:#EAF0FB;color:var(--blue)}
+.tab.crit .cnt{background:#FEE2E2;color:#B91C1C}
+.pane{display:none;padding:20px}
+.pane.on{display:block}
+.pane-note{font-size:12.5px;color:var(--muted);line-height:1.65;margin-bottom:6px;max-width:82ch}
+
+.tagpill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
+.tagpill.novo{background:#DCFCE7;color:#166534}
+.tagpill.renum{background:#FEF3C7;color:#92400E}
+.tagpill.reclass{background:#EDE9FE;color:#5B21B6}
+.tagpill.crit{background:#FEE2E2;color:#B91C1C}
+.tagpill.leve{background:#F3F4F6;color:#4B5563}
+
+.deltas{display:grid;gap:3px}
+.delta{font-size:12px;line-height:1.5}
+.delta .k{font-weight:700;color:var(--ink-soft)}
+.delta .old{color:#B91C1C;text-decoration:line-through;text-decoration-thickness:1px}
+.delta .new{color:#166534;font-weight:600}
+.delta.key{background:#FEF3C7;border-radius:4px;padding:1px 5px;margin:-1px -5px}
+
+.grpline{background:#F8FAFC;font-weight:700;color:var(--ink);font-size:12.5px}
+.porque{font-size:11.5px;color:var(--muted);margin-top:3px}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:var(--r);
+  border:none;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-700)}
+.btn-primary:disabled{background:#B7C6E5;cursor:not-allowed}
+.btn-ghost{background:none;color:var(--ink-soft);border:1px solid var(--line)}
+.btn-ghost:hover{background:var(--field)}
+.btn svg{width:16px;height:16px}
+.btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.btn.loading{position:relative;color:transparent!important;pointer-events:none}
+.btn.loading::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin .7s linear infinite}
+.btn-ghost.loading::after{border:2px solid rgba(31,41,55,.2);border-top-color:var(--ink)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+
+.empty-pane{padding:28px;text-align:center;color:var(--muted);font-size:13px}
+
+#toastWrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:200}
+.toast{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--r);font-size:13px;
+  font-weight:600;box-shadow:var(--sh-md);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;max-width:380px}
+.toast.in{opacity:1;transform:translateY(0)}
+.toast.out{opacity:0;transform:translateY(8px)}
+.toast.ok{background:#166534;color:#fff}
+.toast.err{background:var(--danger);color:#fff}
+.toast.inf{background:var(--graphite);color:#fff}
+.toast svg{width:16px;height:16px;flex:none}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="es-header"></header>
+<aside class="es-side"></aside>
+
+<main class="main">
+<div class="content">
+
+  <div class="crumb">
+    <a href="shell.html">Início</a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+    <a href="equip-busca.html">Painel do Planejamento</a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+    <span class="here">Conferir Escopo</span>
+  </div>
+
+  <div class="page-head">
+    <h1>Conferir Escopo</h1>
+    <p>Envie a planilha de escopo completa e compare com a base antes de importar. Mostra o que entrou, o que mudou e o que saiu — e não grava nada.</p>
+    <p style="margin-top:8px;font-size:12px;color:var(--muted)">
+      versão <b id="versaoTxt" style="font-family:'Consolas','Menlo',monospace;color:var(--blue)"></b>
+      · se não for a que você espera, o navegador está servindo cache antigo
+    </p>
+  </div>
+
+  <div class="safe">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <div>
+      <b>Nenhuma gravação acontece aqui.</b> A página só lê a base e a planilha. Rode antes do import para saber o que vai acontecer, e depois para conferir se aconteceu.
+    </div>
+  </div>
+
+  <!-- 1. PLANILHA -->
+  <div class="card">
+    <div class="card-head">
+      <span class="num">1</span>
+      <h2>Planilha de escopo</h2>
+      <span class="sub">.xlsx, .xls ou .csv</span>
+    </div>
+    <div class="card-body">
+      <div class="fg" style="max-width:420px;margin-bottom:14px">
+        <label>Aba da planilha</label>
+        <select id="abaSelect" disabled><option value="">Envie um arquivo primeiro…</option></select>
+      </div>
+      <div class="dropzone" id="dropzone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+        <div class="main-txt">Arraste a planilha aqui ou clique para selecionar</div>
+        <div class="sub-txt">A primeira linha deve conter os nomes das colunas</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+      </div>
+      <div id="fileChipWrap"></div>
+      <div id="previewWrap"></div>
+    </div>
+  </div>
+
+  <!-- 2. MAPEAMENTO -->
+  <div class="card" id="cardMapeamento" style="display:none">
+    <div class="card-head">
+      <span class="num">2</span>
+      <h2>Mapeamento de colunas</h2>
+      <span class="sub" id="totalLinhasTxt"></span>
+    </div>
+    <div class="card-body">
+      <div class="map-grid" id="mapGrid"></div>
+      <div id="ignoradasWrap"></div>
+    </div>
+  </div>
+
+  <!-- 3. CATEGORIAS -->
+  <div class="card" id="cardCategorias" style="display:none">
+    <div class="card-head">
+      <span class="num">3</span>
+      <h2>Categorias encontradas na planilha</h2>
+      <span class="sub" id="catResumoTxt"></span>
+    </div>
+    <div class="card-body">
+      <div class="pane-note">Cada categoria da planilha precisa casar com um serviço cadastrado na base. Categoria que não casa não pode ser conferida — os itens dela vão para Inconsistências.</div>
+      <div class="table-wrap">
+        <table class="t" id="catTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions" id="actionsWrap" style="display:none">
+    <button class="btn btn-ghost" onclick="resetTudo()">Limpar</button>
+    <button class="btn btn-primary" id="btnConferir" onclick="conferir()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="8"/></svg>
+      Conferir escopo
+    </button>
+  </div>
+
+  <!-- 4. RELATÓRIO -->
+  <div id="relatorioWrap"></div>
+
+</div>
+</main>
+</div>
+
+<div id="toastWrap"></div>
+
+<script>
+const SUPA_URL = 'https://kiwiykgzogcxiseynzyy.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
+
+const VERSAO = 'v6 — 31/07/2026 · duplicidade detalhada';
+
+// ═══════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════
+let workbook = null, rawRows = [], headers = [], mapping = {};
+let aoa = [], headerIdx = 0, headerAuto = 0;
+let tiposServico = [], catsPlanilha = [];
+let ultimoRelatorio = null, ultimaBase = null;
+
+// ═══════════════════════════════════════════════
+// CAMPOS
+// ═══════════════════════════════════════════════
+const CAMPOS = [
+  { key:'categoria',   label:'Categoria / Serviço', required:true,
+    synonyms:['categoria','servico','serviço','tipo de servico','tipo de serviço','sigla','frente','disciplina'] },
+  { key:'plaqueta',    label:'Plaqueta',    required:true,  compare:false,
+    synonyms:['plaqueta','plaquetas','placa','nº plaqueta','n plaqueta','no plaqueta','numero da plaqueta','número da plaqueta','plaq. gcb','plaq gcb','nº emplaquetamento gcb','n emplaquetamento gcb','item gcb'] },
+  { key:'ls_codigo',   label:'Código LS',   required:true,  compare:true,
+    synonyms:['ls','ls_codigo','codigo ls','codigo_ls','codigo da ls','cod ls','cod_ls','ls codigo'] },
+  { key:'tag',         label:'TAG',         required:true,  compare:true,
+    synonyms:['tag','tag do equipamento','equipamento_tag','equipamento'] },
+  { key:'unidade',     label:'Unidade',     required:true,  compare:false,
+    synonyms:['unidade','area','área','planta','und'] },
+  { key:'descricao',   label:'Descrição',   required:false, compare:true,
+    synonyms:['descricao','descrição','desc','observacao','observação','servico a executar','serviço a executar'] },
+  { key:'status',      label:'Status',      required:false, compare:true, chave:true,
+    synonyms:['status','situacao','situação'] },
+  { key:'emplaquetamento', label:'Emplaquetamento', required:false, compare:true, chave:true,
+    synonyms:['emplaquetamento','emplaquetado','rg.foto','rg. foto','rg foto','registro foto'] },
+  { key:'tipo_montagem', label:'Tipo de montagem', required:false, compare:true,
+    synonyms:['tipo de montagem','montagem','tipo montagem'] },
+  { key:'tipo',        label:'Tipo (válvula)', required:false, compare:true,
+    synonyms:['tipo','tipo da valvula','tipo de valvula','tipo válvula','tipo da válvula'] },
+  { key:'diametro',    label:'Diâmetro',    required:false, compare:true,
+    synonyms:['diametro','diâmetro','diam','dn','bitola'] },
+  { key:'classe',      label:'Classe',      required:false, compare:true,
+    synonyms:['classe','class','classe de pressao','classe de pressão','rating'] },
+  { key:'diametro_entrada', label:'Ø Entrada (PSV)', required:false, compare:true,
+    synonyms:['diametro entrada','diâmetro entrada','ø entrada','o entrada','entrada','diam entrada','dn entrada'] },
+  { key:'classe_entrada',   label:'Classe entrada (PSV)', required:false, compare:true,
+    synonyms:['classe entrada','class entrada','classe de entrada'] },
+  { key:'diametro_saida',   label:'Ø Saída (PSV)',  required:false, compare:true,
+    synonyms:['diametro saida','diâmetro saída','ø saida','ø saída','o saida','saida','saída','diam saida','dn saida'] },
+  { key:'classe_saida',     label:'Classe saída (PSV)', required:false, compare:true,
+    synonyms:['classe saida','classe saída','class saida','classe de saida','classe de saída'] },
+];
+const NA_BASE = ['plaqueta','ls_codigo','tag','unidade','descricao','status',
+  'tipo_montagem','tipo','diametro','classe','diametro_entrada','classe_entrada','diametro_saida','classe_saida'];
+const NA_BASE_SET = new Set(NA_BASE);
+
+// ═══════════════════════════════════════════════
+// SIGLAS
+// ═══════════════════════════════════════════════
+const SIGLAS = [
+  { sigla:'RG',  nome:'Reengaxetamento' },
+  { sigla:'RQT', nome:'Raqueteamento da Unidade' },
+  { sigla:'MVR', nome:'Manutenção de Válvulas de Retenção' },
+  { sigla:'MV',  nome:'Manutenção de Válvulas' },
+  { sigla:'T',   nome:'Substituição de Válvula' },
+  { sigla:'P',   nome:"PSV's" },
+  { sigla:'LF',  nome:'Limpeza de Filtros' },
+  { sigla:'SE',  nome:'Serviços Específicos' },
+  { sigla:'E',   nome:'Ejetores' },
+  { sigla:'H',   nome:'Hidrojato' },
+  { sigla:'RI',  nome:'Troca de Trecho' },
+  { sigla:'DR',  nome:'Disco de Ruptura' },
+  { sigla:'AC',  nome:'Adequação de Caps' },
+  { sigla:'DES', nome:'Desobstrução' },
+  { sigla:'AF',  nome:'Abertura de Flanges para Inspeção' },
+];
+const ALIAS_CATEGORIA = {
+  'substituicao de valvulas':'T','substituicao de valvula':'T','substituicao de vavulas':'T',
+  'substituicao de vavula':'T','troca de valvulas':'T','troca de valvula':'T',
+  'adequacao de caps':'AC','adequacao de cap':'AC','caps':'AC',
+  'servicos especificos':'SE','servico especifico':'SE',
+  'psv s':'P','psvs':'P','psv':'P',
+  'raqueteamento da unidade':'RQT','raqueteamento':'RQT',
+  'desobstrucao':'DES',
+  'manutencao de valvulas de retencao':'MVR','manutencao de valvula de retencao':'MVR',
+  'valvulas de retencao':'MVR','valvula de retencao':'MVR','retencao':'MVR',
+  'limpeza de filtros':'LF','limpeza de filtro':'LF','filtros':'LF',
+  'reengaxetamento':'RG',
+  'ejetores':'E','ejetor':'E',
+  'disco de ruptura':'DR','discos de ruptura':'DR',
+  'hidrojato':'H','hidrojateamento':'H',
+  'manutencao de valvulas':'MV','manutencao de valvula':'MV',
+  'abertura de flanges para inspecao':'AF','abertura de flanges':'AF','flangeado':'AF',
+  'troca de trecho':'RI',
+};
+
+// Caracteres invisíveis (zero-width, BOM) são removidos ANTES de tudo:
+// se ficarem, partem a palavra no meio e nada casa.
+function limparInvisiveis(s){
+  return (s||'').toString()
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g,'')
+    .replace(/[\u00A0\u2007\u202F]/g,' ');
+}
+function norm(s){
+  return limparInvisiveis(s).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,' ').trim();
+}
+function normalizar(txt){
+  return limparInvisiveis(txt).toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+// "válvulas" e "válvula" têm que cair no mesmo lugar. Corta o "s" final de
+// palavras com mais de 3 letras, dos dois lados da comparação.
+function toSing(n){
+  return n.split(' ').map(w => (w.length > 3 && w.endsWith('s')) ? w.slice(0,-1) : w)
+    .filter(Boolean).join(' ');
+}
+const ALIAS_SING = {};
+Object.entries(ALIAS_CATEGORIA).forEach(([k,v]) => { if (!(toSing(k) in ALIAS_SING)) ALIAS_SING[toSing(k)] = v; });
+
+const SIGLAS_NORM = SIGLAS.map(s => ({ sigla:s.sigla, n:norm(s.nome), s:toSing(norm(s.nome)) }))
+  .sort((a,b) => b.s.length - a.s.length);   // mais específico primeiro (MVR antes de MV)
+
+function siglaDoServico(nome){
+  const n = norm(nome);
+  if (!n) return null;
+  const sg = toSing(n);
+  // 1. sinônimo exato   2. sinônimo no singular
+  if (ALIAS_CATEGORIA[n]) return ALIAS_CATEGORIA[n];
+  if (ALIAS_SING[sg])     return ALIAS_SING[sg];
+  // 3. nome exato       4. nome no singular
+  let hit = SIGLAS_NORM.find(x => x.n === n) || SIGLAS_NORM.find(x => x.s === sg);
+  // 5. só então, contém — do nome mais longo para o mais curto
+  if (!hit) hit = SIGLAS_NORM.find(x => sg.includes(x.s) || x.s.includes(sg));
+  return hit ? hit.sigla : null;
+}
+function resolverSigla(valor){
+  const n = norm(valor);
+  if (!n) return null;
+  const up = (valor||'').toString().trim().toUpperCase();
+  if (SIGLAS.some(s => s.sigla === up)) return up;
+  if (ALIAS_CATEGORIA[n]) return ALIAS_CATEGORIA[n];
+  return siglaDoServico(valor);
+}
+function limparPlaqueta(raw, sigla){
+  const original = (raw||'').toString().trim();
+  if (!original) return { code:'', erro:null };
+  const v = original.toUpperCase().replace(/\s+/g,'');
+  const m = v.match(/^([A-Z]*)[\-_\.\/]?0*(\d+)$/);
+  if (!m) return { code: original, erro:'formato inválido' };
+  let pref = m[1];
+  const num = m[2].padStart(3,'0');
+  if (!sigla){
+    if (!pref) return { code: original, erro:'sem prefixo (categoria não reconhecida)' };
+    return { code: pref + '-' + num, erro:null };
+  }
+  if (!pref) pref = sigla;
+  if (pref !== sigla)
+    return { code: pref + '-' + num, erro:'prefixo "'+pref+'" não é da categoria (esperado "'+sigla+'")' };
+  return { code: sigla + '-' + num, erro:null };
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('versaoTxt').textContent = VERSAO;
+  await carregarTiposServico();
+  initDropzone();
+});
+
+async function carregarTiposServico(){
+  try{
+    const { data, error } = await db.from('tipos_servico')
+      .select('id,nome,ativo,cor_preenchimento').order('nome');
+    if (error) throw error;
+    tiposServico = (data||[]).map(t => ({ ...t, sigla: siglaDoServico(t.nome) }));
+  }catch(e){
+    toast('Não consegui carregar os tipos de serviço: '+e.message, 'err', 7000);
+  }
+}
+function servicoPorSigla(sigla){
+  return sigla ? (tiposServico.find(t => t.sigla === sigla) || null) : null;
+}
+
+// ═══════════════════════════════════════════════
+// UPLOAD
+// ═══════════════════════════════════════════════
+function initDropzone(){
+  const zone = document.getElementById('dropzone');
+  const input = document.getElementById('fileInput');
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+}
+function handleFile(file){
+  document.getElementById('fileChipWrap').innerHTML =
+    '<div class="file-chip">'+
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'+
+    '<span class="name">'+escHtml(file.name)+'</span>'+
+    '<span class="size">'+(file.size/1024).toFixed(0)+'KB</span>'+
+    '<span class="rm" onclick="resetTudo()">remover</span></div>';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      workbook = XLSX.read(e.target.result, { type:'array' });
+      const sel = document.getElementById('abaSelect');
+      sel.disabled = false;
+      sel.innerHTML = workbook.SheetNames.map(n => '<option value="'+escAttr(n)+'">'+escHtml(n)+'</option>').join('');
+      sel.onchange = () => carregarAba(sel.value);
+      carregarAba(workbook.SheetNames[0]);
+    }catch(err){ toast('Não foi possível ler a planilha: '+err.message, 'err', 7000); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function carregarAba(nome){
+  aoa = XLSX.utils.sheet_to_json(workbook.Sheets[nome], { header:1, defval:'', blankrows:true });
+  // corta as linhas totalmente vazias no fim
+  while (aoa.length && aoa[aoa.length-1].every(c => (c??'').toString().trim() === '')) aoa.pop();
+  if (!aoa.length){
+    document.getElementById('previewWrap').innerHTML = '';
+    toast('A aba "'+nome+'" está vazia.', 'err');
+    return;
+  }
+  headerIdx = detectarCabecalho(aoa);
+  headerAuto = headerIdx;
+  renderPreview();
+  aplicarCabecalho();
+}
+
+// Qual linha tem os nomes das colunas? O sinal mais forte é bater com
+// os sinônimos conhecidos; depois, quantidade de células preenchidas,
+// texto em vez de número, e valores distintos entre si.
+function detectarCabecalho(m){
+  const limite = Math.min(m.length, 12);
+  let melhor = 0, melhorScore = -1;
+  for (let i = 0; i < limite; i++){
+    const cels = (m[i]||[]).map(c => (c??'').toString().trim()).filter(c => c !== '');
+    if (!cels.length) continue;
+    const sinonimos = cels.filter(c => CAMPOS.some(f => f.synonyms.includes(normalizar(c)))).length;
+    const textos    = cels.filter(c => c.replace(/[.,]/g,'') === '' || isNaN(Number(c.replace(',','.')))).length;
+    const distintos = new Set(cels.map(c => normalizar(c))).size;
+    const score = sinonimos*20 + textos*2 + distintos + cels.length;
+    if (score > melhorScore){ melhorScore = score; melhor = i; }
+  }
+  return melhor;
+}
+
+function renderPreview(){
+  const nLin = Math.min(aoa.length, 8);
+  const nCol = Math.min(Math.max(...aoa.slice(0, nLin).map(r => r.length), 1), 12);
+  let h = '<div class="prev-note">Prévia das primeiras linhas. <b>Clique na linha que contém os nomes das colunas</b> — '+
+    'se a planilha começa com título mesclado, o cabeçalho não é a linha 1.'+
+    (headerAuto !== null ? ' Detectei automaticamente a linha <b>'+(headerAuto+1)+'</b>.' : '')+'</div>'+
+    '<div class="prev-wrap"><table class="prev"><tbody>';
+  for (let i = 0; i < nLin; i++){
+    const row = aoa[i] || [];
+    h += '<tr class="prev-row'+(i===headerIdx?' on':'')+'" onclick="setHeader('+i+')">'+
+         '<td class="prev-n">'+(i+1)+(i===headerIdx?'<span class="badge-h">cabeçalho</span>':'')+'</td>';
+    for (let j = 0; j < nCol; j++){
+      const v = (row[j] ?? '').toString().trim();
+      h += '<td'+(v===''?' class="prev-vazia"':'')+'>'+escHtml(v === '' ? '—' : v)+'</td>';
+    }
+    h += '</tr>';
+  }
+  h += '</tbody></table></div>';
+  document.getElementById('previewWrap').innerHTML = h;
+}
+
+function setHeader(i){
+  if (i === headerIdx) return;
+  headerIdx = i;
+  renderPreview();
+  aplicarCabecalho();
+  toast('Cabeçalho na linha '+(i+1)+' — mapeamento refeito.', 'inf', 3500);
+}
+
+// Monta rawRows a partir da linha de cabeçalho escolhida.
+// Guarda o número real da linha no Excel para o relatório apontar certo.
+function aplicarCabecalho(){
+  const hRow = aoa[headerIdx] || [];
+  const nCol = Math.max(...aoa.map(r => r.length), hRow.length, 1);
+  const usados = new Map();
+  headers = [];
+  for (let j = 0; j < nCol; j++){
+    let nome = (hRow[j] ?? '').toString().trim();
+    if (!nome) nome = 'Coluna ' + (j+1);
+    if (usados.has(nome)){
+      const n = usados.get(nome) + 1;
+      usados.set(nome, n);
+      nome = nome + ' (' + n + ')';
+    } else usados.set(nome, 1);
+    headers.push(nome);
+  }
+  rawRows = [];
+  for (let i = headerIdx + 1; i < aoa.length; i++){
+    const row = aoa[i] || [];
+    if (row.every(c => (c ?? '').toString().trim() === '')) continue;   // pula linha em branco
+    const o = { __linhaExcel: i + 1 };
+    headers.forEach((h, j) => { o[h] = row[j] ?? ''; });
+    rawRows.push(o);
+  }
+  if (!rawRows.length){
+    toast('Nenhuma linha de dados abaixo da linha '+(headerIdx+1)+'.', 'err', 6000);
+    return;
+  }
+  buildMapping();
+}
+
+// ═══════════════════════════════════════════════
+// MAPEAMENTO
+// ═══════════════════════════════════════════════
+function buildMapping(){
+  mapping = {};
+  CAMPOS.forEach(c => {
+    const found = headers.find(h => c.synonyms.includes(normalizar(h)));
+    mapping[c.key] = found || '';
+  });
+  document.getElementById('mapGrid').innerHTML = CAMPOS.map(c =>
+    '<div class="fg"><label>'+escHtml(c.label)+(c.required?' <span class="req">*</span>':'')+
+      (NA_BASE_SET.has(c.key)?'':' <span style="color:var(--muted);font-weight:400">(só planilha)</span>')+'</label>'+
+      '<select onchange="onMapChange(\''+c.key+'\', this.value)">'+
+        '<option value="">— não mapear —</option>'+
+        headers.map(h => '<option value="'+escAttr(h)+'"'+(mapping[c.key]===h?' selected':'')+'>'+escHtml(h)+'</option>').join('')+
+      '</select></div>').join('');
+  renderIgnoradas();
+  document.getElementById('cardMapeamento').style.display = '';
+  document.getElementById('totalLinhasTxt').textContent =
+    rawRows.length + ' linha(s) de dados · cabeçalho na linha ' + (headerIdx + 1);
+  document.getElementById('actionsWrap').style.display = 'flex';
+  renderCategorias();
+}
+function renderIgnoradas(){
+  const ign = headers.filter(h => !Object.values(mapping).includes(h));
+  document.getElementById('ignoradasWrap').innerHTML = ign.length
+    ? '<div class="pane-note" style="margin-top:14px"><b>Colunas ignoradas ('+ign.length+'):</b> '+ign.map(escHtml).join(' · ')+'</div>'
+    : '';
+}
+function onMapChange(campo, coluna){
+  mapping[campo] = coluna;
+  renderIgnoradas();
+  renderCategorias();
+}
+function renderCategorias(){
+  const card = document.getElementById('cardCategorias');
+  const col = mapping.categoria;
+  if (!col){ card.style.display = 'none'; document.getElementById('btnConferir').disabled = true; return; }
+  card.style.display = ''; document.getElementById('btnConferir').disabled = false;
+
+  const contagem = new Map();
+  rawRows.forEach(r => {
+    const v = (r[col] ?? '').toString().trim();
+    contagem.set(v, (contagem.get(v)||0) + 1);
+  });
+  catsPlanilha = [...contagem.entries()].map(([valor, qtd]) => {
+    const sigla = resolverSigla(valor);
+    return { valor, qtd, sigla, servico: servicoPorSigla(sigla) };
+  }).sort((a,b) => b.qtd - a.qtd);
+
+  const semServico = catsPlanilha.filter(c => !c.servico).reduce((s,c)=>s+c.qtd,0);
+  document.getElementById('catResumoTxt').textContent =
+    catsPlanilha.length + ' categoria(s)' + (semServico ? ' · '+semServico+' linha(s) sem serviço' : '');
+  document.getElementById('catTable').innerHTML =
+    '<thead><tr><th>Valor na planilha</th><th class="num">Linhas</th><th>Sigla</th><th>Serviço na base</th><th>Situação</th></tr></thead><tbody>'+
+    catsPlanilha.map(c =>
+      '<tr class="'+(c.servico?'':'dangerrow')+'">'+
+      '<td class="mono">'+escHtml(c.valor || '(vazio)')+
+        (c.servico ? '' : '<div class="porque">'+escHtml(diagTexto(c.valor))+'</div>')+'</td>'+
+      '<td class="num">'+c.qtd+'</td>'+
+      '<td class="mono">'+escHtml(c.sigla || '—')+'</td><td>'+escHtml(c.servico ? c.servico.nome : '—')+'</td>'+
+      '<td>'+(c.servico ? '<span class="tagpill leve">ok</span>'
+        : '<span class="tagpill crit">'+(c.sigla ? 'sigla '+escHtml(c.sigla)+' não cadastrada' : 'não reconhecida')+'</span>')+
+      '</td></tr>').join('')+'</tbody>';
+}
+
+// Quando uma categoria não é reconhecida, mostra o que a página realmente
+// leu — é onde caractere invisível aparece.
+function diagTexto(valor){
+  const bruto = (valor||'').toString();
+  const invisiveis = (bruto.match(/[\u200B-\u200D\u2060\uFEFF\u00A0\u2007\u202F]/g)||[]).length;
+  let d = 'texto lido: "' + norm(bruto) + '"';
+  if (invisiveis) d += ' · ATENÇÃO: ' + invisiveis + ' caractere(s) invisível(is) no original';
+  return d;
+}
+
+// ═══════════════════════════════════════════════
+// BASE
+// ═══════════════════════════════════════════════
+const COLS_BASE = 'id,plaqueta,ls_codigo,tag,unidade,descricao,status,tipo,tipo_montagem,'+
+  'diametro,classe,diametro_entrada,classe_entrada,diametro_saida,classe_saida,'+
+  'servico_id,servico,drive_link,qr_gerado';
+
+async function carregarBase(servicoIds){
+  const out = []; const PAGE = 1000;
+  for (const sid of servicoIds){
+    let from = 0;
+    while (true){
+      const { data, error } = await db.from('plaquetas')
+        .select(COLS_BASE).eq('servico_id', sid).order('id').range(from, from + PAGE - 1);
+      if (error) throw error;
+      out.push(...(data||[]));
+      if (!data || data.length < PAGE) break;
+      from += PAGE;
+    }
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════
+// MOTOR DE CASAMENTO
+// Sem similaridade, sem limiar, sem nada para ajustar.
+// Ou a chave bate, ou não bate — e todo casamento carrega o motivo.
+// ═══════════════════════════════════════════════
+const K = (a,b,c) => [a,b,c].map(x => norm(x)).join('¦');
+
+function casar(linhas, base, camposComparar){
+  const porPrim = new Map(), porSec = new Map(), porUnPl = new Map();
+  base.forEach(b => {
+    porPrim.set(K(b.servico_id, b.unidade, b.plaqueta), b);
+    if (b.ls_codigo || b.tag)
+      porSec.set(K(b.servico_id, b.unidade, (b.ls_codigo||'')+'|'+(b.tag||'')), b);
+    porUnPl.set(K('', b.unidade, b.plaqueta), b);
+  });
+
+  const consumidos = new Set();
+  const entraram = [], mudaram = [];
+  let iguais = 0;
+
+  linhas.forEach(l => {
+    if (l._dup) return;
+    const sid = l._servico.id;
+    let alvo = null, modo = null, porque = '';
+
+    const p = porPrim.get(K(sid, l.unidade, l.plaqueta));
+    if (p && !consumidos.has(p.id)){
+      alvo = p; modo = 'igual'; porque = 'unidade + plaqueta iguais';
+    }
+    if (!alvo && (l.ls_codigo || l.tag)){
+      const s = porSec.get(K(sid, l.unidade, (l.ls_codigo||'')+'|'+(l.tag||'')));
+      if (s && !consumidos.has(s.id)){
+        alvo = s; modo = 'renumerado'; porque = 'plaqueta diferente, mas unidade + LS + TAG iguais';
+      }
+    }
+    if (!alvo){
+      const u = porUnPl.get(K('', l.unidade, l.plaqueta));
+      if (u && !consumidos.has(u.id) && norm(u.servico_id) !== norm(sid)){
+        alvo = u; modo = 'reclassificado'; porque = 'mesma unidade + plaqueta, em outro serviço';
+      }
+    }
+
+    if (!alvo){
+      l._porque = 'nenhuma chave casou: nem (unidade+plaqueta), nem (unidade+LS+TAG)';
+      entraram.push(l);
+      return;
+    }
+    consumidos.add(alvo.id);
+
+    const deltas = [];
+    if (modo === 'renumerado')
+      deltas.push({ campo:'Plaqueta', de:alvo.plaqueta, para:l.plaqueta, chave:true });
+    if (modo === 'reclassificado')
+      deltas.push({ campo:'Categoria', de:alvo.servico||('serviço '+alvo.servico_id), para:l._servico.nome, chave:true });
+
+    camposComparar.forEach(c => {
+      const de = (alvo[c.key] ?? '').toString().trim();
+      const para = (l[c.key] ?? '').toString().trim();
+      if (norm(de) !== norm(para)) deltas.push({ campo:c.label, de, para, chave: !!c.chave });
+    });
+
+    if (deltas.length) mudaram.push({ ...l, _base:alvo, _modo:modo, _porque:porque, _deltas:deltas });
+    else iguais++;
+  });
+
+  return { entraram, mudaram, sumiram: base.filter(b => !consumidos.has(b.id)), iguais };
+}
+
+// ═══════════════════════════════════════════════
+// CONFERÊNCIA
+// ═══════════════════════════════════════════════
+function conferir(){
+  _conferir().catch(e => {
+    toast('Falha na conferência: '+(e.message||e), 'err', 8000);
+    const btn = document.getElementById('btnConferir');
+    btn.classList.remove('loading'); btn.disabled = false;
+  });
+}
+
+async function _conferir(){
+  const btn = document.getElementById('btnConferir');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const linhas = [], inconsist = [];
+  let descartadas = 0;
+
+  rawRows.forEach((row, idx) => {
+    const nLinha = row.__linhaExcel ?? (idx + 2);
+    const o = { _linha: nLinha };
+    CAMPOS.forEach(c => {
+      const col = mapping[c.key];
+      o[c.key] = col ? (row[col] ?? '').toString().trim() : '';
+    });
+    const sigla = resolverSigla(o.categoria);
+    const servico = servicoPorSigla(sigla);
+    o._sigla = sigla; o._servico = servico;
+
+    if (!servico){
+      inconsist.push({ linha:nLinha, tipo:'Categoria não cadastrada', descarta:true,
+        detalhe:'"'+(o.categoria||'(vazio)')+'"'+(sigla?' → sigla '+sigla+' não existe em tipos_servico':' não foi reconhecida'),
+        plaqueta:o.plaqueta, ls:o.ls_codigo, tag:o.tag });
+      descartadas++; return;
+    }
+    const lp = limparPlaqueta(o.plaqueta, sigla);
+    o.plaqueta = lp.code;
+    if (lp.erro)
+      inconsist.push({ linha:nLinha, tipo:'Plaqueta fora do padrão', detalhe:lp.erro,
+        plaqueta:o.plaqueta, ls:o.ls_codigo, tag:o.tag });
+    if (!o.plaqueta && !o.ls_codigo){
+      inconsist.push({ linha:nLinha, tipo:'Item não rastreável', descarta:true,
+        detalhe:'sem plaqueta e sem LS', plaqueta:'', ls:'', tag:o.tag });
+      descartadas++; return;
+    }
+    if (!o.unidade){
+      inconsist.push({ linha:nLinha, tipo:'Sem unidade', descarta:true,
+        detalhe:'a unidade faz parte da chave — sem ela não dá para casar',
+        plaqueta:o.plaqueta, ls:o.ls_codigo, tag:o.tag });
+      descartadas++; return;
+    }
+    if (/^PSV-/i.test(o.tag||'') && !/psv/i.test(servico.nome))
+      inconsist.push({ linha:nLinha, tipo:'TAG PSV em categoria não-PSV',
+        detalhe:'TAG "'+o.tag+'" em "'+servico.nome+'" — pode ser bloqueio DA PSV, não a PSV',
+        plaqueta:o.plaqueta, ls:o.ls_codigo, tag:o.tag });
+    linhas.push(o);
+  });
+
+  const vistos = new Map();
+  let duplicadas = 0;
+  linhas.forEach(l => {
+    const k = K(l._servico.id, l.unidade, l.plaqueta);
+    const anterior = vistos.get(k);
+    if (anterior){
+      inconsist.push({ linha:l._linha, tipo:'Chave duplicada na planilha',
+        unidade: l.unidade,
+        detalhe:'plaqueta ' + l.plaqueta + ' na unidade ' + (l.unidade||'—') +
+                ' já foi usada na linha ' + anterior._linha +
+                ' — lá está LS ' + (anterior.ls_codigo||'(vazio)') +
+                ' · TAG ' + (anterior.tag||'(vazio)') +
+                ' · ' + (anterior.descricao ? anterior.descricao.slice(0,60) : 'sem descrição'),
+        plaqueta:l.plaqueta, ls:l.ls_codigo, tag:l.tag });
+      l._dup = true; duplicadas++;
+    } else vistos.set(k, l);
+  });
+
+  if (!linhas.length){
+    btn.classList.remove('loading'); btn.disabled = false;
+    toast('Nenhuma linha conferível — veja as categorias no passo 3.', 'err', 7000);
+    renderRelatorio({ resumo:[], entraram:[], mudaram:[], sumiram:[], inconsist, iguais:0,
+      totalLinhas: rawRows.length, descartadas, duplicadas, totalBase:0, camposComparados:[] });
+    return;
+  }
+
+  const servicoIds = [...new Set(linhas.map(l => l._servico.id))];
+  toast('Lendo a base…', 'inf', 3000);
+  const base = await carregarBase(servicoIds);
+  ultimaBase = base;
+
+  const camposComparar = CAMPOS.filter(c => c.compare && NA_BASE_SET.has(c.key) && mapping[c.key]);
+  const res = casar(linhas, base, camposComparar);
+
+  const resumo = servicoIds.map(sid => {
+    const sv = tiposServico.find(t => t.id === sid);
+    return {
+      servico: sv ? sv.nome : sid, sigla: sv ? (sv.sigla||'—') : '—',
+      naPlan: linhas.filter(l => l._servico.id === sid && !l._dup).length,
+      naBase: base.filter(b => b.servico_id === sid).length,
+      entraram: res.entraram.filter(l => l._servico.id === sid).length,
+      mudaram:  res.mudaram.filter(l => l._servico.id === sid).length,
+      sumiram:  res.sumiram.filter(b => b.servico_id === sid).length,
+    };
+  }).sort((a,b) => b.sumiram - a.sumiram);
+
+  ultimoRelatorio = { ...res, resumo, inconsist,
+    totalLinhas: rawRows.length, descartadas, duplicadas, totalBase: base.length,
+    camposComparados: camposComparar.map(c => c.label) };
+
+  btn.classList.remove('loading'); btn.disabled = false;
+  renderRelatorio(ultimoRelatorio);
+  toast('Conferência pronta — nada foi gravado.', 'ok', 5000);
+}
+
+// ═══════════════════════════════════════════════
+// AUTOTESTE DO MOTOR
+// Monta uma planilha a partir da própria base e passa pelo mesmo motor.
+// Resultado correto: tudo igual, zero entraram, zero sumiram.
+// ═══════════════════════════════════════════════
+async function autoTeste(){
+  const btn = document.getElementById('btnAutoTeste');
+  if (!ultimaBase || !ultimaBase.length){ toast('Rode a conferência primeiro.', 'inf'); return; }
+  btn.classList.add('loading'); btn.disabled = true;
+  await new Promise(r => setTimeout(r, 60));
+
+  const linhas = ultimaBase.map((b, i) => {
+    const sv = tiposServico.find(t => t.id === b.servico_id);
+    const o = { _linha: i + 2, _servico: sv || { id:b.servico_id, nome:b.servico||'?' } };
+    NA_BASE.forEach(k => { o[k] = (b[k] ?? '').toString().trim(); });
+    return o;
+  });
+  const campos = CAMPOS.filter(c => c.compare && NA_BASE_SET.has(c.key));
+  const r = casar(linhas, ultimaBase, campos);
+  const passou = r.entraram.length === 0 && r.mudaram.length === 0 &&
+                 r.sumiram.length === 0 && r.iguais === ultimaBase.length;
+
+  btn.classList.remove('loading'); btn.disabled = false;
+  document.getElementById('autoTesteRes').innerHTML =
+    '<div class="prova '+(passou?'ok':'bad')+'" style="margin-top:14px">'+
+      '<div class="prova-head">'+
+        (passou
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>Motor de casamento aprovado'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/></svg>Motor de casamento REPROVADO — não confie no relatório')+
+      '</div>'+
+      '<div class="prova-body eq">'+
+        '<div><span class="lbl">itens usados no teste</span> <b>'+ultimaBase.length+'</b></div>'+
+        '<div><span class="lbl">iguais — esperado</span> <b>'+ultimaBase.length+'</b> <span class="lbl">· obtido</span> <b class="res '+(r.iguais===ultimaBase.length?'ok':'bad')+'">'+r.iguais+'</b></div>'+
+        '<div><span class="lbl">entraram — esperado</span> <b>0</b> <span class="lbl">· obtido</span> <b class="res '+(r.entraram.length?'bad':'ok')+'">'+r.entraram.length+'</b></div>'+
+        '<div><span class="lbl">mudaram — esperado</span> <b>0</b> <span class="lbl">· obtido</span> <b class="res '+(r.mudaram.length?'bad':'ok')+'">'+r.mudaram.length+'</b></div>'+
+        '<div><span class="lbl">sumiram — esperado</span> <b>0</b> <span class="lbl">· obtido</span> <b class="res '+(r.sumiram.length?'bad':'ok')+'">'+r.sumiram.length+'</b></div>'+
+      '</div></div>';
+  toast(passou ? 'Autoteste passou.' : 'Autoteste falhou — me avise.', passou?'ok':'err', 6000);
+}
+
+// ═══════════════════════════════════════════════
+// RELATÓRIO
+// ═══════════════════════════════════════════════
+function renderRelatorio(r){
+  const critSumiram = r.sumiram.filter(ehCritico).length;
+
+  const somaPlan = r.descartadas + r.duplicadas + r.entraram.length + r.mudaram.length + r.iguais;
+  const somaBase = r.mudaram.length + r.iguais + r.sumiram.length;
+  const okPlan = somaPlan === r.totalLinhas;
+  const okBase = somaBase === r.totalBase;
+  const okTudo = okPlan && okBase;
+
+  const prova =
+  '<div class="prova '+(okTudo?'ok':'bad')+'">'+
+    '<div class="prova-head">'+
+      (okTudo
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>As contas fecham — nenhum item se perdeu na conferência'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/></svg>As contas NÃO fecham — não use este relatório, me avise')+
+    '</div>'+
+    '<div class="prova-body eq">'+
+      '<div><span class="lbl">planilha:</span> '+r.descartadas+' descartadas + '+r.duplicadas+' duplicadas + '+
+        r.entraram.length+' entraram + '+r.mudaram.length+' mudaram + '+r.iguais+' iguais = '+
+        '<b class="res '+(okPlan?'ok':'bad')+'">'+somaPlan+'</b> '+
+        '<span class="lbl">(linhas do arquivo: '+r.totalLinhas+')</span></div>'+
+      '<div><span class="lbl">base:</span> '+r.mudaram.length+' mudaram + '+r.iguais+' iguais + '+
+        r.sumiram.length+' sumiram = '+
+        '<b class="res '+(okBase?'ok':'bad')+'">'+somaBase+'</b> '+
+        '<span class="lbl">(itens na base: '+r.totalBase+')</span></div>'+
+    '</div>'+
+  '</div>';
+
+  const camposTxt = (r.camposComparados && r.camposComparados.length)
+    ? r.camposComparados.join(' · ')
+    : 'nenhum — nenhuma coluna comparável foi mapeada';
+
+  const html =
+  '<div class="card">'+
+    '<div class="card-head"><span class="num">4</span><h2>Relatório de conferência</h2>'+
+      '<span class="sub">'+r.iguais+' item(ns) sem alteração</span></div>'+
+
+    '<div class="card-body" style="padding-bottom:6px">'+
+      prova+
+      '<div class="pane-note" style="margin-top:16px">Uma linha por serviço. <b>Planilha</b> é o que veio no arquivo, <b>Base</b> é o que já existe. A coluna Sumiram é a que precisa de decisão.</div>'+
+      '<div class="table-wrap"><table class="t"><thead><tr>'+
+        '<th>Serviço</th><th>Sigla</th><th class="num">Planilha</th><th class="num">Base</th>'+
+        '<th class="num">Entraram</th><th class="num">Mudaram</th><th class="num">Sumiram</th>'+
+      '</tr></thead><tbody>'+
+      r.resumo.map(s =>
+        '<tr class="'+(s.sumiram?'warnrow':'')+'">'+
+        '<td>'+escHtml(s.servico)+'</td><td class="mono">'+escHtml(s.sigla)+'</td>'+
+        '<td class="num">'+s.naPlan+'</td><td class="num">'+s.naBase+'</td>'+
+        '<td class="num">'+(s.entraram||'—')+'</td><td class="num">'+(s.mudaram||'—')+'</td>'+
+        '<td class="num"><b>'+(s.sumiram||'—')+'</b></td></tr>').join('')+
+      '</tbody></table></div>'+
+
+      '<div class="pane-note" style="margin-top:14px"><b>Campos comparados:</b> '+escHtml(camposTxt)+'. '+
+        'Coluna que você não mapeou não entra na comparação — e por isso nunca aparece como diferença.</div>'+
+
+      '<div style="margin-top:14px">'+
+        '<button class="btn btn-ghost" id="btnAutoTeste" onclick="autoTeste()">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>'+
+          'Testar o motor de casamento</button>'+
+        '<div class="porque" style="margin-top:7px;max-width:80ch">Pega os '+r.totalBase+' itens da base, monta com eles uma planilha idêntica e passa pelo mesmo motor. '+
+        'Se o motor estiver certo, tem que dar tudo igual, zero entraram, zero sumiram. Isso testa o casamento — não testa o mapeamento das colunas da sua planilha.</div>'+
+        '<div id="autoTesteRes"></div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="tabs">'+
+      tabBtn('entraram','Entraram', r.entraram.length, false)+
+      tabBtn('mudaram','Mudaram', r.mudaram.length, false)+
+      tabBtn('sumiram','Sumiram', r.sumiram.length, critSumiram>0)+
+      tabBtn('incons','Inconsistências', r.inconsist.length, r.inconsist.length>0)+
+    '</div>'+
+    '<div class="pane on" id="pane-entraram">'+paneEntraram(r.entraram)+'</div>'+
+    '<div class="pane" id="pane-mudaram">'+paneMudaram(r.mudaram)+'</div>'+
+    '<div class="pane" id="pane-sumiram">'+paneSumiram(r.sumiram)+'</div>'+
+    '<div class="pane" id="pane-incons">'+paneIncons(r.inconsist)+'</div>'+
+  '</div>'+
+
+  '<div class="actions">'+
+    '<button class="btn btn-primary" onclick="exportarExcel()">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>'+
+      'Baixar relatório em Excel</button>'+
+  '</div>';
+
+  const wrap = document.getElementById('relatorioWrap');
+  wrap.innerHTML = html;
+  wrap.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function tabBtn(id, label, n, crit){
+  return '<button class="tab'+(id==='entraram'?' on':'')+(crit?' crit':'')+'" data-pane="'+id+'" onclick="trocarTab(\''+id+'\')">'+
+         escHtml(label)+'<span class="cnt">'+n+'</span></button>';
+}
+function trocarTab(id){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.pane === id));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-'+id));
+}
+
+function paneEntraram(list){
+  if (!list.length) return '<div class="empty-pane">Nenhum item novo — a planilha não traz nada que a base já não tenha.</div>';
+  const porServ = agrupar(list, l => l._servico.nome);
+  let h = '<div class="pane-note">Itens que estão na planilha e não estão na base. Cada um traz o motivo de não ter casado — se o motivo parecer errado, o problema está no mapeamento, não no item.</div>'+
+    '<div class="table-wrap"><table class="t"><thead><tr><th>Plaqueta</th><th>LS</th><th>TAG</th><th>Unidade</th><th>Descrição</th></tr></thead><tbody>';
+  for (const [serv, itens] of porServ){
+    h += '<tr class="grpline"><td colspan="5">'+escHtml(serv)+' — '+itens.length+' item(ns) <span class="tagpill novo">novo</span></td></tr>';
+    itens.forEach(l => {
+      h += '<tr><td class="mono nowrap">'+escHtml(l.plaqueta||'—')+'</td>'+
+           '<td class="mono nowrap">'+escHtml(l.ls_codigo||'—')+'</td>'+
+           '<td class="mono nowrap">'+escHtml(l.tag||'—')+'</td>'+
+           '<td class="nowrap">'+escHtml(l.unidade||'—')+'</td>'+
+           '<td>'+escHtml(l.descricao||'—')+'<div class="porque">linha '+l._linha+' · '+escHtml(l._porque||'')+'</div></td></tr>';
+    });
+  }
+  return h + '</tbody></table></div>';
+}
+
+function paneMudaram(list){
+  if (!list.length) return '<div class="empty-pane">Nenhuma alteração — os itens que casaram estão idênticos.</div>';
+  let h = '<div class="pane-note">Valor antigo → valor novo, campo a campo. Fundo amarelo marca o que move indicador: status, emplaquetamento, renumeração e reclassificação de categoria. Cada linha diz por que casou.</div>'+
+    '<div class="table-wrap"><table class="t"><thead><tr><th>Plaqueta</th><th>Unidade</th><th>Serviço</th><th>O que mudou</th></tr></thead><tbody>';
+  list.forEach(l => {
+    const pill = l._modo === 'renumerado'     ? '<span class="tagpill renum">renumerada</span>'
+               : l._modo === 'reclassificado' ? '<span class="tagpill reclass">reclassificada</span>' : '';
+    h += '<tr><td class="mono nowrap">'+escHtml(l.plaqueta)+' '+pill+'</td>'+
+         '<td class="nowrap">'+escHtml(l.unidade)+'</td><td>'+escHtml(l._servico.nome)+'</td>'+
+         '<td><div class="deltas">'+
+         l._deltas.map(d => '<div class="delta'+(d.chave?' key':'')+'"><span class="k">'+escHtml(d.campo)+':</span> '+
+           '<span class="old">'+escHtml(d.de||'(vazio)')+'</span> → <span class="new">'+escHtml(d.para||'(vazio)')+'</span></div>').join('')+
+         '<div class="porque">linha '+l._linha+' · casou por: '+escHtml(l._porque||'')+'</div>'+
+         '</div></td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+
+function ehCritico(b){ return !!(b.drive_link || b.qr_gerado); }
+
+function paneSumiram(list){
+  if (!list.length) return '<div class="empty-pane">Nada sumiu — tudo que está na base veio na planilha.</div>';
+  const criticos = list.filter(ehCritico), leves = list.filter(b => !ehCritico(b));
+  let h = '<div class="pane-note"><b>Este é o bloco que não pode passar em silêncio.</b> São itens que existem na base e não vieram na planilha. '+
+    'Como o import é upsert, eles <b>não serão apagados</b> — vão continuar na base indistinguíveis do escopo vivo, e é por isso que precisam de decisão explícita.<br>'+
+    'Marcados como <b>já trabalhados</b> os que têm pasta no Drive ou QR gerado: houve levantamento, e provavelmente há plaqueta pendurada em campo.</div>'+
+    '<div class="table-wrap"><table class="t"><thead><tr><th>Plaqueta</th><th>LS</th><th>TAG</th><th>Unidade</th><th>Serviço</th><th>Status na base</th><th>Descrição</th></tr></thead><tbody>';
+  const bloco = (titulo, arr, pill) => {
+    if (!arr.length) return '';
+    let s = '<tr class="grpline"><td colspan="7">'+escHtml(titulo)+' — '+arr.length+' item(ns) '+pill+'</td></tr>';
+    arr.forEach(b => {
+      s += '<tr class="'+(ehCritico(b)?'dangerrow':'')+'">'+
+           '<td class="mono nowrap">'+escHtml(b.plaqueta||'—')+'</td>'+
+           '<td class="mono nowrap">'+escHtml(b.ls_codigo||'—')+'</td>'+
+           '<td class="mono nowrap">'+escHtml(b.tag||'—')+'</td>'+
+           '<td class="nowrap">'+escHtml(b.unidade||'—')+'</td>'+
+           '<td>'+escHtml(b.servico||'—')+'</td>'+
+           '<td class="nowrap">'+escHtml(b.status||'—')+'</td>'+
+           '<td>'+escHtml(b.descricao||'—')+'</td></tr>';
+    });
+    return s;
+  };
+  h += bloco('Já trabalhados (pasta no Drive ou QR gerado)', criticos, '<span class="tagpill crit">verificar campo</span>');
+  h += bloco('Sem sinal de trabalho de campo', leves, '<span class="tagpill leve">baixo impacto</span>');
+  return h + '</tbody></table></div>';
+}
+
+function paneIncons(list){
+  if (!list.length) return '<div class="empty-pane">Nenhuma inconsistência encontrada na planilha.</div>';
+  const porTipo = agrupar(list, i => i.tipo);
+  let h = '<div class="pane-note">Problemas na planilha de origem, com o número da linha para você corrigir no arquivo. As marcadas como <b>descartada</b> não entraram na comparação.</div>'+
+    '<div class="table-wrap"><table class="t"><thead><tr><th class="num">Linha</th><th>Plaqueta</th><th>Unidade</th><th>LS</th><th>TAG</th><th>Detalhe</th></tr></thead><tbody>';
+  for (const [tipo, itens] of porTipo){
+    h += '<tr class="grpline"><td colspan="6">'+escHtml(tipo)+' — '+itens.length+
+         (itens[0].descarta?' <span class="tagpill crit">descartada</span>':'')+'</td></tr>';
+    itens.forEach(i => {
+      h += '<tr><td class="num mono">'+i.linha+'</td>'+
+           '<td class="mono nowrap">'+escHtml(i.plaqueta||'—')+'</td>'+
+           '<td class="nowrap">'+escHtml(i.unidade||'—')+'</td>'+
+           '<td class="mono nowrap">'+escHtml(i.ls||'—')+'</td>'+
+           '<td class="mono nowrap">'+escHtml(i.tag||'—')+'</td>'+
+           '<td>'+escHtml(i.detalhe)+'</td></tr>';
+    });
+  }
+  return h + '</tbody></table></div>';
+}
+
+function agrupar(arr, fn){
+  const m = new Map();
+  arr.forEach(x => { const k = fn(x); if(!m.has(k)) m.set(k, []); m.get(k).push(x); });
+  return [...m.entries()].sort((a,b) => b[1].length - a[1].length);
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════
+function exportarExcel(){
+  if (!ultimoRelatorio){ toast('Rode a conferência primeiro.', 'inf'); return; }
+  const r = ultimoRelatorio;
+  const wb = XLSX.utils.book_new();
+
+  const somaPlan = r.descartadas + r.duplicadas + r.entraram.length + r.mudaram.length + r.iguais;
+  const somaBase = r.mudaram.length + r.iguais + r.sumiram.length;
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
+    { Verificação:'Linhas no arquivo',      Valor:r.totalLinhas },
+    { Verificação:'Descartadas',            Valor:r.descartadas },
+    { Verificação:'Duplicadas na planilha', Valor:r.duplicadas },
+    { Verificação:'Entraram',               Valor:r.entraram.length },
+    { Verificação:'Mudaram',                Valor:r.mudaram.length },
+    { Verificação:'Iguais',                 Valor:r.iguais },
+    { Verificação:'SOMA (tem que ser igual às linhas do arquivo)', Valor:somaPlan },
+    { Verificação:'Confere?', Valor: somaPlan === r.totalLinhas ? 'SIM' : 'NÃO' },
+    { Verificação:'', Valor:'' },
+    { Verificação:'Itens na base',          Valor:r.totalBase },
+    { Verificação:'Sumiram',                Valor:r.sumiram.length },
+    { Verificação:'SOMA mudaram+iguais+sumiram (tem que ser igual à base)', Valor:somaBase },
+    { Verificação:'Confere?', Valor: somaBase === r.totalBase ? 'SIM' : 'NÃO' },
+    { Verificação:'', Valor:'' },
+    { Verificação:'Campos comparados', Valor:(r.camposComparados||[]).join(' · ') },
+    { Verificação:'Gerado em', Valor:new Date().toLocaleString('pt-BR') },
+  ]), 'Prova');
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    r.resumo.map(s => ({ Serviço:s.servico, Sigla:s.sigla, Planilha:s.naPlan, Base:s.naBase,
+      Entraram:s.entraram, Mudaram:s.mudaram, Sumiram:s.sumiram }))), 'Resumo');
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    r.entraram.map(l => ({ Serviço:l._servico.nome, Plaqueta:l.plaqueta, LS:l.ls_codigo,
+      TAG:l.tag, Unidade:l.unidade, Descrição:l.descricao, Linha:l._linha, Motivo:l._porque }))), 'Entraram');
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    r.mudaram.flatMap(l => l._deltas.map(d => ({ Serviço:l._servico.nome, Plaqueta:l.plaqueta,
+      Unidade:l.unidade, LS:l.ls_codigo, TAG:l.tag, Campo:d.campo, De:d.de, Para:d.para,
+      Tipo:l._modo, 'Casou por':l._porque, Linha:l._linha })))), 'Mudaram');
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    r.sumiram.map(b => ({ Serviço:b.servico, Plaqueta:b.plaqueta, LS:b.ls_codigo, TAG:b.tag,
+      Unidade:b.unidade, Status:b.status, Descrição:b.descricao,
+      'Já trabalhado': ehCritico(b) ? 'SIM' : 'não', 'Link Drive': b.drive_link || '', id:b.id }))), 'Sumiram');
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    r.inconsist.map(i => ({ Linha:i.linha, Tipo:i.tipo, Descartada: i.descarta?'SIM':'não',
+      Plaqueta:i.plaqueta, Unidade:i.unidade||'', LS:i.ls, TAG:i.tag, Detalhe:i.detalhe }))), 'Inconsistências');
+
+  const d = new Date();
+  const stamp = d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+
+                '-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');
+  XLSX.writeFile(wb, 'Conferencia-Escopo-'+stamp+'.xlsx');
+  toast('Relatório baixado.', 'ok');
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function resetTudo(){
+  workbook = null; rawRows = []; headers = []; mapping = {}; catsPlanilha = [];
+  aoa = []; headerIdx = 0; headerAuto = 0;
+  ultimoRelatorio = null; ultimaBase = null;
+  document.getElementById('fileChipWrap').innerHTML = '';
+  document.getElementById('previewWrap').innerHTML = '';
+  document.getElementById('fileInput').value = '';
+  const sel = document.getElementById('abaSelect');
+  sel.disabled = true; sel.innerHTML = '<option value="">Envie um arquivo primeiro…</option>';
+  document.getElementById('cardMapeamento').style.display = 'none';
+  document.getElementById('cardCategorias').style.display = 'none';
+  document.getElementById('actionsWrap').style.display = 'none';
+  document.getElementById('relatorioWrap').innerHTML = '';
+}
+function escHtml(s){ return (s??'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
+
+function toast(msg, type='ok', dur=4000){
+  const icons = {
+    ok:  '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/>',
+    err: '<circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/>',
+    inf: '<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>',
+  };
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast '+type+' in';
+  t.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+icons[type]+'</svg><span>'+escHtml(msg)+'</span>';
+  wrap.appendChild(t);
+  setTimeout(() => { t.classList.replace('in','out'); setTimeout(() => t.remove(), 350); }, dur);
+}
+</script>
+
+<script src="esigma-ui.js"></script>
+<script>if (window.ESigma && ESigma.init) ESigma.init();</script>
+</body>
+</html>
