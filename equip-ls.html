@@ -570,6 +570,8 @@ async function renderFicha(p){
 
     <div class="mat-box" id="matBox" style="display:none"></div>
 
+    <div class="mat-box" id="detBox" style="display:none"></div>
+
     ${p.drive_link?`<a class="drive" href="${esc(p.drive_link)}" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
       Abrir pasta no Drive</a>`:''}
@@ -598,6 +600,7 @@ async function renderFicha(p){
   show('stFicha');
   carregarHistoricoCDR();
   carregarMateriaisLS();
+  carregarDesenhos();
 }
 
 // ═══════════════════════════════════════════════
@@ -1086,6 +1089,61 @@ async function carregarMateriaisLS(){
     box.innerHTML='<div class="mat-head"><h3>Materiais desta LS</h3>'+chip+'</div>'+
       resumo+
       '<a class="mat-link" href="materiais.html?ls='+encodeURIComponent(p.ls_codigo)+'">Ver no controle de materiais →</a>';
+  }catch(e){ box.style.display='none'; }
+}
+
+// ─── desenhos e isométricos vinculados a esta plaqueta ───
+// Junta aqui é junta SOLDADA. O vínculo é por plaqueta, não por LS,
+// porque um mesmo código de LS pode cobrir mais de uma plaqueta e um
+// mesmo desenho pode cobrir várias LS.
+async function carregarDesenhos(){
+  const box=document.getElementById('detBox');
+  const p=window.__ficha;
+  if(!box||!p||!p.id) return;
+
+  // ordem de preferência do link: arquivo direto, pasta do desenho, pasta do equipamento
+  const alvo=d=>d.arquivo_url||d.drive_link||p.drive_link||'';
+
+  try{
+    const {data,error}=await db.from('vw_plaqueta_desenhos')
+      .select('det_id,numero_documento,revisao,revisao_ord,folha_atual,folha_total,titulo,drive_link,arquivo_url')
+      .eq('plaqueta_id',p.id)
+      .order('numero_documento').order('folha_atual');
+    if(error) throw error;
+
+    if(!data||!data.length){ box.style.display='none'; return; }
+
+    // fica só a revisão mais recente de cada documento e folha
+    const vig=new Map();
+    data.forEach(d=>{
+      const k=d.numero_documento+'|'+d.folha_atual;
+      const a=vig.get(k);
+      if(!a||(d.revisao_ord??-1)>(a.revisao_ord??-1)) vig.set(k,d);
+    });
+    const lista=[...vig.values()];
+
+    const semLink=lista.filter(d=>!alvo(d)).length;
+    const chip=semLink
+      ? '<span class="mat-chip gray">'+semLink+' sem link</span>'
+      : '<span class="mat-chip green">'+lista.length+(lista.length>1?' desenhos':' desenho')+'</span>';
+
+    const linhas=lista.map(d=>{
+      const rev='REV.'+String(d.revisao||'0').toUpperCase();
+      const fl=(d.folha_total&&d.folha_total>1)?' · Folha '+d.folha_atual+' de '+d.folha_total:'';
+      const url=alvo(d);
+      const direto=!!(d.arquivo_url||d.drive_link);
+      const botao=url
+        ? '<a class="mat-tag green" style="text-decoration:none" target="_blank" rel="noopener" href="'+esc(url)+'">'
+            +(direto?'Abrir':'Ver pasta')+'</a>'
+        : '<span class="mat-tag red">sem link</span>';
+      return '<div class="mat-row"><div class="mat-info"><b>'+esc(d.numero_documento)+'</b> · '+esc(rev)+esc(fl)
+        +(d.titulo?'<div style="font-size:11.5px;color:var(--muted);margin-top:2px">'+esc(String(d.titulo).slice(0,90))+'</div>':'')
+        +'</div>'+botao+'</div>';
+    }).join('');
+
+    box.style.display='';box.classList.add('tem');
+    box.innerHTML='<div class="mat-head"><h3>Desenhos e Isométricos</h3>'+chip+'</div>'+linhas
+      +(semLink?'<div class="mat-resumo" style="margin-top:10px">Sem o arquivo cadastrado, use a pasta do equipamento e entre em <b>2 - Desenhos e Isométricos</b>.</div>':'');
   }catch(e){ box.style.display='none'; }
 }
 
