@@ -193,7 +193,7 @@ const db=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 const STATUS=['pendente','solicitado','recebido','aplicado','devolvido'];
 const STLABEL={pendente:'Pendente',solicitado:'Solicitado',recebido:'Recebido',aplicado:'Aplicado',devolvido:'Devolvido'};
-const CAMPOS=[['ls_codigo','Cód-LS *'],['nm','NM'],['unidade','Unidade (planta)'],['tag','TAG'],['descricao','Descrição *'],['status','Status'],['data_prevista','Previsão'],['data_recebimento','Recebido em'],['quantidade','Qtd'],['unidade_medida','Un. medida'],['codigo','Código']];
+const CAMPOS=[['ls_codigo','Cód-LS *'],['nm','NM'],['unidade','Unidade (planta)'],['tag','TAG'],['descricao','Descrição *'],['diametro','Ø'],['classe','# / sch'],['status','Status'],['data_prevista','Previsão'],['data_recebimento','Recebido em'],['quantidade','Qtd'],['unidade_medida','Un. medida'],['codigo','Código']];
 
 const TODAY=new Date().toISOString().slice(0,10);
 let MAT=[], PLAQS=[], filtro='todos', filtroLs=null, filtroUni='', viewMode='lista';
@@ -380,11 +380,13 @@ function lerArquivo(ev){
 function autoMap(){
   mapping={};
   const find=(re,avoid)=>{for(let i=0;i<rawHeaders.length;i++){const h=norm(rawHeaders[i]);if(re.test(h)&&!(avoid&&avoid.test(h)))return i;}return -1;};
-  mapping.ls_codigo=find(/(^|[^a-z])ls([^a-z]|$)|cod.?ls|ls.?cod/);
+  mapping.ls_codigo=find(/(^|[^a-z])ls([^a-z]|$)|cod.?ls|ls.?cod|item.?geral/);
   mapping.nm=find(/^nm$|nota.?manut|^n\.?m\.?$/);
   mapping.unidade=find(/unidade|^und$|planta|instala/,/med/);
   mapping.tag=find(/tag/);
   mapping.descricao=find(/descri|material/);
+  mapping.diametro=find(/ø|diamet|^o$/);
+  mapping.classe=find(/#|sch|classe/);
   mapping.status=find(/status|situa/);
   mapping.data_prevista=find(/prev|eta|estimad|chegad/);
   mapping.data_recebimento=find(/receb/);
@@ -403,7 +405,7 @@ function valLinha(r){
   const ls=g('ls_codigo'),desc=g('descricao');
   const st=g('status')?normStatus(g('status')):'pendente';
   const q=g('quantidade');
-  return {ls_codigo:ls,nm:g('nm')||null,unidade:g('unidade')||null,tag:g('tag')||null,descricao:desc,
+  return {ls_codigo:ls,nm:g('nm')||null,unidade:g('unidade')||null,tag:g('tag')||null,descricao:desc,diametro:g('diametro')||null,classe:g('classe')||null,
     status:st||'pendente',statusRaw:g('status'),statusBad:!!(g('status')&&!st),
     data_prevista:parseDate(gr('data_prevista')),data_recebimento:parseDate(gr('data_recebimento')),
     quantidade:q===''?null:(isNaN(Number(q))?null:Number(q)),unidade_medida:g('unidade_medida')||null,codigo:g('codigo')||null,
@@ -417,7 +419,7 @@ function preview(){
   document.getElementById('prevTable').innerHTML=head+body;
   document.getElementById('prevCount').innerHTML='<b>'+ok+'</b> válidos'+(bad?' · <span class="bad">'+bad+' ignorados (sem LS/descrição)</span>':'')+(stbad?' · '+stbad+' status corrigidos':'')+(rows.length>50?' · mostrando 50 de '+rows.length:'');
   document.getElementById('btnImport').disabled=ok===0;
-  window.__toImport=rows.filter(r=>!r._bad).map(r=>({ls_codigo:r.ls_codigo,nm:r.nm,unidade:r.unidade,tag:r.tag,descricao:r.descricao,status:r.status,data_prevista:r.data_prevista,data_recebimento:r.data_recebimento,quantidade:r.quantidade,unidade_medida:r.unidade_medida,codigo:r.codigo}));
+  window.__toImport=rows.filter(r=>!r._bad).map(r=>({ls_codigo:r.ls_codigo,nm:r.nm,unidade:r.unidade,tag:r.tag,descricao:r.descricao,diametro:r.diametro,classe:r.classe,status:r.status,data_prevista:r.data_prevista,data_recebimento:r.data_recebimento,quantidade:r.quantidade,unidade_medida:r.unidade_medida,codigo:r.codigo}));
 }
 async function importar(){
   const rows=window.__toImport||[];if(!rows.length){toast('Nada para importar','err');return;}
