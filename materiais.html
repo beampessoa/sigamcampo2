@@ -191,8 +191,8 @@ const SUPA_URL='https://kiwiykgzogcxiseynzyy.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
 const db=supabase.createClient(SUPA_URL,SUPA_KEY);
 
-const STATUS=['pendente','solicitado','recebido','aplicado','devolvido'];
-const STLABEL={pendente:'Pendente',solicitado:'Solicitado',recebido:'Recebido',aplicado:'Aplicado',devolvido:'Devolvido'};
+const STATUS=['em_estoque','pedido','pedido_transferencia','falta_reserva','recuperar','verificar','cancelado','pendente','solicitado','recebido','aplicado','devolvido'];
+const STLABEL={em_estoque:'Em estoque',pedido:'Pedido',pedido_transferencia:'Pedido/Transferência',falta_reserva:'Falta reserva',recuperar:'Recuperar',verificar:'Verificar material',cancelado:'Cancelado',pendente:'Pendente',solicitado:'Solicitado',recebido:'Recebido',aplicado:'Aplicado',devolvido:'Devolvido'};
 const CAMPOS=[['ls_codigo','Cód-LS *'],['nm','NM'],['unidade','Unidade (planta)'],['tag','TAG'],['descricao','Descrição *'],['diametro','Ø'],['classe','# / sch'],['status','Status'],['data_prevista','Previsão'],['data_recebimento','Recebido em'],['quantidade','Qtd'],['unidade_medida','Un. medida'],['codigo','Código']];
 
 const TODAY=new Date().toISOString().slice(0,10);
@@ -218,6 +218,13 @@ function toast(m,t){const w=document.getElementById('toastWrap');const e=documen
 function fmtDate(s){if(!s)return'';const d=new Date(s);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
 function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
 function normStatus(s){const n=norm(s);if(STATUS.includes(n))return n;
+  if(/transfer/.test(n))return'pedido_transferencia';
+  if(/pedido/.test(n))return'pedido';
+  if(/estoque/.test(n))return'em_estoque';
+  if(/cancel/.test(n))return'cancelado';
+  if(/recuper/.test(n))return'recuperar';
+  if(/verific/.test(n))return'verificar';
+  if(/falta.*res|res.*falta|pend.*res|resrva/.test(n))return'falta_reserva';
   if(/receb/.test(n))return'recebido';if(/solicit|comprad/.test(n))return'solicitado';
   if(/aplic|instal/.test(n))return'aplicado';if(/devolv/.test(n))return'devolvido';
   if(/pend/.test(n))return'pendente';return null;}
@@ -415,7 +422,7 @@ function preview(){
   const rows=rawRows.map(valLinha);
   const ok=rows.filter(r=>!r._bad).length, bad=rows.length-ok, stbad=rows.filter(r=>r.statusBad).length;
   const head='<thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Status</th><th>Previsão</th><th>Recebido</th><th>Qtd</th><th>UM</th></tr></thead>';
-  const body='<tbody>'+rows.slice(0,50).map(r=>'<tr class="'+(r._bad?'bad':'')+'"><td>'+esc(r.nm||'')+'</td><td>'+esc(r.ls_codigo||'⚠ vazio')+'</td><td>'+esc(r.unidade||'')+'</td><td>'+esc(r.tag||'')+'</td><td>'+esc(r.descricao||'⚠ vazio')+'</td><td>'+STLABEL[r.status]+(r.statusBad?' <span class="mini">(“'+esc(r.statusRaw)+'”→pendente)</span>':'')+'</td><td>'+fmtDay(r.data_prevista)+'</td><td>'+fmtDay(r.data_recebimento)+'</td><td>'+(r.quantidade!=null?r.quantidade:'')+'</td><td>'+esc(r.unidade_medida||'')+'</td></tr>').join('')+'</tbody>';
+  const body='<tbody>'+rows.slice(0,50).map(r=>'<tr class="'+(r._bad?'bad':'')+'"><td>'+esc(r.nm||'')+'</td><td>'+esc(r.ls_codigo||'⚠ vazio')+'</td><td>'+esc(r.unidade||'')+'</td><td>'+esc(r.tag||'')+'</td><td>'+esc(r.descricao||'⚠ vazio')+'</td><td>'+(STLABEL[r.status]||r.status)+(r.statusBad?' <span class="mini">(“'+esc(r.statusRaw)+'”→pendente)</span>':'')+'</td><td>'+fmtDay(r.data_prevista)+'</td><td>'+fmtDay(r.data_recebimento)+'</td><td>'+(r.quantidade!=null?r.quantidade:'')+'</td><td>'+esc(r.unidade_medida||'')+'</td></tr>').join('')+'</tbody>';
   document.getElementById('prevTable').innerHTML=head+body;
   document.getElementById('prevCount').innerHTML='<b>'+ok+'</b> válidos'+(bad?' · <span class="bad">'+bad+' ignorados (sem LS/descrição)</span>':'')+(stbad?' · '+stbad+' status corrigidos':'')+(rows.length>50?' · mostrando 50 de '+rows.length:'');
   document.getElementById('btnImport').disabled=ok===0;
