@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SIGMA CODE · Mapa de Juntas Soldadas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --blue:#0F4CBA;--blue-700:#0B3A91;--blue-300:#5B8AE6;
+  --green:#22C55E;--green-600:#16A34A;
+  --white:#fff;--canvas:#F1F4F9;
+  --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
+  --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
+  --danger:#EF4444;--warning:#F59E0B;
+  --font-d:'Exo 2',system-ui,sans-serif;
+  --font-ui:'Inter',system-ui,sans-serif;
+  --r:8px;--r-md:12px;--r-lg:16px;
+  --sh:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+  --sh-md:0 10px 24px -12px rgba(16,24,40,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);
+  -webkit-font-smoothing:antialiased;display:flex;align-items:flex-start;justify-content:center;padding:20px}
+button,input,select,textarea{font-family:inherit}
+.wrap{width:100%;max-width:460px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-md);overflow:hidden}
+.card-pad{padding:22px 20px}
+.brand{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line);background:#fff}
+.brand .logo{width:30px;height:30px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex:none}
+.brand .logo svg{width:16px;height:16px;color:#fff}
+.brand .name{font-family:var(--font-d);font-size:14px;font-weight:800}
+.brand .name small{display:block;font-family:var(--font-ui);font-size:10.5px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+.state{display:none}.state.on{display:block}
+.center{text-align:center}
+.spin{width:34px;height:34px;margin:8px auto 14px;border-radius:50%;
+  border:3px solid #E3E9F5;border-top-color:var(--blue);animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading-txt{font-size:13px;color:var(--muted)}
+.eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.mapa-num{font-family:var(--font-d);font-size:32px;font-weight:800;line-height:1}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+  font-size:11.5px;font-weight:700;line-height:1;border:1.5px solid var(--field-line);background:var(--field);color:var(--ink-soft)}
+.chip b{color:var(--ink)}
+.chip.legado{background:#FFFBEB;border-color:#FDE68A;color:#92400E}
+.big-ico{width:52px;height:52px;margin:6px auto 14px;border-radius:14px;display:flex;align-items:center;justify-content:center}
+.big-ico svg{width:26px;height:26px}
+.big-ico.warn{background:#FFFBEB}.big-ico.warn svg{color:var(--warning)}
+.big-ico.err{background:#FEF2F2}.big-ico.err svg{color:var(--danger)}
+.state h2{font-family:var(--font-d);font-size:17px;font-weight:700;margin-bottom:7px}
+.state p.msg{font-size:13px;color:var(--muted);line-height:1.55;max-width:340px;margin:0 auto}
+.state p.msg b{color:var(--ink)}
+
+/* INSPETOR */
+.insp{margin-top:18px;border:1px solid var(--line);border-radius:var(--r-md);padding:14px;background:#fff}
+.insp h3{font-family:var(--font-d);font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;padding:11px 13px;border:1px solid var(--field-line);
+  border-radius:var(--r);background:var(--field);font-size:14px;color:var(--ink)}
+textarea{min-height:64px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--blue-300);outline-offset:1px;background:#fff}
+.pick-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.pick-list button{text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:#fff;cursor:pointer}
+.pick-list .pn{font-size:13px;font-weight:700}
+.pick-list .ps{font-size:11.5px;color:var(--muted);margin-top:2px}
+.user-hit{display:flex;align-items:center;gap:10px;margin-top:9px;padding:10px 12px;border-radius:var(--r);background:#F0FDF4;border:1px solid #BBF7D0}
+.user-hit .ic{width:30px;height:30px;border-radius:50%;background:var(--green-600);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.user-hit .nm{font-size:13px;font-weight:700}
+.user-hit .fx{font-size:11.5px;color:var(--muted)}
+.user-miss{margin-top:8px;font-size:12.5px;color:#991B1B;background:#FEF2F2;border:1px solid #FECACA;padding:9px 11px;border-radius:var(--r)}
+.trocar{margin-top:8px;background:none;border:none;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;padding:0}
+
+/* LISTA DE JUNTAS */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px}
+.sec-head h3{font-family:var(--font-d);font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.sec-head .cnt{font-size:11.5px;color:var(--muted);font-weight:600}
+.jt{display:flex;align-items:center;gap:11px;width:100%;padding:12px;border:1px solid var(--line);border-radius:var(--r-md);
+  background:#fff;cursor:pointer;text-align:left;margin-bottom:8px}
+.jt:hover{border-color:var(--blue-300);background:#EFF4FF}
+.jt.desm{opacity:.55}
+.jt-id{font-family:var(--font-d);font-size:15px;font-weight:800;flex:none;min-width:62px}
+.jt-body{flex:1;min-width:0}
+.jt-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.jt-prog{display:flex;gap:3px;margin-top:6px}
+.jt-prog i{width:14px;height:5px;border-radius:3px;background:#E5E7EB;display:block}
+.jt-prog i.ok{background:var(--green)}
+.jt-prog i.rep{background:var(--danger)}
+.jt-prog i.na{background:#9CA3AF}
+.badge{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;flex:none}
+.badge.campo{background:#EFF4FF;color:#0B3A91}
+.badge.desm{background:#F3F4F6;color:#4B5563}
+.vazio{font-size:13px;color:var(--muted);text-align:center;padding:18px 6px;line-height:1.5}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;
+  border-radius:var(--r);border:none;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-700)}
+.btn-ghost{background:#fff;color:var(--ink-soft);border:1px solid var(--line)}
+.btn-ghost:hover{background:var(--field)}
+.btn-block{width:100%}
+.acts{display:flex;gap:9px;margin-top:14px}
+
+/* SALDO DE ENSAIOS */
+.saldo{margin-top:18px;border:1px solid var(--line);border-radius:var(--r-md);padding:14px;background:#fff}
+.saldo h3{font-family:var(--font-d);font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.saldo-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F1F4F9;font-size:13px}
+.saldo-row:last-child{border-bottom:none}
+.saldo-row .nm{flex:1;min-width:0}
+.saldo-row .pc{font-size:11px;color:var(--muted);font-weight:700}
+.saldo-tag{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.saldo-tag.ok{background:#F0FDF4;color:#166534}
+.saldo-tag.falta{background:#FFFBEB;color:#92400E}
+
+/* OVERLAY */
+.ov{display:none;position:fixed;inset:0;background:rgba(16,24,40,.55);z-index:50;
+  align-items:flex-end;justify-content:center;padding:0}
+.ov.on{display:flex}
+.sheet{background:#fff;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;
+  border-radius:var(--r-lg) var(--r-lg) 0 0;padding:20px}
+.sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px}
+.sheet-head h2{font-family:var(--font-d);font-size:20px;font-weight:800}
+.sheet-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.x{background:none;border:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;padding:0 2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;padding:12px;border:1px solid var(--field-line);
+  background:var(--field);border-radius:var(--r-md)}
+.grid2 .vk{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block}
+.grid2 .vv{font-size:14px;font-weight:700;display:block;margin-top:2px;word-break:break-word}
+.grid2 .vv.muted{color:var(--muted);font-weight:500}
+.blk{margin-top:16px}
+.blk h4{font-family:var(--font-d);font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.fg{display:grid;gap:6px;margin-bottom:11px}
+.fg label{font-size:12px;font-weight:700;color:var(--ink-soft)}
+.opts{display:flex;flex-wrap:wrap;gap:7px}
+.opts label{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border:1px solid var(--field-line);
+  border-radius:var(--r);background:var(--field);font-size:13px;font-weight:600;cursor:pointer}
+.opts input{accent-color:var(--blue)}
+.et-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F1F4F9}
+.et-row:last-child{border-bottom:none}
+.et-dot{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;color:#fff;background:#D1D5DB}
+.et-dot.ok{background:var(--green)}
+.et-dot.rep{background:var(--danger)}
+.et-dot.na{background:#9CA3AF}
+.et-body{flex:1;min-width:0}
+.et-nm{font-size:13px;font-weight:700}
+.et-sub{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.45}
+.et-herd{font-size:11px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;padding:2px 7px;border-radius:20px;font-weight:700}
+.drop{display:block;padding:11px;border:1px dashed var(--field-line);border-radius:var(--r);
+  background:var(--field);font-size:12.5px;color:var(--muted);text-align:center;cursor:pointer}
+.drop.has{border-style:solid;color:var(--ink);font-weight:600}
+.inline-err{display:none;margin-top:10px;padding:10px 12px;border-radius:var(--r);
+  background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:12.5px;font-weight:600}
+.inline-err.on{display:block}
+.toastWrap{position:fixed;left:0;right:0;bottom:16px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:80;pointer-events:none}
+.toast{background:#111827;color:#fff;font-size:13px;font-weight:600;padding:11px 16px;border-radius:999px;box-shadow:var(--sh-md);max-width:92vw}
+.toast.err{background:#991B1B}
+.foot{text-align:center;font-size:10.5px;color:#9CA3AF;margin-top:14px}
+@media (max-width:420px){body{padding:10px}.mapa-num{font-size:27px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
+      <div class="name">SIGMA CODE<small>Mapa de Controle de Juntas Soldadas</small></div>
+    </div>
+    <div class="card-pad">
+
+      <div class="state on center" id="stLoad">
+        <div class="spin"></div>
+        <div class="loading-txt">Carregando mapa de juntas…</div>
+      </div>
+
+      <div class="state center" id="stNone">
+        <div class="big-ico warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
+        <h2>Mapa não localizado</h2>
+        <p class="msg" id="noneMsg"></p>
+      </div>
+
+      <div class="state" id="stMapa"></div>
+
+    </div>
+  </div>
+  <div class="foot">SIGMA CODE Engenharia · registro de campo</div>
+</div>
+
+<div class="ov" id="ovJunta"><div class="sheet" id="sheetJunta"></div></div>
+<div class="ov" id="ovNova"><div class="sheet" id="sheetNova"></div></div>
+<div class="toastWrap" id="toastWrap"></div>
+
+<script>
+const SUPA_URL = 'https://kiwiykgzogcxiseynzyy.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
+const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ═══════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════
+let PLQ=null;        // linha de plaquetas
+let MCJS=null;       // linha de mcjs (pode nao existir)
+let ETAPAS=[];       // junta_etapa
+let ENSAIOS=[];      // ensaio_tipo
+let JUNTAS=[];       // junta da plaqueta
+let EVENTOS={};      // junta_id -> [junta_evento]
+let REQS={};         // junta_id -> [junta_ensaio_requisito]
+let REALIZ={};       // junta_id -> [junta_ensaio]
+let INSPETOR=null;   // {nome, funcao, matricula}
+let APONT=null;      // apontamento do dia
+let JATUAL=null;     // junta aberta no sheet
+let OCUPADO=false;
+
+// ═══════════════════════════════════════════════
+// UTIL
+// ═══════════════════════════════════════════════
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function ilikeEsc(s){return String(s==null?'':s).replace(/[\\%_]/g,'\\$&');}
+function show(id){['stLoad','stNone','stMapa'].forEach(s=>document.getElementById(s).classList.toggle('on',s===id));}
+function hojeLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function toast(msg,type){
+  const w=document.getElementById('toastWrap');
+  const t=document.createElement('div'); t.className='toast '+(type||'ok'); t.textContent=msg;
+  w.appendChild(t); setTimeout(()=>t.remove(),3800);
+}
+function jtLabel(j){return j.tipo_junta+'-'+String(j.numero_junta).padStart(2,'0')+(j.sufixo||'');}
+function notFound(html){document.getElementById('noneMsg').innerHTML=html;show('stNone');}
+function safeName(s){return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w.\-]+/g,'-').replace(/^-+|-+$/g,'');}
+
+// ═══════════════════════════════════════════════
+// CARGA
+// ═══════════════════════════════════════════════
+async function resolverPlaqueta(un,plq,ls){
+  let q=db.from('plaquetas').select('*');
+  if(un)  q=q.eq('unidade',un);
+  if(plq) q=q.ilike('plaqueta',ilikeEsc(plq));
+  if(ls)  q=q.ilike('ls_codigo',ilikeEsc(ls));
+  const {data,error}=await q.limit(5);
+  if(error) throw error;
+  return data||[];
+}
+
+async function carregarBase(){
+  const [et,en]=await Promise.all([
+    db.from('junta_etapa').select('*').eq('ativo',true).order('ordem'),
+    db.from('ensaio_tipo').select('*').eq('ativo',true).order('ordem')
+  ]);
+  if(et.error) throw et.error;
+  ETAPAS=et.data||[];
+  ENSAIOS=(en.error?[]:(en.data||[]));
+}
+
+async function carregarJuntas(){
+  const {data,error}=await db.from('junta').select('*')
+    .eq('plaqueta_id',PLQ.id)
+    .order('tipo_junta').order('numero_junta').order('sufixo');
+  if(error) throw error;
+  JUNTAS=(data||[]).filter(j=>j.situacao!=='cancelada');
+
+  EVENTOS={}; REQS={}; REALIZ={};
+  const ids=JUNTAS.map(j=>j.id);
+  if(!ids.length) return;
+
+  const [ev,rq,rz]=await Promise.all([
+    db.from('junta_evento').select('*').in('junta_id',ids).order('registrado_em'),
+    db.from('junta_ensaio_requisito').select('*').in('junta_id',ids),
+    db.from('junta_ensaio').select('*').in('junta_id',ids).order('registrado_em')
+  ]);
+  (ev.data||[]).forEach(r=>{(EVENTOS[r.junta_id]=EVENTOS[r.junta_id]||[]).push(r);});
+  (rq.data||[]).forEach(r=>{(REQS[r.junta_id]=REQS[r.junta_id]||[]).push(r);});
+  (rz.data||[]).forEach(r=>{(REALIZ[r.junta_id]=REALIZ[r.junta_id]||[]).push(r);});
+}
+
+async function carregarMcjs(){
+  const {data}=await db.from('mcjs').select('*').eq('plaqueta_id',PLQ.id).limit(1);
+  MCJS=(data&&data[0])?data[0]:null;
+}
+
+// ═══════════════════════════════════════════════
+// LEITURA DE ESTADO DA JUNTA
+// ═══════════════════════════════════════════════
+// eventos herdados: se a junta veio de desmembramento, o que a mae ja executou
+function eventosDaJunta(j){
+  const proprios=(EVENTOS[j.id]||[]).map(e=>({...e,herdado:false}));
+  if(!j.junta_origem_id) return proprios;
+  const mae=(EVENTOS[j.junta_origem_id]||[]).map(e=>({...e,herdado:true}));
+  return mae.concat(proprios);
+}
+// ultimo evento de cada etapa
+function estadoEtapas(j){
+  const evs=eventosDaJunta(j);
+  const mapa={};
+  evs.forEach(e=>{
+    const cur=mapa[e.etapa_codigo];
+    if(!cur||String(e.registrado_em)>=String(cur.registrado_em)) mapa[e.etapa_codigo]=e;
+  });
+  return mapa;
+}
+function proximaPassagem(j,etapa){
+  const evs=(EVENTOS[j.id]||[]).filter(e=>e.etapa_codigo===etapa);
+  if(!evs.length) return 1;
+  return Math.max.apply(null,evs.map(e=>e.passagem||1))+1;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER DO MAPA
+// ═══════════════════════════════════════════════
+function renderMapa(){
+  const numero = MCJS && MCJS.numero ? MCJS.numero : (PLQ.plaqueta||'');
+  const legado = MCJS && MCJS.codigo_origem && MCJS.codigo_origem!==numero
+    ? `<span class="chip legado">Emitido como <b>${esc(MCJS.codigo_origem)}</b></span>` : '';
+
+  const ativas=JUNTAS.filter(j=>j.situacao==='ativa');
+
+  const lista = JUNTAS.length ? JUNTAS.map((j,i)=>{
+    const st=estadoEtapas(j);
+    const barras=ETAPAS.map(e=>{
+      const ev=st[e.codigo];
+      if(!ev) return '<i></i>';
+      if(ev.resultado==='reprovado') return '<i class="rep"></i>';
+      if(ev.resultado==='na') return '<i class="na"></i>';
+      return '<i class="ok"></i>';
+    }).join('');
+    const sub=[j.processo,j.espessura_mm?j.espessura_mm+' mm':null,j.diametro,
+               j.ieis_codigo_origem?'IEIS '+j.ieis_codigo_origem:null].filter(Boolean).join(' · ');
+    const bd = j.situacao==='desmembrada' ? '<span class="badge desm">desmembrada</span>'
+             : (j.origem==='campo' ? '<span class="badge campo">campo</span>' : '');
+    return `<button class="jt ${j.situacao==='desmembrada'?'desm':''}" onclick="abrirJunta(${i})">
+      <span class="jt-id">${esc(jtLabel(j))}</span>
+      <span class="jt-body">
+        <span class="jt-sub">${esc(sub||'sem dados de plano')}</span>
+        <span class="jt-prog">${barras}</span>
+      </span>${bd}</button>`;
+  }).join('') : '<div class="vazio">Nenhuma junta cadastrada para esta plaqueta.<br>Use o botão abaixo se surgiu junta em campo.</div>';
+
+  document.getElementById('stMapa').innerHTML = `
+    <div class="eyebrow">Mapa de juntas · MCJS</div>
+    <div class="mapa-num">${esc(numero)}</div>
+    <div class="chips">
+      <span class="chip">Unidade · <b>${esc(PLQ.unidade||'')}</b></span>
+      <span class="chip">LS · <b>${esc(PLQ.ls_codigo||'')}</b></span>
+      ${PLQ.tag?`<span class="chip">TAG · <b>${esc(PLQ.tag)}</b></span>`:''}
+      ${legado}
+    </div>
+
+    <div class="insp" id="inspBox"></div>
+
+    <div class="sec-head">
+      <h3>Juntas</h3>
+      <span class="cnt">${ativas.length} ativa${ativas.length===1?'':'s'}</span>
+    </div>
+    ${lista}
+
+    <div id="saldoBox"></div>
+
+    <div class="acts">
+      <button class="btn btn-ghost btn-block" onclick="abrirNova()">Surgiu junta em campo</button>
+    </div>`;
+
+  renderInspetor();
+  renderSaldo();
+  show('stMapa');
+}
+
+function renderInspetor(){
+  const box=document.getElementById('inspBox'); if(!box) return;
+  if(INSPETOR){
+    box.innerHTML=`<h3>Inspetor</h3>
+      <div class="user-hit">
+        <div class="ic">${esc((INSPETOR.nome||'?').trim().charAt(0).toUpperCase())}</div>
+        <div><div class="nm">${esc(INSPETOR.nome)}</div>
+        <div class="fx">${esc(INSPETOR.matricula||'')}${INSPETOR.funcao?' · '+esc(INSPETOR.funcao):''} · ${esc(hojeLocal().split('-').reverse().join('/'))}</div></div>
+      </div>
+      <button class="trocar" onclick="trocarInspetor()">Trocar inspetor</button>`;
+  }else{
+    box.innerHTML=`<h3>Identifique-se para registrar</h3>
+      <input type="text" id="inspBusca" placeholder="Nome, CPF ou matrícula" oninput="buscarInspetor()" autocomplete="off">
+      <div id="inspRes"></div>`;
+  }
+}
+
+function trocarInspetor(){INSPETOR=null;APONT=null;renderInspetor();}
+
+let __ubuf=[];
+async function buscarInspetor(){
+  const t=(document.getElementById('inspBusca').value||'').replace(/[%,]/g,' ').trim();
+  const box=document.getElementById('inspRes');
+  if(t.length<3){box.innerHTML='';return;}
+  try{
+    const {data,error}=await db.from('usuarios_campo')
+      .select('id,nome,cpf,matricula,funcao,ativo')
+      .or(`nome.ilike.%${t}%,cpf.ilike.%${t}%,matricula.ilike.%${t}%`)
+      .eq('ativo',true).limit(6);
+    if(error) throw error;
+    if(!data||!data.length){box.innerHTML='<div class="user-miss">Não encontrado. Confira nome, CPF ou matrícula.</div>';return;}
+    __ubuf=data;
+    if(data.length===1){selecInspetor(0);return;}
+    box.innerHTML='<div class="pick-list">'+data.map((u,i)=>
+      `<button onclick="selecInspetor(${i})"><div class="pn">${esc(u.nome)}</div><div class="ps">${esc(u.matricula||'')} · ${esc(u.funcao||'')}</div></button>`
+    ).join('')+'</div>';
+  }catch(e){box.innerHTML='<div class="user-miss">Erro na busca. '+esc(e.message||'')+'</div>';}
+}
+function selecInspetor(i){
+  const u=__ubuf[i]; if(!u) return;
+  INSPETOR={nome:u.nome,funcao:u.funcao,matricula:u.matricula};
+  APONT=null;
+  renderInspetor();
+}
+
+// ═══════════════════════════════════════════════
+// SALDO DE ENSAIOS (escopo plaqueta)
+// ═══════════════════════════════════════════════
+function renderSaldo(){
+  const box=document.getElementById('saldoBox'); if(!box) return;
+  const ativas=JUNTAS.filter(j=>j.situacao==='ativa');
+  const porCodigo={};
+  ativas.forEach(j=>{
+    (REQS[j.id]||[]).forEach(r=>{
+      if(!r.aplicavel) return;
+      const k=r.ensaio_codigo;
+      porCodigo[k]=porCodigo[k]||{pct:Number(r.percentual),previstas:0,feitas:0};
+      porCodigo[k].previstas++;
+      const fez=(REALIZ[j.id]||[]).some(x=>x.ensaio_codigo===k&&x.resultado!=='reprovado');
+      if(fez) porCodigo[k].feitas++;
+    });
+  });
+  const linhas=Object.keys(porCodigo).map(k=>{
+    const d=porCodigo[k];
+    const exig=Math.ceil(d.previstas*d.pct/100);
+    const nome=(ENSAIOS.find(e=>e.codigo===k)||{}).nome||k;
+    const ok=d.feitas>=exig;
+    return `<div class="saldo-row">
+      <span class="nm">${esc(nome)} <span class="pc">${esc(d.pct)}%</span></span>
+      <span class="saldo-tag ${ok?'ok':'falta'}">${d.feitas} de ${exig}</span>
+    </div>`;
+  }).join('');
+  box.innerHTML = linhas
+    ? `<div class="saldo"><h3>Cobertura de ensaios</h3>${linhas}
+       <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5">
+       Cálculo sobre as juntas ativas desta plaqueta. Escopo por LS e por combinação técnica ainda não implementado.</div></div>`
+    : '';
+}
+
+// ═══════════════════════════════════════════════
+// SHEET DA JUNTA
+// ═══════════════════════════════════════════════
+function abrirJunta(i){
+  JATUAL=JUNTAS[i]; if(!JATUAL) return;
+  renderSheetJunta();
+  document.getElementById('ovJunta').classList.add('on');
+}
+function fecharJunta(){document.getElementById('ovJunta').classList.remove('on');JATUAL=null;}
+
+function renderSheetJunta(){
+  const j=JATUAL;
+  const st=estadoEtapas(j);
+  const vc=(k,v)=>`<div><span class="vk">${k}</span><span class="vv ${v?'':'muted'}">${v?esc(v):'·'}</span></div>`;
+
+  const etapasHtml=ETAPAS.map(e=>{
+    const ev=st[e.codigo];
+    let cls='',ico='·';
+    if(ev){
+      if(ev.resultado==='reprovado'){cls='rep';ico='!';}
+      else if(ev.resultado==='na'){cls='na';ico='/';}
+      else{cls='ok';ico='✓';}
+    }
+    const det=ev?[
+      ev.sinete?'Sinete '+ev.sinete:null,
+      ev.local_execucao||null,
+      ev.executado_em?String(ev.executado_em).split('-').reverse().join('/'):null,
+      ev.passagem&&ev.passagem>1?'passagem '+ev.passagem:null
+    ].filter(Boolean).join(' · '):'não registrada';
+    const herd=ev&&ev.herdado?'<span class="et-herd">herdado da junta original</span>':'';
+    return `<div class="et-row">
+      <div class="et-dot ${cls}">${ico}</div>
+      <div class="et-body"><div class="et-nm">${esc(e.nome)} ${herd}</div>
+      <div class="et-sub">${esc(det)}</div></div></div>`;
+  }).join('');
+
+  const reqHtml=(REQS[j.id]||[]).map(r=>{
+    const nome=(ENSAIOS.find(x=>x.codigo===r.ensaio_codigo)||{}).nome||r.ensaio_codigo;
+    const feitos=(REALIZ[j.id]||[]).filter(x=>x.ensaio_codigo===r.ensaio_codigo);
+    const ult=feitos.length?feitos[feitos.length-1]:null;
+    const txt=!r.aplicavel?'não aplicável'
+      :(ult?(ult.resultado||'registrado')+(ult.laudo_numero?' · laudo '+ult.laudo_numero:''):Number(r.percentual)+'% previsto');
+    return `<div class="et-row">
+      <div class="et-dot ${ult&&ult.resultado==='aprovado'?'ok':(ult&&ult.resultado==='reprovado'?'rep':(r.aplicavel?'':'na'))}">${ult?(ult.resultado==='reprovado'?'!':'✓'):(r.aplicavel?'·':'/')}</div>
+      <div class="et-body"><div class="et-nm">${esc(nome)}</div><div class="et-sub">${esc(txt)}</div></div></div>`;
+  }).join('') || '<div class="et-sub">Nenhum ensaio previsto no plano.</div>';
+
+  const podeRegistrar = j.situacao==='ativa';
+
+  const formEtapa = podeRegistrar ? `
+    <div class="blk">
+      <h4>Registrar etapa</h4>
+      <div class="fg">
+        <label>Etapa</label>
+        <select id="fEtapa" onchange="onEtapaSel()">
+          <option value="">Selecione…</option>
+          ${ETAPAS.map(e=>`<option value="${esc(e.codigo)}" data-sinete="${e.exige_sinete?'1':'0'}">${esc(e.nome)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg">
+        <label>Resultado</label>
+        <div class="opts">
+          <label><input type="radio" name="fRes" value="executado">Executado</label>
+          <label><input type="radio" name="fRes" value="aprovado">Aprovado</label>
+          <label><input type="radio" name="fRes" value="reprovado">Reprovado</label>
+          <label><input type="radio" name="fRes" value="na">N/A</label>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Local de execução</label>
+        <div class="opts">
+          <label><input type="radio" name="fLocal" value="pipeshop" ${j.tipo_junta==='JP'?'checked':''}>Pipeshop</label>
+          <label><input type="radio" name="fLocal" value="campo" ${j.tipo_junta==='JC'?'checked':''}>Campo</label>
+        </div>
+      </div>
+      <div id="fSineteWrap" style="display:none">
+        <div class="fg">
+          <label>Foi soldado por quantos soldadores?</label>
+          <div class="opts">
+            <label><input type="radio" name="fQtdSold" value="1" checked onchange="onQtdSold()">1 soldador</label>
+            <label><input type="radio" name="fQtdSold" value="2" onchange="onQtdSold()">2 soldadores</label>
+          </div>
+        </div>
+        <div class="fg"><label>Sinete do soldador 1</label><input type="text" id="fSinete1" placeholder="Sinete"></div>
+        <div class="fg" id="fSinete2Wrap" style="display:none"><label>Sinete do soldador 2</label><input type="text" id="fSinete2" placeholder="Sinete"></div>
+      </div>
+      <div class="fg"><label>Data de execução</label><input type="date" id="fData" value="${hojeLocal()}"></div>
+      <div class="fg"><label>Observação</label><textarea id="fObs" placeholder="Opcional"></textarea></div>
+      <div class="fg">
+        <label>Foto</label>
+        <label class="drop" id="fDrop" for="fFile">Clique para selecionar (opcional)</label>
+        <input type="file" id="fFile" accept="image/*" style="display:none" onchange="onFile()">
+      </div>
+      <div class="inline-err" id="fErr"></div>
+      <button class="btn btn-primary btn-block" id="fSalvar" onclick="salvarEtapa()">Registrar etapa</button>
+    </div>
+
+    <div class="blk">
+      <h4>Registrar ensaio realizado</h4>
+      <div class="fg">
+        <label>Ensaio</label>
+        <select id="gEnsaio">
+          <option value="">Selecione…</option>
+          ${ENSAIOS.map(e=>`<option value="${esc(e.codigo)}">${esc(e.nome)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label>Número do laudo</label><input type="text" id="gLaudo" placeholder="Opcional"></div>
+      <div class="fg"><label>Data</label><input type="date" id="gData" value="${hojeLocal()}"></div>
+      <div class="fg">
+        <label>Resultado</label>
+        <div class="opts">
+          <label><input type="radio" name="gRes" value="aprovado">Aprovado</label>
+          <label><input type="radio" name="gRes" value="reprovado">Reprovado</label>
+          <label><input type="radio" name="gRes" value="pendente">Pendente</label>
+        </div>
+      </div>
+      <div class="inline-err" id="gErr"></div>
+      <button class="btn btn-ghost btn-block" id="gSalvar" onclick="salvarEnsaio()">Registrar ensaio</button>
+    </div>
+
+    <div class="blk">
+      <h4>Desmembrar junta</h4>
+      <div class="fg">
+        <label>Em quantas partes?</label>
+        <input type="number" id="dPartes" min="2" max="6" value="2">
+      </div>
+      <div class="inline-err" id="dErr"></div>
+      <button class="btn btn-ghost btn-block" onclick="desmembrar()">Desmembrar ${esc(jtLabel(j))}</button>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
+        A junta original sai da lista e o que já foi executado nela aparece nas novas como herdado.</div>
+    </div>` : `
+    <div class="blk"><div class="et-sub">Junta desmembrada. Registre nas juntas geradas a partir dela.</div></div>`;
+
+  document.getElementById('sheetJunta').innerHTML=`
+    <div class="sheet-head">
+      <h2>${esc(jtLabel(j))}</h2>
+      <button class="x" onclick="fecharJunta()">×</button>
+    </div>
+    <div class="sheet-sub">${j.tipo_junta==='JC'?'Junta de campo':'Junta de prefabricação'} · plaqueta ${esc(PLQ.plaqueta||'')}${j.origem==='campo'?' · surgiu em campo':''}</div>
+
+    <div class="grid2">
+      ${vc('Diâmetro',j.diametro)}
+      ${vc('Espessura',j.espessura_mm?j.espessura_mm+' mm':null)}
+      ${vc('Material',j.material)}
+      ${vc('Processo',j.processo)}
+      ${vc('Posição',j.posicao)}
+      ${vc('Procedimento',j.procedimento_soldagem)}
+      ${vc('IEIS',j.ieis_codigo_origem)}
+      ${vc('Desenho',j.desenho_ref)}
+    </div>
+
+    <div class="blk"><h4>Etapas</h4>${etapasHtml}</div>
+    <div class="blk"><h4>Ensaios</h4>${reqHtml}</div>
+    ${formEtapa}
+    <div class="acts"><button class="btn btn-ghost btn-block" onclick="fecharJunta()">Fechar</button></div>`;
+}
+
+function onEtapaSel(){
+  const s=document.getElementById('fEtapa');
+  const op=s.options[s.selectedIndex];
+  const exige=op&&op.getAttribute('data-sinete')==='1';
+  document.getElementById('fSineteWrap').style.display=exige?'block':'none';
+}
+function onQtdSold(){
+  const v=(document.querySelector('input[name=fQtdSold]:checked')||{}).value;
+  document.getElementById('fSinete2Wrap').style.display=(v==='2')?'block':'none';
+}
+function onFile(){
+  const f=document.getElementById('fFile').files[0];
+  const d=document.getElementById('fDrop');
+  if(f){d.textContent=f.name;d.classList.add('has');}
+  else{d.textContent='Clique para selecionar (opcional)';d.classList.remove('has');}
+}
+function errBox(id,msg){const e=document.getElementById(id);e.textContent=msg;e.classList.add('on');}
+function errClear(id){const e=document.getElementById(id);if(e)e.classList.remove('on');}
+
+// ═══════════════════════════════════════════════
+// APONTAMENTO DO DIA
+// ═══════════════════════════════════════════════
+async function garantirApontamento(){
+  if(APONT) return APONT;
+  const hoje=hojeLocal();
+  const {data:ja}=await db.from('apontamento').select('*')
+    .eq('plaqueta_id',PLQ.id).eq('data_apontamento',hoje)
+    .eq('inspetor_nome',INSPETOR.nome).limit(1);
+  if(ja&&ja.length){APONT=ja[0];return APONT;}
+  const ins=await db.from('apontamento').insert({
+    plaqueta_id:PLQ.id, data_apontamento:hoje, inspetor_nome:INSPETOR.nome
+  }).select().limit(1);
+  if(ins.error) throw ins.error;
+  APONT=ins.data[0];
+  return APONT;
+}
+
+async function subirFoto(j,etapa){
+  const f=document.getElementById('fFile').files[0];
+  if(!f) return {arquivo_url:null,arquivo_nome:null};
+  const ext=(f.name.match(/\.[a-z0-9]+$/i)||[''])[0].toLowerCase();
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  const nome=safeName(PLQ.plaqueta)+'_'+safeName(jtLabel(j))+'_'+safeName(etapa)+'_'+stamp+ext;
+  const path='soldagem/'+safeName(PLQ.unidade)+'/'+safeName(PLQ.plaqueta)+'/'+nome;
+  const up=await db.storage.from('plaquetas-fotos').upload(path,f,{upsert:false});
+  if(up.error) throw up.error;
+  return {arquivo_url:path,arquivo_nome:nome};
+}
+
+// ═══════════════════════════════════════════════
+// GRAVACAO
+// ═══════════════════════════════════════════════
+async function salvarEtapa(){
+  if(OCUPADO) return;
+  const j=JATUAL;
+  errClear('fErr');
+  if(!INSPETOR){errBox('fErr','Identifique-se antes de registrar.');return;}
+  const etapa=document.getElementById('fEtapa').value;
+  const res=(document.querySelector('input[name=fRes]:checked')||{}).value;
+  const local=(document.querySelector('input[name=fLocal]:checked')||{}).value||null;
+  if(!etapa){errBox('fErr','Selecione a etapa.');return;}
+  if(!res){errBox('fErr','Marque o resultado.');return;}
+
+  const et=ETAPAS.find(e=>e.codigo===etapa)||{};
+  const s1=(document.getElementById('fSinete1')||{}).value;
+  const s2=(document.getElementById('fSinete2')||{}).value;
+  const qtd=(document.querySelector('input[name=fQtdSold]:checked')||{}).value||'1';
+  const sinetes=[];
+  if(et.exige_sinete&&res!=='na'){
+    if(!s1||!s1.trim()){errBox('fErr','Informe o sinete do soldador 1.');return;}
+    sinetes.push(s1.trim());
+    if(qtd==='2'){
+      if(!s2||!s2.trim()){errBox('fErr','Informe o sinete do soldador 2.');return;}
+      sinetes.push(s2.trim());
+    }
+  }else{
+    sinetes.push(null);
+  }
+
+  const btn=document.getElementById('fSalvar'); const txt=btn.textContent;
+  OCUPADO=true; btn.disabled=true; btn.textContent='Salvando…';
+  try{
+    const ap=await garantirApontamento();
+    const foto=await subirFoto(j,etapa);
+    const passagem=proximaPassagem(j,etapa);
+    const linhas=sinetes.map(s=>({
+      junta_id:j.id, apontamento_id:ap.id, etapa_codigo:etapa, passagem:passagem,
+      resultado:res, sinete:s, local_execucao:local,
+      executado_em:document.getElementById('fData').value||null,
+      observacao:(document.getElementById('fObs').value||'').trim()||null,
+      arquivo_url:foto.arquivo_url, arquivo_nome:foto.arquivo_nome
+    }));
+    const ins=await db.from('junta_evento').insert(linhas);
+    if(ins.error) throw ins.error;
+    toast('Etapa registrada em '+jtLabel(j),'ok');
+    await carregarJuntas();
+    JATUAL=JUNTAS.find(x=>x.id===j.id)||j;
+    renderMapa(); renderSheetJunta();
+  }catch(e){
+    errBox('fErr','Erro ao salvar: '+(e.message||e));
+  }finally{ OCUPADO=false; btn.disabled=false; btn.textContent=txt; }
+}
+
+async function salvarEnsaio(){
+  if(OCUPADO) return;
+  const j=JATUAL;
+  errClear('gErr');
+  if(!INSPETOR){errBox('gErr','Identifique-se antes de registrar.');return;}
+  const cod=document.getElementById('gEnsaio').value;
+  const res=(document.querySelector('input[name=gRes]:checked')||{}).value;
+  if(!cod){errBox('gErr','Selecione o ensaio.');return;}
+  if(!res){errBox('gErr','Marque o resultado.');return;}
+
+  const btn=document.getElementById('gSalvar'); const txt=btn.textContent;
+  OCUPADO=true; btn.disabled=true; btn.textContent='Salvando…';
+  try{
+    const ap=await garantirApontamento();
+    const feitos=(REALIZ[j.id]||[]).filter(x=>x.ensaio_codigo===cod);
+    const ins=await db.from('junta_ensaio').insert({
+      junta_id:j.id, ensaio_codigo:cod, apontamento_id:ap.id,
+      laudo_numero:(document.getElementById('gLaudo').value||'').trim()||null,
+      data_ensaio:document.getElementById('gData').value||null,
+      resultado:res, inspetor_nome:INSPETOR.nome, passagem:feitos.length+1
+    });
+    if(ins.error) throw ins.error;
+    toast('Ensaio registrado','ok');
+    await carregarJuntas();
+    JATUAL=JUNTAS.find(x=>x.id===j.id)||j;
+    renderMapa(); renderSheetJunta();
+  }catch(e){
+    errBox('gErr','Erro ao salvar: '+(e.message||e));
+  }finally{ OCUPADO=false; btn.disabled=false; btn.textContent=txt; }
+}
+
+async function desmembrar(){
+  if(OCUPADO) return;
+  const j=JATUAL;
+  errClear('dErr');
+  const partes=parseInt(document.getElementById('dPartes').value,10);
+  if(!(partes>=2&&partes<=6)){errBox('dErr','Informe entre 2 e 6 partes.');return;}
+  if(!confirm('Desmembrar '+jtLabel(j)+' em '+partes+' partes?')) return;
+  OCUPADO=true;
+  try{
+    const {error}=await db.rpc('desmembrar_junta',{p_junta_id:j.id,p_partes:partes});
+    if(error) throw error;
+    toast(jtLabel(j)+' desmembrada em '+partes,'ok');
+    await carregarJuntas();
+    fecharJunta(); renderMapa();
+  }catch(e){
+    errBox('dErr','Erro: '+(e.message||e));
+  }finally{ OCUPADO=false; }
+}
+
+// ═══════════════════════════════════════════════
+// JUNTA NOVA EM CAMPO
+// ═══════════════════════════════════════════════
+function abrirNova(){
+  document.getElementById('sheetNova').innerHTML=`
+    <div class="sheet-head"><h2>Junta nova</h2><button class="x" onclick="fecharNova()">×</button></div>
+    <div class="sheet-sub">O número é atribuído pelo sistema, seguindo a sequência desta plaqueta.</div>
+    <div class="fg">
+      <label>Tipo</label>
+      <div class="opts">
+        <label><input type="radio" name="nTipo" value="JC" checked>JC · campo</label>
+        <label><input type="radio" name="nTipo" value="JP">JP · prefabricação</label>
+      </div>
+    </div>
+    <div class="fg"><label>Observação</label><textarea id="nObs" placeholder="Motivo do surgimento, opcional"></textarea></div>
+    <div class="inline-err" id="nErr"></div>
+    <button class="btn btn-primary btn-block" id="nSalvar" onclick="criarNova()">Criar junta</button>
+    <div class="acts"><button class="btn btn-ghost btn-block" onclick="fecharNova()">Cancelar</button></div>`;
+  document.getElementById('ovNova').classList.add('on');
+}
+function fecharNova(){document.getElementById('ovNova').classList.remove('on');}
+
+async function criarNova(){
+  if(OCUPADO) return;
+  errClear('nErr');
+  if(!INSPETOR){errBox('nErr','Identifique-se antes de criar junta.');return;}
+  const tipo=(document.querySelector('input[name=nTipo]:checked')||{}).value;
+  const btn=document.getElementById('nSalvar'); const txt=btn.textContent;
+  OCUPADO=true; btn.disabled=true; btn.textContent='Criando…';
+  try{
+    const {data,error}=await db.rpc('criar_junta_campo',{
+      p_plaqueta_id:PLQ.id, p_tipo:tipo,
+      p_observacao:(document.getElementById('nObs').value||'').trim()||null
+    });
+    if(error) throw error;
+    const nova=Array.isArray(data)?data[0]:data;
+    toast('Junta '+(nova?jtLabel(nova):'')+' criada','ok');
+    await carregarJuntas();
+    fecharNova(); renderMapa();
+  }catch(e){
+    errBox('nErr','Erro: '+(e.message||e));
+  }finally{ OCUPADO=false; btn.disabled=false; btn.textContent=txt; }
+}
+
+// ═══════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════
+async function boot(){
+  const q=new URLSearchParams(location.search);
+  const un=q.get('un'), plq=q.get('plq'), ls=q.get('ls');
+  if(!un&&!plq&&!ls){
+    notFound('Abra esta tela pelo QR da etiqueta.<br>Faltam os parâmetros <b>un</b>, <b>plq</b> e <b>ls</b>.');
+    return;
+  }
+  show('stLoad');
+  try{
+    const achados=await resolverPlaqueta(un,plq,ls);
+    if(!achados.length){
+      notFound(`Nenhuma plaqueta para <b>${esc(plq||'')}</b> na unidade <b>${esc(un||'')}</b> com LS <b>${esc(ls||'')}</b>.`);
+      return;
+    }
+    if(achados.length>1){
+      notFound(`Os dados da etiqueta apontam para <b>${achados.length}</b> plaquetas. Chame o planejamento antes de registrar.`);
+      return;
+    }
+    PLQ=achados[0];
+    await carregarBase();
+    await carregarMcjs();
+    await carregarJuntas();
+    renderMapa();
+  }catch(e){
+    notFound('Não foi possível carregar agora. Verifique a conexão.<br><span style="font-size:11px">'+esc(e.message||'')+'</span>');
+  }
+}
+boot();
+</script>
+</body>
+</html>
