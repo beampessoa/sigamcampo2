@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Soldagem | E-SIGMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,-apple-system,sans-serif;
+       background:#F4F6FA;color:#1F2937;
+       display:grid;grid-template-columns:248px 1fr;grid-template-rows:64px 1fr;
+       grid-template-areas:"side header" "side main";min-height:100vh}
+  .es-header{grid-area:header}
+  .es-side  {grid-area:side}
+  main      {grid-area:main;padding:26px 28px 48px;overflow-y:auto}
+
+  .pg-head{display:flex;align-items:flex-start;justify-content:space-between;
+           gap:16px;flex-wrap:wrap;margin-bottom:18px;max-width:1200px}
+  .pg-head h1{margin:0 0 4px;font-family:'Exo 2',sans-serif;font-size:23px;
+              font-weight:700;letter-spacing:-.01em}
+  .pg-head p{margin:0;font-size:13.5px;color:#6B7280}
+  .head-tools{display:flex;align-items:center;gap:10px}
+  .live{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#6B7280;font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%;background:#22C55E;display:inline-block;
+       animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .btn{padding:8px 14px;border-radius:7px;border:1px solid #D7DEEA;background:#fff;
+       font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:#374151}
+  .btn:hover{background:#F1F5F9}
+  select{padding:8px 11px;border:1px solid #D7DEEA;border-radius:7px;background:#fff;
+         font-size:13px;font-family:inherit;color:#1F2937}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:13px;
+        max-width:1200px;margin-bottom:16px}
+  .kpi{background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:15px 17px;
+       box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .kpi .k{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#64748B}
+  .kpi .v{font-family:'Exo 2',sans-serif;font-size:29px;font-weight:800;line-height:1.15;margin-top:5px}
+  .kpi .s{font-size:11.5px;color:#9CA3AF;margin-top:3px}
+  .kpi.ok .v{color:#166534}
+  .kpi.run .v{color:#0F4CBA}
+  .kpi.wait .v{color:#92400E}
+  .kpi.bad .v{color:#991B1B}
+
+  .cols{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;max-width:1200px;align-items:start}
+  .card{background:#fff;border:1px solid #E5E7EB;border-radius:10px;
+        box-shadow:0 1px 2px rgba(16,24,40,.04);padding:18px 20px;margin-bottom:16px}
+  .card h2{margin:0 0 13px;font-size:10.5px;font-weight:700;letter-spacing:.13em;
+           text-transform:uppercase;color:#64748B}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+     color:#64748B;padding:7px 9px;border-bottom:1px solid #E5E7EB;white-space:nowrap}
+  td{padding:8px 9px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#F8FAFC}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .strong{font-weight:700}
+  .muted{color:#9CA3AF}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap}
+  .tag-ok{background:#F0FDF4;color:#166534}
+  .tag-run{background:#EFF4FF;color:#1B3A6B}
+  .tag-w{background:#FEF3C7;color:#92400E}
+  .tag-bad{background:#FEF2F2;color:#991B1B}
+  .tag-n{background:#F1F5F9;color:#475569}
+
+  .bar{height:7px;border-radius:4px;background:#E5E7EB;overflow:hidden;min-width:70px}
+  .bar i{display:block;height:100%;background:#22C55E}
+  .vazio{font-size:13px;color:#9CA3AF;padding:14px 4px}
+  .err{display:none;margin-bottom:14px;padding:11px 14px;border-radius:8px;
+       background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:13px;font-weight:600;max-width:1200px}
+  .err.on{display:block}
+
+  .feed{display:flex;flex-direction:column;gap:9px;max-height:430px;overflow-y:auto}
+  .fi{display:flex;gap:11px;align-items:flex-start;padding:10px 11px;border:1px solid #F1F5F9;
+      border-radius:8px;background:#FCFDFF}
+  .fi .ic{width:26px;height:26px;border-radius:50%;flex:none;display:flex;align-items:center;
+          justify-content:center;font-size:12px;font-weight:800;color:#fff;background:#22C55E}
+  .fi .ic.rep{background:#EF4444}
+  .fi .ic.na{background:#9CA3AF}
+  .fi .tx{flex:1;min-width:0;font-size:12.5px;line-height:1.5}
+  .fi .tt{font-size:11px;color:#9CA3AF;white-space:nowrap}
+
+  @media(max-width:1100px){.cols{grid-template-columns:1fr}}
+  @media(max-width:860px){
+    body{grid-template-columns:1fr;grid-template-rows:64px auto 1fr;
+         grid-template-areas:"header" "side" "main"}
+    main{padding:20px 16px 40px}
+  }
+</style>
+</head>
+<body>
+
+<header class="es-header"></header>
+<aside class="es-side"></aside>
+
+<main>
+  <div class="pg-head">
+    <div>
+      <h1>Painel de Soldagem</h1>
+      <p>Acompanhamento da execução das juntas</p>
+    </div>
+    <div class="head-tools">
+      <select id="fUnidade">
+        <option value="">Todas as unidades</option>
+        <option value="2700">2700</option>
+        <option value="3400">3400</option>
+        <option value="3500">3500</option>
+      </select>
+      <button class="btn" id="bRefresh">Atualizar</button>
+      <span class="live"><span class="dot"></span><span id="tStamp">carregando</span></span>
+    </div>
+  </div>
+
+  <div class="err" id="erro"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="cols">
+    <div>
+      <div class="card">
+        <h2>Avanço por unidade</h2>
+        <div id="porUnidade"><div class="vazio">Carregando…</div></div>
+      </div>
+      <div class="card">
+        <h2>Soldadores por sinete</h2>
+        <div id="porSinete"><div class="vazio">Carregando…</div></div>
+      </div>
+      <div class="card">
+        <h2>Cobertura de ensaios</h2>
+        <div id="ensaios"><div class="vazio">Carregando…</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Últimos registros</h2>
+        <div id="feed"><div class="vazio">Carregando…</div></div>
+      </div>
+      <div class="card">
+        <h2>Fila do planejamento</h2>
+        <div id="fila"><div class="vazio">Carregando…</div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="esigma-ui.js"></script>
+<script>
+const SB_URL = 'https://kiwiykgzogcxiseynzyy.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
+let sb=null, TIMER=null;
+
+const D={};   // deposito de dados carregados
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function el(id){return document.getElementById(id);}
+function jtLabel(j){return j.tipo_junta+'-'+String(j.numero_junta).padStart(2,'0')+(j.sufixo||'');}
+function pct(a,b){return b>0?Math.round(a*100/b):0;}
+function erro(t){const e=el('erro');if(!t){e.className='err';return;}e.className='err on';e.textContent=t;}
+function hhmm(d){const x=new Date(d);return String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0');}
+function dataBR(d){return d?String(d).slice(0,10).split('-').reverse().join('/'):'';}
+
+// ═══════════════════════════════════════════════
+// CARGA
+// ═══════════════════════════════════════════════
+async function carregar(){
+  erro('');
+  try{
+    const [etp, ens, jts, evs, aps, mps, req, rez, svc] = await Promise.all([
+      sb.from('junta_etapa').select('*').eq('ativo',true).order('ordem'),
+      sb.from('ensaio_tipo').select('*').eq('ativo',true).order('ordem'),
+      sb.from('junta').select('id,plaqueta_id,tipo_junta,numero_junta,sufixo,situacao,origem,processo').limit(1000),
+      sb.from('junta_evento').select('junta_id,apontamento_id,etapa_codigo,passagem,resultado,sinete,local_execucao,executado_em,registrado_em').order('registrado_em',{ascending:false}).limit(1000),
+      sb.from('apontamento').select('id,plaqueta_id,data_apontamento,inspetor_nome,criado_em').order('criado_em',{ascending:false}).limit(1000),
+      sb.from('mcjs').select('id,plaqueta_id,unidade,numero').limit(1000),
+      sb.from('junta_ensaio_requisito').select('junta_id,ensaio_codigo,percentual,aplicavel').limit(1000),
+      sb.from('junta_ensaio').select('junta_id,ensaio_codigo,resultado,data_ensaio,laudo_numero').limit(1000),
+      sb.from('tipos_servico').select('id,nome,tem_soldagem')
+    ]);
+    D.etapas   = etp.data||[];
+    D.ensaios  = ens.data||[];
+    D.juntas   = jts.data||[];
+    D.eventos  = evs.data||[];
+    D.aponts   = aps.data||[];
+    D.mcjs     = mps.data||[];
+    D.reqs     = req.data||[];
+    D.realiz   = rez.data||[];
+    D.servicos = svc.data||[];
+
+    // plaquetas envolvidas nas juntas e nos mapas
+    const ids=[...new Set(D.juntas.map(j=>j.plaqueta_id).concat(D.mcjs.map(m=>m.plaqueta_id)))];
+    D.plaquetas={};
+    if(ids.length){
+      for(let i=0;i<ids.length;i+=200){
+        const {data}=await sb.from('plaquetas')
+          .select('id,unidade,plaqueta,ls_codigo,tag,servico_id,tipo_montagem').in('id',ids.slice(i,i+200));
+        (data||[]).forEach(p=>{D.plaquetas[p.id]=p;});
+      }
+    }
+    await carregarFila();
+
+    render();
+    el('tStamp').textContent='atualizado '+hhmm(new Date());
+  }catch(e){
+    erro('Não foi possível carregar. '+(e.message||e));
+  }
+}
+
+// Plaquetas com escopo de soldagem: por montagem soldada ou por padrao do servico
+async function carregarFila(){
+  const idsSolda=D.servicos.filter(s=>s.tem_soldagem).map(s=>s.id);
+  const acc={};
+  const a=await sb.from('plaquetas')
+    .select('id,unidade,plaqueta,ls_codigo,servico_id,tipo_montagem')
+    .eq('tipo_montagem','soldagem').limit(1000);
+  (a.data||[]).forEach(p=>{acc[p.id]=p;});
+  if(idsSolda.length){
+    const b=await sb.from('plaquetas')
+      .select('id,unidade,plaqueta,ls_codigo,servico_id,tipo_montagem')
+      .in('servico_id',idsSolda).limit(1000);
+    (b.data||[]).forEach(p=>{acc[p.id]=p;});
+  }
+  D.escopo=Object.values(acc);
+}
+
+// ═══════════════════════════════════════════════
+// DERIVACAO
+// ═══════════════════════════════════════════════
+function filtroUn(){return el('fUnidade').value||'';}
+
+function unidadeDaJunta(j){
+  const p=D.plaquetas[j.plaqueta_id];
+  return p?(p.unidade||''):'';
+}
+
+function juntasFiltradas(){
+  const un=filtroUn();
+  return D.juntas.filter(j=>j.situacao==='ativa' && (!un||unidadeDaJunta(j)===un));
+}
+
+function evsPorJunta(){
+  const m={};
+  D.eventos.forEach(e=>{(m[e.junta_id]=m[e.junta_id]||[]).push(e);});
+  return m;
+}
+
+// ultima etapa concluida define o estagio da junta
+function estagio(j,evs){
+  const meus=evs[j.id]||[];
+  if(!meus.length) return 'nao_iniciada';
+  const tem=c=>meus.some(e=>e.etapa_codigo===c && e.resultado!=='na');
+  const reprov=meus.some(e=>e.resultado==='reprovado');
+  if(tem('acabamento')) return reprov?'concluida_com_reparo':'concluida';
+  if(tem('raiz')||tem('enchimento')) return 'em_soldagem';
+  return 'preparacao';
+}
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function render(){
+  const evs=evsPorJunta();
+  const js=juntasFiltradas();
+  const est={};
+  js.forEach(j=>{const s=estagio(j,evs);est[s]=(est[s]||0)+1;});
+
+  const total=js.length;
+  const concl=(est.concluida||0)+(est.concluida_com_reparo||0);
+  const emSol=est.em_soldagem||0;
+  const prep=est.preparacao||0;
+  const naoIni=est.nao_iniciada||0;
+
+  // reparo: junta com alguma passagem maior que 1
+  const comReparo=js.filter(j=>(evs[j.id]||[]).some(e=>(e.passagem||1)>1)).length;
+
+  el('kpis').innerHTML=`
+    <div class="kpi"><div class="k">Juntas no plano</div><div class="v">${total}</div>
+      <div class="s">${D.juntas.filter(j=>j.situacao==='desmembrada').length} desmembradas</div></div>
+    <div class="kpi ok"><div class="k">Concluídas</div><div class="v">${concl}</div>
+      <div class="s">${pct(concl,total)}% do plano</div></div>
+    <div class="kpi run"><div class="k">Em soldagem</div><div class="v">${emSol}</div>
+      <div class="s">raiz ou enchimento</div></div>
+    <div class="kpi wait"><div class="k">Em preparação</div><div class="v">${prep}</div>
+      <div class="s">visual ou dimensional</div></div>
+    <div class="kpi"><div class="k">Não iniciadas</div><div class="v">${naoIni}</div>
+      <div class="s">sem registro</div></div>
+    <div class="kpi ${comReparo?'bad':''}"><div class="k">Com reparo</div><div class="v">${comReparo}</div>
+      <div class="s">${pct(comReparo,total)}% de reparo</div></div>`;
+
+  renderPorUnidade(evs);
+  renderSinetes(js,evs);
+  renderEnsaios(js);
+  renderFeed();
+  renderFila();
+}
+
+function renderPorUnidade(evs){
+  const un={};
+  D.juntas.filter(j=>j.situacao==='ativa').forEach(j=>{
+    const u=unidadeDaJunta(j)||'sem unidade';
+    un[u]=un[u]||{total:0,concl:0};
+    un[u].total++;
+    const s=estagio(j,evs);
+    if(s==='concluida'||s==='concluida_com_reparo') un[u].concl++;
+  });
+  const ks=Object.keys(un).sort();
+  el('porUnidade').innerHTML = ks.length
+    ? '<table><thead><tr><th>Unidade</th><th class="num">Juntas</th><th class="num">Concluídas</th><th>Avanço</th></tr></thead><tbody>'+
+      ks.map(u=>{const d=un[u];const p=pct(d.concl,d.total);
+        return `<tr><td class="strong">${esc(u)}</td><td class="num">${d.total}</td>
+          <td class="num">${d.concl}</td>
+          <td><div style="display:flex;align-items:center;gap:9px">
+            <div class="bar" style="flex:1"><i style="width:${p}%"></i></div>
+            <span class="muted" style="font-size:11.5px;min-width:32px">${p}%</span></div></td></tr>`;
+      }).join('')+'</tbody></table>'
+    : '<div class="vazio">Nenhuma junta lançada ainda.</div>';
+}
+
+function renderSinetes(js,evs){
+  const idsVis=new Set(js.map(j=>j.id));
+  const s={};
+  D.eventos.forEach(e=>{
+    if(!e.sinete||!idsVis.has(e.junta_id)) return;
+    const k=e.sinete.trim().toUpperCase();
+    s[k]=s[k]||{passes:0,juntas:new Set(),reparo:0,reprov:0};
+    s[k].passes++;
+    s[k].juntas.add(e.junta_id);
+    if((e.passagem||1)>1) s[k].reparo++;
+    if(e.resultado==='reprovado') s[k].reprov++;
+  });
+  const ks=Object.keys(s).sort((a,b)=>s[b].passes-s[a].passes);
+  el('porSinete').innerHTML = ks.length
+    ? '<table><thead><tr><th>Sinete</th><th class="num">Passagens</th><th class="num">Juntas</th><th class="num">Reparo</th><th></th></tr></thead><tbody>'+
+      ks.map(k=>{const d=s[k];
+        return `<tr><td class="strong mono">${esc(k)}</td>
+          <td class="num">${d.passes}</td><td class="num">${d.juntas.size}</td>
+          <td class="num">${d.reparo}</td>
+          <td>${d.reprov?'<span class="tag tag-bad">'+d.reprov+' reprovada'+(d.reprov>1?'s':'')+'</span>':'<span class="tag tag-ok">sem reprova</span>'}</td></tr>`;
+      }).join('')+'</tbody></table>'
+    : '<div class="vazio">Nenhum sinete registrado ainda.</div>';
+}
+
+function renderEnsaios(js){
+  const idsVis=new Set(js.map(j=>j.id));
+  const acc={};
+  D.reqs.forEach(r=>{
+    if(!idsVis.has(r.junta_id)||!r.aplicavel) return;
+    acc[r.ensaio_codigo]=acc[r.ensaio_codigo]||{pct:Number(r.percentual),previstas:0,feitas:0,reprov:0};
+    acc[r.ensaio_codigo].previstas++;
+    const feitos=D.realiz.filter(x=>x.junta_id===r.junta_id&&x.ensaio_codigo===r.ensaio_codigo);
+    if(feitos.some(x=>x.resultado!=='reprovado')) acc[r.ensaio_codigo].feitas++;
+    acc[r.ensaio_codigo].reprov+=feitos.filter(x=>x.resultado==='reprovado').length;
+  });
+  const ks=Object.keys(acc);
+  el('ensaios').innerHTML = ks.length
+    ? '<table><thead><tr><th>Ensaio</th><th class="num">Previsto</th><th class="num">Exigidas</th><th class="num">Feitas</th><th></th></tr></thead><tbody>'+
+      ks.map(k=>{const d=acc[k];
+        const nome=(D.ensaios.find(e=>e.codigo===k)||{}).nome||k;
+        const exig=Math.ceil(d.previstas*d.pct/100);
+        const ok=d.feitas>=exig;
+        return `<tr><td class="strong">${esc(nome)}</td>
+          <td class="num muted">${d.pct}%</td>
+          <td class="num">${exig}</td><td class="num">${d.feitas}</td>
+          <td>${ok?'<span class="tag tag-ok">cobertura fechada</span>'
+                  :'<span class="tag tag-w">faltam '+(exig-d.feitas)+'</span>'}
+              ${d.reprov?' <span class="tag tag-bad">'+d.reprov+' reprovado</span>':''}</td></tr>`;
+      }).join('')+'</tbody></table>'+
+      '<div class="muted" style="font-size:11.5px;margin-top:9px">Cobertura calculada no escopo da plaqueta.</div>'
+    : '<div class="vazio">Nenhum ensaio previsto no plano.</div>';
+}
+
+function renderFeed(){
+  const un=filtroUn();
+  const apById={}; D.aponts.forEach(a=>{apById[a.id]=a;});
+  const jtById={}; D.juntas.forEach(j=>{jtById[j.id]=j;});
+  const etNome={}; D.etapas.forEach(e=>{etNome[e.codigo]=e.nome;});
+
+  const linhas=D.eventos.filter(e=>{
+    const j=jtById[e.junta_id]; if(!j) return false;
+    return !un || unidadeDaJunta(j)===un;
+  }).slice(0,40);
+
+  el('feed').innerHTML = linhas.length
+    ? '<div class="feed">'+linhas.map(e=>{
+        const j=jtById[e.junta_id];
+        const p=D.plaquetas[j.plaqueta_id]||{};
+        const a=apById[e.apontamento_id]||{};
+        const cls=e.resultado==='reprovado'?'rep':(e.resultado==='na'?'na':'');
+        const ico=e.resultado==='reprovado'?'!':(e.resultado==='na'?'/':'✓');
+        const det=[e.sinete?'sinete '+e.sinete:null,e.local_execucao,
+                   (e.passagem||1)>1?'passagem '+e.passagem:null].filter(Boolean).join(' · ');
+        return `<div class="fi"><div class="ic ${cls}">${ico}</div>
+          <div class="tx"><b>${esc(jtLabel(j))}</b> · ${esc(etNome[e.etapa_codigo]||e.etapa_codigo)}
+            <div class="muted" style="font-size:11.5px">${esc(p.plaqueta||'')} · ${esc(p.unidade||'')} · ${esc(p.ls_codigo||'')}</div>
+            ${det?'<div class="muted" style="font-size:11.5px">'+esc(det)+'</div>':''}
+            ${a.inspetor_nome?'<div class="muted" style="font-size:11.5px">'+esc(a.inspetor_nome)+'</div>':''}
+          </div>
+          <div class="tt">${esc(dataBR(e.executado_em||a.data_apontamento))}</div></div>`;
+      }).join('')+'</div>'
+    : '<div class="vazio">Nenhum registro de campo ainda.</div>';
+}
+
+function renderFila(){
+  const un=filtroUn();
+  const comMapa=new Set(D.mcjs.map(m=>m.plaqueta_id));
+  const comJunta=new Set(D.juntas.map(j=>j.plaqueta_id));
+  const lista=(D.escopo||[]).filter(p=>(!un||p.unidade===un));
+  const semMapa=lista.filter(p=>!comMapa.has(p.id));
+  const semJunta=lista.filter(p=>comMapa.has(p.id)&&!comJunta.has(p.id));
+
+  el('fila').innerHTML=`
+    <table><tbody>
+      <tr><td>Plaquetas com escopo de soldagem</td><td class="num strong">${lista.length}</td></tr>
+      <tr><td>Sem mapa criado</td><td class="num">${semMapa.length?'<span class="tag tag-w">'+semMapa.length+'</span>':'<span class="tag tag-ok">0</span>'}</td></tr>
+      <tr><td>Com mapa e sem junta lançada</td><td class="num">${semJunta.length?'<span class="tag tag-w">'+semJunta.length+'</span>':'<span class="tag tag-ok">0</span>'}</td></tr>
+    </tbody></table>
+    ${semMapa.length?'<div style="margin-top:11px"><table><thead><tr><th>Plaqueta</th><th>Unidade</th><th>LS</th></tr></thead><tbody>'+
+      semMapa.slice(0,12).map(p=>`<tr><td class="mono strong">${esc(p.plaqueta||'')}</td><td>${esc(p.unidade||'')}</td><td class="mono muted">${esc(p.ls_codigo||'')}</td></tr>`).join('')+
+      '</tbody></table>'+(semMapa.length>12?'<div class="muted" style="font-size:11.5px;margin-top:8px">e mais '+(semMapa.length-12)+'.</div>':'')+
+      '<div class="muted" style="font-size:11.5px;margin-top:9px">Crie o mapa na tela MCJS.</div></div>':''}`;
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+async function initPage(){
+  sb = window.supabase.createClient(SB_URL, SB_KEY);
+  el('bRefresh').addEventListener('click', carregar);
+  el('fUnidade').addEventListener('change', ()=>{ if(D.juntas) render(); });
+  await carregar();
+  TIMER=setInterval(carregar, 60000);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) carregar(); });
+}
+ESigma.init().then(() => initPage());
+</script>
+
+</body>
+</html>
