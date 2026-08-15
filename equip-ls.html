@@ -782,7 +782,7 @@ async function carregarWorkflowCDR(){
   if(!p||!p.servico_id){__workflow=[];return;}
   const montagem=(p.tipo_montagem||'').trim();
   let q=db.from('workflow_tarefas')
-    .select('etapa,pergunta,funcao_requerida,proxima_etapa_se_sim,proxima_etapa_se_nao,tipo_montagem')
+    .select('etapa,pergunta,funcao_requerida,proxima_etapa_se_sim,proxima_etapa_se_nao,tipo_montagem,abre_modulo')
     .eq('servico_id',p.servico_id);
   // etapa sem tipo_montagem vale para qualquer plaqueta.
   // etapa com tipo_montagem so entra quando bate com o da plaqueta.
@@ -844,8 +844,9 @@ function renderTarefa(w){
   document.getElementById('taskQ').textContent=w.pergunta;
   let fn='Função prevista: <b>'+esc(w.funcao_requerida)+'</b>';
   if(__regUser&&__regUser.funcao&&__regUser.funcao!==w.funcao_requerida)
-    fn+=' — você entrou como <b>'+esc(__regUser.funcao)+'</b>';
+    fn+=', você entrou como <b>'+esc(__regUser.funcao)+'</b>';
   document.getElementById('taskFn').innerHTML=fn;
+  renderAtalhoModulo(w);
   document.querySelectorAll('input[name=resp]').forEach(r=>r.checked=false);
   document.getElementById('cancWrap').style.display='none';
   document.getElementById('regDocCanc').value='';
@@ -855,6 +856,38 @@ function renderTarefa(w){
   document.getElementById('regDrop').classList.remove('has');
   regErrClear();
   regStep('mStepTask');
+}
+
+// Etapa marcada com abre_modulo encaminha para a tela do modulo
+// em vez de resolver tudo numa resposta de sim ou nao.
+function urlMcjsCampo(p){
+  const base=location.origin+location.pathname.replace(/[^/]*$/,'');
+  return base+'mcjs-campo.html?un='+encodeURIComponent(p.unidade||'')
+       +'&plq='+encodeURIComponent(p.plaqueta||'')
+       +'&ls='+encodeURIComponent(p.ls_codigo||'');
+}
+function renderAtalhoModulo(w){
+  let box=document.getElementById('taskAtalho');
+  if(!box){
+    box=document.createElement('div');
+    box.id='taskAtalho';
+    const fnEl=document.getElementById('taskFn');
+    if(fnEl&&fnEl.parentNode) fnEl.parentNode.insertBefore(box,fnEl.nextSibling);
+  }
+  const p=window.__ficha;
+  if(!w||w.abre_modulo!=='mcjs'||!p){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='block';
+  box.style.cssText='display:block;margin-top:12px;padding:12px;border-radius:8px;'+
+    'background:#EFF4FF;border:1px solid #C7D9F7';
+  box.innerHTML='<div style="font-size:12.5px;color:#1B3A6B;font-weight:600;line-height:1.5">'+
+    'A soldagem é registrada junta a junta no mapa. Abra o mapa, registre as juntas do dia '+
+    'e depois volte para fechar esta etapa.</div>'+
+    '<a id="taskAtalhoLink" target="_blank" rel="noopener" '+
+    'style="display:inline-block;margin-top:9px;padding:9px 14px;border-radius:7px;'+
+    'background:#0F4CBA;color:#fff;font-size:13px;font-weight:700;text-decoration:none">'+
+    'Abrir mapa de juntas</a>';
+  const a=document.getElementById('taskAtalhoLink');
+  if(a) a.href=urlMcjsCampo(p);
 }
 
 function nomeArqCDR(){
