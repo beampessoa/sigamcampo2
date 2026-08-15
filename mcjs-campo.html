@@ -179,6 +179,27 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--blue-300);outlin
         <div class="big-ico warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
         <h2>Mapa não localizado</h2>
         <p class="msg" id="noneMsg"></p>
+        <div class="acts"><button class="btn btn-ghost btn-block" onclick="irBusca()">Buscar manualmente</button></div>
+      </div>
+
+      <div class="state" id="stBusca">
+        <div class="eyebrow">Buscar mapa</div>
+        <div class="fg" style="margin-top:10px">
+          <label>Unidade</label>
+          <select id="qUn">
+            <option value="">Todas as unidades</option>
+            <option value="2700">2700</option>
+            <option value="3400">3400</option>
+            <option value="3500">3500</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Plaqueta, LS ou TAG</label>
+          <input type="text" id="qTermo" placeholder="SE-001, LS-40326 ou TU-3500-10" autocomplete="off">
+        </div>
+        <div class="inline-err" id="qErr"></div>
+        <button class="btn btn-primary btn-block" id="qBtn" onclick="buscarMapa()">Buscar</button>
+        <div id="qRes"></div>
       </div>
 
       <div class="state" id="stMapa"></div>
@@ -218,7 +239,7 @@ let OCUPADO=false;
 // ═══════════════════════════════════════════════
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function ilikeEsc(s){return String(s==null?'':s).replace(/[\\%_]/g,'\\$&');}
-function show(id){['stLoad','stNone','stMapa'].forEach(s=>document.getElementById(s).classList.toggle('on',s===id));}
+function show(id){['stLoad','stNone','stBusca','stMapa'].forEach(s=>document.getElementById(s).classList.toggle('on',s===id));}
 function hojeLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function toast(msg,type){
   const w=document.getElementById('toastWrap');
@@ -357,6 +378,9 @@ function renderMapa(){
 
     <div class="acts">
       <button class="btn btn-ghost btn-block" onclick="abrirNova()">Surgiu junta em campo</button>
+    </div>
+    <div class="acts">
+      <button class="btn btn-ghost btn-block" onclick="irBusca()">Buscar outro mapa</button>
     </div>`;
 
   renderInspetor();
@@ -800,11 +824,74 @@ async function criarNova(){
 // ═══════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// BUSCA MANUAL
+// ═══════════════════════════════════════════════
+let __bbuf=[];
+function irBusca(){
+  PLQ=null; MCJS=null; JUNTAS=[]; APONT=null;
+  const r=document.getElementById('qRes'); if(r) r.innerHTML='';
+  errClear('qErr');
+  show('stBusca');
+}
+
+async function buscarMapa(){
+  const un=(document.getElementById('qUn').value||'').trim();
+  const termo=(document.getElementById('qTermo').value||'').replace(/[%,]/g,' ').trim();
+  const res=document.getElementById('qRes');
+  errClear('qErr');
+  if(!termo&&!un){errBox('qErr','Informe a unidade ou o código.');return;}
+  const btn=document.getElementById('qBtn'); const txt=btn.textContent;
+  btn.disabled=true; btn.textContent='Buscando…';
+  res.innerHTML='';
+  try{
+    let q=db.from('plaquetas').select('id,unidade,plaqueta,ls_codigo,tag,servico_id,servico,status');
+    if(un) q=q.eq('unidade',un);
+    if(termo){
+      const t=ilikeEsc(termo);
+      q=q.or(`plaqueta.ilike.%${t}%,ls_codigo.ilike.%${t}%,tag.ilike.%${t}%`);
+    }
+    const {data,error}=await q.order('plaqueta').limit(30);
+    if(error) throw error;
+    __bbuf=data||[];
+    if(!__bbuf.length){res.innerHTML='<div class="vazio">Nada encontrado. Confira a unidade e o código.</div>';return;}
+    res.innerHTML='<div class="sec-head"><h3>Resultados</h3><span class="cnt">'+__bbuf.length+'</span></div>'+
+      __bbuf.map((p,i)=>`<button class="jt" onclick="selecPlaqueta(${i})">
+        <span class="jt-id">${esc(p.plaqueta||'')}</span>
+        <span class="jt-body"><span class="jt-sub">${esc(p.ls_codigo||'')}${p.tag?' · '+esc(p.tag):''}</span>
+        <span class="jt-sub">Unidade ${esc(p.unidade||'')}</span></span></button>`).join('');
+  }catch(e){
+    errBox('qErr','Erro na busca: '+(e.message||e));
+  }finally{ btn.disabled=false; btn.textContent=txt; }
+}
+
+function selecPlaqueta(i){
+  const p=__bbuf[i]; if(!p) return;
+  abrirPlaqueta(p);
+}
+
+async function abrirPlaqueta(p){
+  show('stLoad');
+  try{
+    PLQ=p; MCJS=null; APONT=null;
+    if(!ETAPAS.length) await carregarBase();
+    await carregarMcjs();
+    await carregarJuntas();
+    renderMapa();
+  }catch(e){
+    notFound('Não foi possível carregar agora. Verifique a conexão.<br><span style="font-size:11px">'+esc(e.message||'')+'</span>');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════
 async function boot(){
   const q=new URLSearchParams(location.search);
   const un=q.get('un'), plq=q.get('plq'), ls=q.get('ls');
   if(!un&&!plq&&!ls){
-    notFound('Abra esta tela pelo QR da etiqueta.<br>Faltam os parâmetros <b>un</b>, <b>plq</b> e <b>ls</b>.');
+    try{ await carregarBase(); }catch(e){}
+    irBusca();
     return;
   }
   show('stLoad');
@@ -818,11 +905,8 @@ async function boot(){
       notFound(`Os dados da etiqueta apontam para <b>${achados.length}</b> plaquetas. Chame o planejamento antes de registrar.`);
       return;
     }
-    PLQ=achados[0];
     await carregarBase();
-    await carregarMcjs();
-    await carregarJuntas();
-    renderMapa();
+    await abrirPlaqueta(achados[0]);
   }catch(e){
     notFound('Não foi possível carregar agora. Verifique a conexão.<br><span style="font-size:11px">'+esc(e.message||'')+'</span>');
   }

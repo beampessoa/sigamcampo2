@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SIGMA CODE · Painel de Juntas Soldadas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --blue:#0F4CBA;--blue-300:#5B8AE6;
+  --green:#16A34A;--red:#C62828;
+  --canvas:#F1F4F9;--ink:#1F2937;--muted:#6B7280;
+  --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
+  --font-d:'Exo 2',system-ui,sans-serif;
+  --font-ui:'Inter',system-ui,sans-serif;
+  --r:8px;--r-md:12px;--r-lg:16px;
+  --sh:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+  --sh-md:0 10px 24px -12px rgba(16,24,40,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);
+     -webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:inherit}
+
+.top{display:flex;align-items:center;gap:12px;padding:14px 20px;background:#fff;
+     border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.top .logo{width:34px;height:34px;border-radius:9px;background:var(--red);
+     display:flex;align-items:center;justify-content:center;flex:none}
+.top .logo svg{width:18px;height:18px;color:#fff}
+.top .name{font-family:var(--font-d);font-size:16px;font-weight:800}
+.top .name small{display:block;font-family:var(--font-ui);font-size:11px;font-weight:600;
+     color:var(--muted);letter-spacing:.03em}
+.top .sp{flex:1}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;
+     animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.bar h1{font-family:var(--font-d);font-size:22px;font-weight:800;flex:1;min-width:200px}
+select,button{font-family:inherit;font-size:13px;padding:8px 12px;border-radius:var(--r);
+     border:1px solid var(--field-line);background:#fff;color:var(--ink);cursor:pointer}
+select:focus,button:focus-visible{outline:2px solid var(--blue-300);outline-offset:1px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:15px 17px;box-shadow:var(--sh)}
+.kpi .k{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#64748B}
+.kpi .v{font-family:var(--font-d);font-size:29px;font-weight:800;line-height:1.15;margin-top:5px}
+.kpi .s{font-size:11.5px;color:#9CA3AF;margin-top:3px}
+.kpi.ok .v{color:#166534}.kpi.run .v{color:var(--blue)}
+.kpi.wait .v{color:#92400E}.kpi.bad .v{color:#991B1B}
+
+.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:start}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);
+      padding:18px 20px;margin-bottom:16px;box-shadow:var(--sh)}
+.card h2{margin:0 0 13px;font-size:10.5px;font-weight:800;letter-spacing:.13em;
+     text-transform:uppercase;color:#64748B}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+   color:#64748B;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 9px;border-bottom:1px solid #F1F5F9}
+tr:last-child td{border-bottom:none}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.strong{font-weight:700}.muted{color:#9CA3AF}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.tag-ok{background:#F0FDF4;color:#166534}
+.tag-w{background:#FEF3C7;color:#92400E}
+.tag-bad{background:#FEF2F2;color:#991B1B}
+.barra{height:7px;border-radius:4px;background:#E5E7EB;overflow:hidden;min-width:60px}
+.barra i{display:block;height:100%;background:var(--green)}
+.vazio{font-size:13px;color:#9CA3AF;padding:14px 4px;line-height:1.5}
+.erro{display:none;margin-bottom:14px;padding:11px 14px;border-radius:var(--r);
+      background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:13px;font-weight:600}
+.erro.on{display:block}
+.feed{display:flex;flex-direction:column;gap:9px;max-height:440px;overflow-y:auto}
+.fi{display:flex;gap:11px;align-items:flex-start;padding:10px 11px;border:1px solid #F1F5F9;
+    border-radius:var(--r);background:#FCFDFF}
+.fi .ic{width:26px;height:26px;border-radius:50%;flex:none;display:flex;align-items:center;
+        justify-content:center;font-size:12px;font-weight:800;color:#fff;background:var(--green)}
+.fi .ic.rep{background:var(--red)}.fi .ic.na{background:#9CA3AF}
+.fi .tx{flex:1;min-width:0;font-size:12.5px;line-height:1.5}
+.fi .tt{font-size:11px;color:#9CA3AF;white-space:nowrap}
+.foot{text-align:center;font-size:11px;color:#9CA3AF;margin-top:30px;line-height:1.6}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+@media (max-width:640px){.wrap{padding:18px 14px 50px}.bar h1{font-size:19px}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17h4l3-10 4 14 3-8h4"/></svg></div>
+  <div class="name">SIGMA CODE<small>Painel de Juntas Soldadas</small></div>
+  <div class="sp"></div>
+  <span class="live"><span class="dot"></span><span id="tStamp">carregando</span></span>
+</div>
+
+<div class="wrap">
+  <div class="bar">
+    <h1>Andamento das juntas</h1>
+    <select id="fUnidade">
+      <option value="">Todas as unidades</option>
+      <option value="2700">2700</option>
+      <option value="3400">3400</option>
+      <option value="3500">3500</option>
+    </select>
+    <button id="bRefresh">Atualizar</button>
+  </div>
+
+  <div class="erro" id="erro"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="cols">
+    <div>
+      <div class="card"><h2>Avanço por unidade</h2><div id="porUnidade"><div class="vazio">Carregando…</div></div></div>
+      <div class="card"><h2>Etapas concluídas</h2><div id="porEtapa"><div class="vazio">Carregando…</div></div></div>
+      <div class="card"><h2>Cobertura de ensaios</h2><div id="ensaios"><div class="vazio">Carregando…</div></div></div>
+    </div>
+    <div>
+      <div class="card"><h2>Últimos registros</h2><div id="feed"><div class="vazio">Carregando…</div></div></div>
+      <div class="card"><h2>Mapas com junta lançada</h2><div id="mapas"><div class="vazio">Carregando…</div></div></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    SIGMA CODE Engenharia · E-Sigma<br>
+    Acompanhamento público. Autoria e sinete ficam no sistema com acesso restrito.
+  </div>
+</div>
+
+<script>
+const SB_URL='https://kiwiykgzogcxiseynzyy.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
+const db=supabase.createClient(SB_URL,SB_KEY);
+const D={};
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function el(id){return document.getElementById(id);}
+function jtLabel(j){return j.tipo_junta+'-'+String(j.numero_junta).padStart(2,'0')+(j.sufixo||'');}
+function pct(a,b){return b>0?Math.round(a*100/b):0;}
+function hhmm(d){const x=new Date(d);return String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0');}
+function dataBR(d){return d?String(d).slice(0,10).split('-').reverse().join('/'):'';}
+function erro(t){const e=el('erro');if(!t){e.className='erro';return;}e.className='erro on';e.textContent=t;}
+
+async function carregar(){
+  erro('');
+  try{
+    const [etp,ens,jts,evs,aps,mps,req,rez]=await Promise.all([
+      db.from('junta_etapa').select('*').eq('ativo',true).order('ordem'),
+      db.from('ensaio_tipo').select('*').eq('ativo',true).order('ordem'),
+      db.from('junta').select('id,plaqueta_id,tipo_junta,numero_junta,sufixo,situacao,origem').limit(1000),
+      db.from('junta_evento').select('junta_id,apontamento_id,etapa_codigo,passagem,resultado,local_execucao,executado_em,registrado_em').order('registrado_em',{ascending:false}).limit(1000),
+      db.from('apontamento').select('id,plaqueta_id,data_apontamento').order('criado_em',{ascending:false}).limit(1000),
+      db.from('mcjs').select('id,plaqueta_id,unidade,numero').limit(1000),
+      db.from('junta_ensaio_requisito').select('junta_id,ensaio_codigo,percentual,aplicavel').limit(1000),
+      db.from('junta_ensaio').select('junta_id,ensaio_codigo,resultado').limit(1000)
+    ]);
+    D.etapas=etp.data||[]; D.ensaios=ens.data||[]; D.juntas=jts.data||[];
+    D.eventos=evs.data||[]; D.aponts=aps.data||[]; D.mcjs=mps.data||[];
+    D.reqs=req.data||[]; D.realiz=rez.data||[];
+
+    const ids=[...new Set(D.juntas.map(j=>j.plaqueta_id).concat(D.mcjs.map(m=>m.plaqueta_id)))];
+    D.plaquetas={};
+    for(let i=0;i<ids.length;i+=200){
+      const {data}=await db.from('plaquetas')
+        .select('id,unidade,plaqueta,ls_codigo').in('id',ids.slice(i,i+200));
+      (data||[]).forEach(p=>{D.plaquetas[p.id]=p;});
+    }
+    render();
+    el('tStamp').textContent='atualizado '+hhmm(new Date());
+  }catch(e){ erro('Não foi possível carregar. '+(e.message||e)); }
+}
+
+function unidadeDaJunta(j){const p=D.plaquetas[j.plaqueta_id];return p?(p.unidade||''):'';}
+function filtroUn(){return el('fUnidade').value||'';}
+function juntasFiltradas(){
+  const un=filtroUn();
+  return (D.juntas||[]).filter(j=>j.situacao==='ativa'&&(!un||unidadeDaJunta(j)===un));
+}
+function evsPorJunta(){
+  const m={}; (D.eventos||[]).forEach(e=>{(m[e.junta_id]=m[e.junta_id]||[]).push(e);}); return m;
+}
+function estagio(j,evs){
+  const meus=evs[j.id]||[];
+  if(!meus.length) return 'nao_iniciada';
+  const tem=c=>meus.some(e=>e.etapa_codigo===c&&e.resultado!=='na');
+  const reprov=meus.some(e=>e.resultado==='reprovado');
+  if(tem('acabamento')) return reprov?'concluida_com_reparo':'concluida';
+  if(tem('raiz')||tem('enchimento')) return 'em_soldagem';
+  return 'preparacao';
+}
+
+function render(){
+  const evs=evsPorJunta();
+  const js=juntasFiltradas();
+  const est={}; js.forEach(j=>{const s=estagio(j,evs);est[s]=(est[s]||0)+1;});
+  const total=js.length;
+  const concl=(est.concluida||0)+(est.concluida_com_reparo||0);
+  const comReparo=js.filter(j=>(evs[j.id]||[]).some(e=>(e.passagem||1)>1)).length;
+
+  el('kpis').innerHTML=`
+    <div class="kpi"><div class="k">Juntas no plano</div><div class="v">${total}</div>
+      <div class="s">${(D.juntas||[]).filter(j=>j.situacao==='desmembrada').length} desmembradas</div></div>
+    <div class="kpi ok"><div class="k">Concluídas</div><div class="v">${concl}</div>
+      <div class="s">${pct(concl,total)}% do plano</div></div>
+    <div class="kpi run"><div class="k">Em soldagem</div><div class="v">${est.em_soldagem||0}</div>
+      <div class="s">raiz ou enchimento</div></div>
+    <div class="kpi wait"><div class="k">Em preparação</div><div class="v">${est.preparacao||0}</div>
+      <div class="s">visual ou dimensional</div></div>
+    <div class="kpi"><div class="k">Não iniciadas</div><div class="v">${est.nao_iniciada||0}</div>
+      <div class="s">sem registro</div></div>
+    <div class="kpi ${comReparo?'bad':''}"><div class="k">Com reparo</div><div class="v">${comReparo}</div>
+      <div class="s">${pct(comReparo,total)}% de reparo</div></div>`;
+
+  renderPorUnidade(evs);
+  renderPorEtapa(js,evs);
+  renderEnsaios(js);
+  renderFeed();
+  renderMapas();
+}
+
+function renderPorUnidade(evs){
+  const un={};
+  (D.juntas||[]).filter(j=>j.situacao==='ativa').forEach(j=>{
+    const u=unidadeDaJunta(j)||'sem unidade';
+    un[u]=un[u]||{total:0,concl:0};
+    un[u].total++;
+    const s=estagio(j,evs);
+    if(s==='concluida'||s==='concluida_com_reparo') un[u].concl++;
+  });
+  const ks=Object.keys(un).sort();
+  el('porUnidade').innerHTML=ks.length
+    ? '<table><thead><tr><th>Unidade</th><th class="num">Juntas</th><th class="num">Concluídas</th><th>Avanço</th></tr></thead><tbody>'+
+      ks.map(u=>{const d=un[u];const p=pct(d.concl,d.total);
+        return `<tr><td class="strong">${esc(u)}</td><td class="num">${d.total}</td><td class="num">${d.concl}</td>
+        <td><div style="display:flex;align-items:center;gap:9px"><div class="barra" style="flex:1"><i style="width:${p}%"></i></div>
+        <span class="muted" style="font-size:11.5px;min-width:30px">${p}%</span></div></td></tr>`;}).join('')+'</tbody></table>'
+    : '<div class="vazio">Nenhuma junta lançada ainda.</div>';
+}
+
+function renderPorEtapa(js,evs){
+  const idsVis=new Set(js.map(j=>j.id));
+  const total=js.length;
+  const linhas=(D.etapas||[]).map(et=>{
+    let feitas=0;
+    js.forEach(j=>{
+      const meus=(evs[j.id]||[]).filter(e=>e.etapa_codigo===et.codigo&&e.resultado!=='na');
+      if(meus.length) feitas++;
+    });
+    const p=pct(feitas,total);
+    return `<tr><td class="strong">${esc(et.nome)}</td><td class="num">${feitas}</td>
+      <td><div style="display:flex;align-items:center;gap:9px"><div class="barra" style="flex:1"><i style="width:${p}%"></i></div>
+      <span class="muted" style="font-size:11.5px;min-width:30px">${p}%</span></div></td></tr>`;
+  }).join('');
+  el('porEtapa').innerHTML=(total&&idsVis.size)
+    ? '<table><thead><tr><th>Etapa</th><th class="num">Juntas</th><th>Avanço</th></tr></thead><tbody>'+linhas+'</tbody></table>'
+    : '<div class="vazio">Nenhuma junta lançada ainda.</div>';
+}
+
+function renderEnsaios(js){
+  const idsVis=new Set(js.map(j=>j.id));
+  const acc={};
+  (D.reqs||[]).forEach(r=>{
+    if(!idsVis.has(r.junta_id)||!r.aplicavel) return;
+    acc[r.ensaio_codigo]=acc[r.ensaio_codigo]||{pct:Number(r.percentual),previstas:0,feitas:0,reprov:0};
+    acc[r.ensaio_codigo].previstas++;
+    const feitos=(D.realiz||[]).filter(x=>x.junta_id===r.junta_id&&x.ensaio_codigo===r.ensaio_codigo);
+    if(feitos.some(x=>x.resultado!=='reprovado')) acc[r.ensaio_codigo].feitas++;
+    acc[r.ensaio_codigo].reprov+=feitos.filter(x=>x.resultado==='reprovado').length;
+  });
+  const ks=Object.keys(acc);
+  el('ensaios').innerHTML=ks.length
+    ? '<table><thead><tr><th>Ensaio</th><th class="num">Previsto</th><th class="num">Exigidas</th><th class="num">Feitas</th><th></th></tr></thead><tbody>'+
+      ks.map(k=>{const d=acc[k];const nome=((D.ensaios||[]).find(e=>e.codigo===k)||{}).nome||k;
+        const exig=Math.ceil(d.previstas*d.pct/100);const ok=d.feitas>=exig;
+        return `<tr><td class="strong">${esc(nome)}</td><td class="num muted">${d.pct}%</td>
+          <td class="num">${exig}</td><td class="num">${d.feitas}</td>
+          <td>${ok?'<span class="tag tag-ok">cobertura fechada</span>':'<span class="tag tag-w">faltam '+(exig-d.feitas)+'</span>'}
+          ${d.reprov?' <span class="tag tag-bad">'+d.reprov+' reprovado</span>':''}</td></tr>`;}).join('')+'</tbody></table>'
+    : '<div class="vazio">Nenhum ensaio previsto no plano.</div>';
+}
+
+function renderFeed(){
+  const un=filtroUn();
+  const apById={}; (D.aponts||[]).forEach(a=>{apById[a.id]=a;});
+  const jtById={}; (D.juntas||[]).forEach(j=>{jtById[j.id]=j;});
+  const etNome={}; (D.etapas||[]).forEach(e=>{etNome[e.codigo]=e.nome;});
+  const linhas=(D.eventos||[]).filter(e=>{
+    const j=jtById[e.junta_id]; if(!j) return false;
+    return !un||unidadeDaJunta(j)===un;
+  }).slice(0,40);
+
+  el('feed').innerHTML=linhas.length
+    ? '<div class="feed">'+linhas.map(e=>{
+        const j=jtById[e.junta_id];
+        const p=D.plaquetas[j.plaqueta_id]||{};
+        const a=apById[e.apontamento_id]||{};
+        const cls=e.resultado==='reprovado'?'rep':(e.resultado==='na'?'na':'');
+        const ico=e.resultado==='reprovado'?'!':(e.resultado==='na'?'/':'✓');
+        const det=[e.local_execucao,(e.passagem||1)>1?'passagem '+e.passagem:null].filter(Boolean).join(' · ');
+        return `<div class="fi"><div class="ic ${cls}">${ico}</div>
+          <div class="tx"><b>${esc(jtLabel(j))}</b> · ${esc(etNome[e.etapa_codigo]||e.etapa_codigo)}
+          <div class="muted" style="font-size:11.5px">${esc(p.plaqueta||'')} · ${esc(p.unidade||'')} · ${esc(p.ls_codigo||'')}</div>
+          ${det?'<div class="muted" style="font-size:11.5px">'+esc(det)+'</div>':''}</div>
+          <div class="tt">${esc(dataBR(e.executado_em||a.data_apontamento))}</div></div>`;
+      }).join('')+'</div>'
+    : '<div class="vazio">Nenhum registro de campo ainda.</div>';
+}
+
+function renderMapas(){
+  const un=filtroUn();
+  const cnt={};
+  (D.juntas||[]).filter(j=>j.situacao==='ativa').forEach(j=>{
+    cnt[j.plaqueta_id]=(cnt[j.plaqueta_id]||0)+1;
+  });
+  const lista=(D.mcjs||[]).filter(m=>{
+    const p=D.plaquetas[m.plaqueta_id]||{};
+    return !un||(p.unidade||m.unidade)===un;
+  });
+  el('mapas').innerHTML=lista.length
+    ? '<table><thead><tr><th>Mapa</th><th>Unidade</th><th>LS</th><th class="num">Juntas</th></tr></thead><tbody>'+
+      lista.slice(0,15).map(m=>{const p=D.plaquetas[m.plaqueta_id]||{};const n=cnt[m.plaqueta_id]||0;
+        return `<tr><td class="strong mono">${esc(m.numero||'')}</td><td>${esc(p.unidade||m.unidade||'')}</td>
+        <td class="mono muted">${esc(p.ls_codigo||'')}</td>
+        <td class="num">${n?n:'<span class="tag tag-w">0</span>'}</td></tr>`;}).join('')+'</tbody></table>'+
+      (lista.length>15?'<div class="muted" style="font-size:11.5px;margin-top:8px">e mais '+(lista.length-15)+'.</div>':'')
+    : '<div class="vazio">Nenhum mapa criado ainda.</div>';
+}
+
+el('bRefresh').addEventListener('click',carregar);
+el('fUnidade').addEventListener('change',()=>{ if(D.juntas) render(); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) carregar(); });
+setInterval(carregar,60000);
+carregar();
+</script>
+</body>
+</html>
