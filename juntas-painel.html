@@ -148,22 +148,37 @@ function hhmm(d){const x=new Date(d);return String(x.getHours()).padStart(2,'0')
 function dataBR(d){return d?String(d).slice(0,10).split('-').reverse().join('/'):'';}
 function erro(t){const e=el('erro');if(!t){e.className='erro';return;}e.className='erro on';e.textContent=t;}
 
+// Leitura no Supabase corta em 1000 linhas sem avisar, entao tudo pagina.
+async function lerTudo(tabela, colunas, ordem){
+  const passo=1000, out=[];
+  for(let i=0;i<60;i++){
+    let q=db.from(tabela).select(colunas).range(i*passo,(i+1)*passo-1);
+    if(ordem) q=q.order(ordem,{ascending:false});
+    const {data,error}=await q;
+    if(error) throw error;
+    const bloco=data||[];
+    out.push.apply(out,bloco);
+    if(bloco.length<passo) break;
+  }
+  return out;
+}
+
 async function carregar(){
   erro('');
   try{
     const [etp,ens,jts,evs,aps,mps,req,rez]=await Promise.all([
       db.from('junta_etapa').select('*').eq('ativo',true).order('ordem'),
       db.from('ensaio_tipo').select('*').eq('ativo',true).order('ordem'),
-      db.from('junta').select('id,plaqueta_id,tipo_junta,numero_junta,sufixo,situacao,origem').limit(1000),
-      db.from('junta_evento').select('junta_id,apontamento_id,etapa_codigo,passagem,resultado,local_execucao,executado_em,registrado_em').order('registrado_em',{ascending:false}).limit(1000),
-      db.from('apontamento').select('id,plaqueta_id,data_apontamento').order('criado_em',{ascending:false}).limit(1000),
-      db.from('mcjs').select('id,plaqueta_id,unidade,numero').limit(1000),
-      db.from('junta_ensaio_requisito').select('junta_id,ensaio_codigo,percentual,aplicavel').limit(1000),
-      db.from('junta_ensaio').select('junta_id,ensaio_codigo,resultado').limit(1000)
+      lerTudo('junta','id,plaqueta_id,tipo_junta,numero_junta,sufixo,situacao,origem'),
+      lerTudo('junta_evento','junta_id,apontamento_id,etapa_codigo,passagem,resultado,local_execucao,executado_em,registrado_em','registrado_em'),
+      lerTudo('apontamento','id,plaqueta_id,data_apontamento','criado_em'),
+      lerTudo('mcjs','id,plaqueta_id,unidade,numero'),
+      lerTudo('junta_ensaio_requisito','junta_id,ensaio_codigo,percentual,aplicavel'),
+      lerTudo('junta_ensaio','junta_id,ensaio_codigo,resultado')
     ]);
-    D.etapas=etp.data||[]; D.ensaios=ens.data||[]; D.juntas=jts.data||[];
-    D.eventos=evs.data||[]; D.aponts=aps.data||[]; D.mcjs=mps.data||[];
-    D.reqs=req.data||[]; D.realiz=rez.data||[];
+    D.etapas=etp.data||[]; D.ensaios=ens.data||[]; D.juntas=jts;
+    D.eventos=evs; D.aponts=aps; D.mcjs=mps;
+    D.reqs=req; D.realiz=rez;
 
     const ids=[...new Set(D.juntas.map(j=>j.plaqueta_id).concat(D.mcjs.map(m=>m.plaqueta_id)))];
     D.plaquetas={};
@@ -186,14 +201,16 @@ function juntasFiltradas(){
 function evsPorJunta(){
   const m={}; (D.eventos||[]).forEach(e=>{(m[e.junta_id]=m[e.junta_id]||[]).push(e);}); return m;
 }
+// Ciclo real da junta. A solda e registrada de uma vez, com as tres passagens
+// juntas, entao nao existe estado intermediario de soldagem.
 function estagio(j,evs){
   const meus=evs[j.id]||[];
-  if(!meus.length) return 'nao_iniciada';
-  const tem=c=>meus.some(e=>e.etapa_codigo===c&&e.resultado!=='na');
-  const reprov=meus.some(e=>e.resultado==='reprovado');
-  if(tem('acabamento')) return reprov?'concluida_com_reparo':'concluida';
-  if(tem('raiz')||tem('enchimento')) return 'em_soldagem';
-  return 'preparacao';
+  const tem=c=>meus.some(e=>e.etapa_codigo===c && e.resultado!=='na');
+  const soldada=tem('acabamento')||tem('raiz');
+  const liberada=tem('visual_ajuste')||tem('dimensional');
+  if(soldada) return meus.some(e=>e.resultado==='reprovado')?'soldada_com_reparo':'soldada';
+  if(liberada) return 'liberada';
+  return 'aguardando';
 }
 
 function render(){
@@ -201,20 +218,24 @@ function render(){
   const js=juntasFiltradas();
   const est={}; js.forEach(j=>{const s=estagio(j,evs);est[s]=(est[s]||0)+1;});
   const total=js.length;
-  const concl=(est.concluida||0)+(est.concluida_com_reparo||0);
+  const soldadas=(est.soldada||0)+(est.soldada_com_reparo||0);
+  const liberadas=est.liberada||0;
+  const aguardando=est.aguardando||0;
   const comReparo=js.filter(j=>(evs[j.id]||[]).some(e=>(e.passagem||1)>1)).length;
+  // ensaio realizado em junta ja soldada
+  const comEnsaio=js.filter(j=>(D.realiz||[]).some(x=>x.junta_id===j.id)).length;
 
   el('kpis').innerHTML=`
     <div class="kpi"><div class="k">Juntas no plano</div><div class="v">${total}</div>
       <div class="s">${(D.juntas||[]).filter(j=>j.situacao==='desmembrada').length} desmembradas</div></div>
-    <div class="kpi ok"><div class="k">Concluídas</div><div class="v">${concl}</div>
-      <div class="s">${pct(concl,total)}% do plano</div></div>
-    <div class="kpi run"><div class="k">Em soldagem</div><div class="v">${est.em_soldagem||0}</div>
-      <div class="s">raiz ou enchimento</div></div>
-    <div class="kpi wait"><div class="k">Em preparação</div><div class="v">${est.preparacao||0}</div>
-      <div class="s">visual ou dimensional</div></div>
-    <div class="kpi"><div class="k">Não iniciadas</div><div class="v">${est.nao_iniciada||0}</div>
-      <div class="s">sem registro</div></div>
+    <div class="kpi wait"><div class="k">Aguardando liberação</div><div class="v">${aguardando}</div>
+      <div class="s">sem visual de ajuste</div></div>
+    <div class="kpi run"><div class="k">Liberadas</div><div class="v">${liberadas}</div>
+      <div class="s">visual feito, falta soldar</div></div>
+    <div class="kpi ok"><div class="k">Soldadas</div><div class="v">${soldadas}</div>
+      <div class="s">${pct(soldadas,total)}% do plano</div></div>
+    <div class="kpi"><div class="k">Com ensaio</div><div class="v">${comEnsaio}</div>
+      <div class="s">laudo registrado</div></div>
     <div class="kpi ${comReparo?'bad':''}"><div class="k">Com reparo</div><div class="v">${comReparo}</div>
       <div class="s">${pct(comReparo,total)}% de reparo</div></div>`;
 
@@ -232,11 +253,11 @@ function renderPorUnidade(evs){
     un[u]=un[u]||{total:0,concl:0};
     un[u].total++;
     const s=estagio(j,evs);
-    if(s==='concluida'||s==='concluida_com_reparo') un[u].concl++;
+    if(s==='soldada'||s==='soldada_com_reparo') un[u].concl++;
   });
   const ks=Object.keys(un).sort();
   el('porUnidade').innerHTML=ks.length
-    ? '<table><thead><tr><th>Unidade</th><th class="num">Juntas</th><th class="num">Concluídas</th><th>Avanço</th></tr></thead><tbody>'+
+    ? '<table><thead><tr><th>Unidade</th><th class="num">Juntas</th><th class="num">Soldadas</th><th>Avanço</th></tr></thead><tbody>'+
       ks.map(u=>{const d=un[u];const p=pct(d.concl,d.total);
         return `<tr><td class="strong">${esc(u)}</td><td class="num">${d.total}</td><td class="num">${d.concl}</td>
         <td><div style="display:flex;align-items:center;gap:9px"><div class="barra" style="flex:1"><i style="width:${p}%"></i></div>
