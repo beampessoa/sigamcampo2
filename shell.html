@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>E-Sigma — Painel Central</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ── TOKENS ── */
+:root{
+  --blue:#0F4CBA;--blue-700:#0B3A91;
+  --green:#22C55E;--green-600:#16A34A;
+  --graphite:#1F2937;--graphite-900:#141B26;
+  --canvas:#F1F4F9;--white:#fff;
+  --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
+  --line:#E5E7EB;--field:#F4F6FA;
+  --danger:#EF4444;--warning:#F59E0B;
+  --font-d:'Exo 2',system-ui,sans-serif;
+  --font-ui:'Inter',system-ui,sans-serif;
+  --r:8px;--r-md:12px;
+  --side-w:260px;--header-h:64px;
+  --sh:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+
+/* ── LAYOUT ── */
+.app{
+  display:grid;
+  grid-template-columns:var(--side-w) 1fr;
+  grid-template-rows:var(--header-h) 1fr;
+  grid-template-areas:"head head""side main";
+  min-height:100vh;
+}
+
+/* ── HEADER ── */
+.es-header{
+  grid-area:head;
+  position:sticky;top:0;z-index:40;
+  background:#fff;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:14px;padding:0 20px;
+  box-shadow:var(--sh);
+}
+
+/* ── SIDEBAR ── */
+.es-side{
+  grid-area:side;
+  background:linear-gradient(180deg,var(--graphite),var(--graphite-900));
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+
+/* ── MAIN ── */
+.main{
+  grid-area:main;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* ── PAGE HEADER ── */
+.page-head{margin-bottom:22px}
+.page-head h1{font-family:var(--font-d);font-size:24px;font-weight:700;color:var(--graphite)}
+.page-head p{font-size:13.5px;color:var(--muted);margin-top:4px}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);
+     padding:14px 16px;box-shadow:var(--sh);display:flex;align-items:center;gap:12px}
+.kpi-ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
+.kpi-ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2}
+.kpi.grd .kpi-ic{background:#EFF6FF;color:#0F4CBA}
+.kpi.ct  .kpi-ic{background:#EDE9FE;color:#7C3AED}
+.kpi.lm  .kpi-ic{background:#DCFCE7;color:#16A34A}
+.kpi.pr  .kpi-ic{background:#FFF7ED;color:#C2410C}
+.kpi-val{font-family:var(--font-d);font-size:26px;font-weight:700;color:var(--graphite);line-height:1}
+.kpi-lbl{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* ── ATALHOS ── */
+.atalhos{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:24px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);
+      padding:20px;box-shadow:var(--sh);display:block;
+      transition:border-color .15s,box-shadow .15s,transform .12s}
+.card:hover{border-color:#5B8AE6;box-shadow:0 4px 16px -8px rgba(15,76,186,.2);transform:translateY(-2px)}
+.card-ic{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:13px}
+.card-ic svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2}
+.card-title{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--graphite);margin-bottom:4px}
+.card-desc{font-size:12.5px;color:var(--muted);line-height:1.5}
+.card.em-breve{opacity:.5;pointer-events:none}
+.em-breve-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;
+              border-radius:4px;background:#FEF9C3;color:#854D0E;margin-top:8px}
+
+/* ── FOOTER ── */
+.footer{border-top:1px solid var(--line);background:#fff;padding:10px 28px;
+        display:flex;align-items:center;gap:20px;font-size:12px;color:var(--muted)}
+.footer b{color:var(--ink-soft);font-weight:600}
+.footer .r{margin-left:auto}
+
+/* ── RESPONSIVE ── */
+@media(max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-areas:"head""main"}
+  .es-side{display:none}
+  .kpi-strip{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:500px){.content{padding:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- O header e sidebar são preenchidos pelo esigma-ui.js -->
+  <header class="es-header"></header>
+  <aside class="es-side"></aside>
+
+  <main class="main">
+    <div class="content">
+
+      <div class="page-head">
+        <h1>Painel Central</h1>
+        <p>Acesse os módulos pelo menu lateral ou pelos atalhos abaixo.</p>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-strip">
+        <div class="kpi grd">
+          <div class="kpi-ic"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2 15 22l-4-9-9-4 20-7z"/></svg></div>
+          <div><div class="kpi-val" id="k-grd">—</div><div class="kpi-lbl">GRDs emitidas</div></div>
+        </div>
+        <div class="kpi ct">
+          <div class="kpi-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg></div>
+          <div><div class="kpi-val" id="k-ct">—</div><div class="kpi-lbl">Consultas Técnicas</div></div>
+        </div>
+        <div class="kpi lm">
+          <div class="kpi-ic"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1.2 1.2L7 4.5M3 12l1.2 1.2L7 10.5M3 18l1.2 1.2L7 16.5"/></svg></div>
+          <div><div class="kpi-val" id="k-lm">—</div><div class="kpi-lbl">Docs Lista Mestra</div></div>
+        </div>
+        <div class="kpi pr">
+          <div class="kpi-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg></div>
+          <div><div class="kpi-val" id="k-proc">—</div><div class="kpi-lbl">Procedimentos</div></div>
+        </div>
+      </div>
+
+      <!-- Atalhos -->
+      <div class="atalhos">
+
+        <a href="grd-lista.html" class="card">
+          <div class="card-ic" style="background:#EFF6FF;color:#0F4CBA">
+            <svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+          </div>
+          <div class="card-title">GRD</div>
+          <div class="card-desc">Guia de Remessa de Documentos</div>
+        </a>
+
+        <a href="ct-lista.html" class="card">
+          <div class="card-ic" style="background:#EDE9FE;color:#7C3AED">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+          </div>
+          <div class="card-title">Consulta Técnica</div>
+          <div class="card-desc">Registro e rastreabilidade de CTs</div>
+        </a>
+
+        <a href="lista-mestra.html" class="card">
+          <div class="card-ic" style="background:#DCFCE7;color:#16A34A">
+            <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1.2 1.2L7 4.5M3 12l1.2 1.2L7 10.5M3 18l1.2 1.2L7 16.5"/></svg>
+          </div>
+          <div class="card-title">Lista Mestra</div>
+          <div class="card-desc">Controle de documentos do contrato</div>
+        </a>
+
+        <a href="proc-lista.html" class="card">
+          <div class="card-ic" style="background:#FFF7ED;color:#C2410C">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+          </div>
+          <div class="card-title">Procedimentos</div>
+          <div class="card-desc">E-SIGMA DOC ENGINE</div>
+        </a>
+
+        <a href="admin.html" class="card">
+          <div class="card-ic" style="background:#F3E8FF;color:#7C3AED">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1 2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.6-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 14H3a2 2 0 1 1 0-4z"/></svg>
+          </div>
+          <div class="card-title">Administração</div>
+          <div class="card-desc">Usuários, contratos e logs</div>
+        </a>
+
+        <a href="empresa.html" class="card">
+          <div class="card-ic" style="background:#F0F9FF;color:#0369A1">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+          </div>
+          <div class="card-title">Config. Empresa</div>
+          <div class="card-desc">Logo e dados corporativos</div>
+        </a>
+
+        <a href="equip-busca.html" class="card">
+          <div class="card-ic" style="background:#EFF6FF;color:#0F4CBA">
+            <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </div>
+          <div class="card-title">Equipamentos</div>
+          <div class="card-desc">Cadastro de ativos e TAGs</div>
+        </a>
+
+        <a href="end.html" class="card">
+          <div class="card-ic" style="background:#ECFEFF;color:#0E7490">
+            <svg viewBox="0 0 24 24"><path d="M2 12h3l2 7 4-16 3 11 2-5h6"/></svg>
+          </div>
+          <div class="card-title">Ensaios &amp; Relatórios</div>
+          <div class="card-desc">END, torque, raqueteamento — evidências de serviço</div>
+        </a>
+
+        <a href="det-mapa.html" class="card">
+          <div class="card-ic" style="background:#FEF3C7;color:#92400E">
+            <svg viewBox="0 0 24 24"><path d="M4 20h16M6 16l4-8 4 6 4-4M6 16v4M18 10v10"/></svg>
+          </div>
+          <div class="card-title">Projetos</div>
+          <div class="card-desc">Mapa de juntas soldadas e spools por detalhamento</div>
+        </a>
+
+        <a href="mcjs.html" class="card">
+          <div class="card-ic" style="background:#FEF2F2;color:#C62828">
+            <svg viewBox="0 0 24 24"><path d="M3 17h4l3-10 4 14 3-8h4"/></svg>
+          </div>
+          <div class="card-title">MCJS</div>
+          <div class="card-desc">Mapa de controle de juntas soldadas por plaqueta</div>
+        </a>
+
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span>E-Sigma <b>v1.0.0</b> (MVP)</span>
+      <span id="foot-contrato"></span>
+      <span class="r">© 2026 SIGMA CODE</span>
+    </footer>
+  </main>
+</div>
+
+<!-- Supabase + UI compartilhado -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="esigma-ui.js"></script>
+<script>
+// Inicia o componente compartilhado (header + sidebar + sessão)
+ESigma.init().then(() => {
+  // Carrega KPIs depois que o init terminar
+  loadKPIs();
+});
+
+async function loadKPIs() {
+  try {
+    const { createClient } = supabase;
+    const db = createClient(
+      'https://kiwiy kgzogcxiseynzyy.supabase.co'.replace(/ /g,''),
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU'
+    );
+
+    const [grd, ct, lm, proc, ctrato] = await Promise.all([
+      db.from('grd').select('*',{count:'exact',head:true}).eq('status','emitida'),
+      db.from('ct').select('*',{count:'exact',head:true}),
+      db.from('lista_mestra').select('*',{count:'exact',head:true}).eq('status','aprovado'),
+      db.from('procedimentos').select('*',{count:'exact',head:true}),
+      db.from('contratos').select('codigo,descricao').eq('ativo',true).order('codigo').limit(1).single(),
+    ]);
+
+    document.getElementById('k-grd').textContent  = grd.count  ?? '—';
+    document.getElementById('k-ct').textContent   = ct.count   ?? '—';
+    document.getElementById('k-lm').textContent   = lm.count   ?? '—';
+    document.getElementById('k-proc').textContent = proc.count ?? '—';
+
+    if (ctrato.data) {
+      document.getElementById('foot-contrato').textContent =
+        `Contrato ativo: ${ctrato.data.codigo} · ${ctrato.data.descricao || ''}`;
+    }
+  } catch(e) {
+    console.warn('KPI error:', e.message);
+  }
+}
+</script>
+</body>
+</html>
