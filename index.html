@@ -12,6 +12,7 @@
   --blue:#0F4CBA;--blue-700:#0B3A91;--blue-300:#5B8AE6;
   --green:#16A34A;--green-700:#15803D;
   --red:#C62828;--red-700:#A31D1D;
+  --cinza:#64748B;
   --white:#fff;--canvas:#F1F4F9;
   --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
   --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
@@ -60,7 +61,7 @@ body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);
      color:var(--muted);margin:32px 0 12px}
 
 /* Paineis */
-.paineis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.paineis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .painel{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);
      border-radius:var(--r-lg);overflow:hidden;text-decoration:none;color:var(--ink);
      box-shadow:var(--sh);transition:transform .12s,box-shadow .15s,border-color .15s}
@@ -78,9 +79,11 @@ body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);
 .painel .go svg{width:13px;height:13px}
 .painel.verde   {--c:var(--green);--c-soft:#EFFCF3}
 .painel.azul    {--c:var(--blue); --c-soft:#EFF4FF}
+.painel.cinza   {--c:var(--cinza);--c-soft:#F1F5F9}
 .painel.vermelho{--c:var(--red);  --c-soft:#FEF2F2}
 .painel.verde:hover   {border-color:#86EFAC}
 .painel.azul:hover    {border-color:var(--blue-300)}
+.painel.cinza:hover   {border-color:#94A3B8}
 .painel.vermelho:hover{border-color:#FCA5A5}
 
 .foot{text-align:center;font-size:11px;color:#9CA3AF;margin-top:36px;line-height:1.6}
@@ -89,7 +92,10 @@ body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);
   .painel,.cta{transition:none}
   .painel:hover{transform:none}
 }
-@media (max-width:760px){
+@media (max-width:1000px){
+  .paineis{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:640px){
   .paineis{grid-template-columns:1fr}
   .hero h1{font-size:22px}
 }
@@ -158,6 +164,18 @@ body{font-family:var(--font-ui);color:var(--ink);background:var(--canvas);
         </div>
         <h3>Painel de Juntas Soldadas</h3>
         <p>Avanço das juntas por unidade e por etapa, reparos e cobertura de ensaios.</p>
+        <span class="go">Abrir <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </div>
+    </a>
+
+    <a class="painel cinza" href="materiais.html">
+      <div class="faixa"></div>
+      <div class="corpo">
+        <div class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.27 6.96 8.73 5.05 8.73-5.05"/><path d="M12 22.08V12"/></svg>
+        </div>
+        <h3>Painel de Materiais</h3>
+        <p>Status dos materiais vinculados a cada LS, por TAG e código.</p>
         <span class="go">Abrir <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
       </div>
     </a>
