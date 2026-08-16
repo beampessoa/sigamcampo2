@@ -496,7 +496,10 @@ async function enrich(p){
 // ═══════════════════════════════════════════════
 async function renderFicha(p){
   const ex=await enrich(p);
-  const ativo=(p.status||'ativo').toLowerCase()==='ativo';
+  // A coluna status mistura estado do sistema com observacao do levantamento.
+  // Na ficha so faz sentido sinalizar o cancelamento. FEITO, PEND. INFO,
+  // CONCLUIDO e NAO FEITO sao do levantamento e nao dizem nada ao campo.
+  const cancelada=(p.status||'').trim().toUpperCase()==='CANCELADO';
   const servStyle=ex.cor?`background:${ex.cor};color:${contrastText(ex.cor)};border-color:${ex.borda||ex.cor}`:'';
 
   const linhas=[];
@@ -532,7 +535,7 @@ async function renderFicha(p){
     <div class="ls-code">${esc(p.ls_codigo||'—')}</div>
     <div class="chips">
       <span class="chip chip-servico" style="${servStyle}">${esc(ex.servicoNome||'Serviço não informado')}</span>
-      <span class="chip chip-status ${ativo?'':'off'}"><span class="dot"></span>${ativo?'Ativo':esc(p.status||'Inativo')}</span>
+      ${cancelada?`<span class="chip chip-status off"><span class="dot"></span>Cancelada</span>`:''}
       <span class="chip chip-meta">Plaqueta · <b>${esc(p.plaqueta||'—')}</b></span>
       ${p.unidade?`<span class="chip chip-meta">Unidade · <b>${esc(p.unidade)}</b></span>`:''}
     </div>
