@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Importar PCRS | E-SIGMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,-apple-system,sans-serif;
+       background:#F4F6FA;color:#1F2937;
+       display:grid;grid-template-columns:260px 1fr;grid-template-rows:64px 1fr;
+       grid-template-areas:"header header" "side main";min-height:100vh}
+  .es-header{grid-area:header}
+  .es-side  {grid-area:side}
+  main      {grid-area:main;padding:26px 28px 48px;overflow-y:auto}
+
+  .pg-head{margin-bottom:20px;max-width:1100px}
+  .pg-head h1{margin:0 0 4px;font-family:'Exo 2',sans-serif;font-size:23px;
+              font-weight:700;letter-spacing:-.01em}
+  .pg-head p{margin:0;font-size:13.5px;color:#6B7280}
+
+  .card{background:#fff;border:1px solid #E5E7EB;border-radius:10px;
+        box-shadow:0 1px 2px rgba(16,24,40,.04);padding:18px 20px;margin-bottom:16px;max-width:1100px}
+  .card h2{margin:0 0 12px;font-size:10.5px;font-weight:700;letter-spacing:.13em;
+           text-transform:uppercase;color:#64748B}
+
+  .passo{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .passo i{width:23px;height:23px;border-radius:50%;background:#1B3A6B;color:#fff;
+           display:flex;align-items:center;justify-content:center;font-size:12px;
+           font-weight:700;font-style:normal;flex:none}
+  .passo i.off{background:#CBD5E1}
+  .passo b{font-size:14px}
+
+  input[type=file]{font-size:13.5px}
+  .btn{padding:9px 15px;border-radius:7px;border:1px solid transparent;font-size:13px;
+       font-weight:600;cursor:pointer;font-family:inherit}
+  .btn-pri{background:#1B3A6B;color:#fff}
+  .btn-pri:hover{background:#15305A}
+  .btn-gh{background:#fff;color:#374151;border-color:#D7DEEA}
+  .btn-gh:hover{background:#F1F5F9}
+  .btn-dg{background:#991B1B;color:#fff}
+  .btn:disabled{opacity:.5;cursor:default}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px}
+  .kpi{border:1px solid #E5E7EB;border-radius:9px;padding:12px 14px;background:#FCFDFF}
+  .kpi .k{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748B}
+  .kpi .v{font-family:'Exo 2',sans-serif;font-size:25px;font-weight:700;margin-top:4px}
+  .kpi.ok .v{color:#166534}
+  .kpi.bad .v{color:#991B1B}
+  .kpi.warn .v{color:#92400E}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+     color:#64748B;padding:7px 9px;border-bottom:1px solid #E5E7EB;white-space:nowrap}
+  td{padding:7px 9px;border-bottom:1px solid #F1F5F9;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .strong{font-weight:700}
+  .muted{color:#9CA3AF}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap}
+  .tag-ok{background:#F0FDF4;color:#166534}
+  .tag-w{background:#FEF3C7;color:#92400E}
+  .tag-bad{background:#FEF2F2;color:#991B1B}
+
+  .msg{display:none;margin-top:12px;padding:10px 13px;border-radius:7px;font-size:13px;font-weight:600}
+  .msg.on{display:block}
+  .msg.err{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B}
+  .msg.ok{background:#F0FDF4;border:1px solid #BBF7D0;color:#166534}
+  .msg.warn{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+  .vazio{font-size:13px;color:#9CA3AF;padding:12px 4px}
+  .hide{display:none}
+  .rolagem{max-height:340px;overflow-y:auto;border:1px solid #F1F5F9;border-radius:8px}
+  .nota{font-size:11.5px;color:#9CA3AF;margin-top:9px;line-height:1.55}
+  .prog{height:8px;border-radius:5px;background:#E5E7EB;overflow:hidden;margin-top:10px}
+  .prog i{display:block;height:100%;background:#1B3A6B;width:0%}
+
+  @media(max-width:860px){
+    body{grid-template-columns:1fr;grid-template-rows:64px auto 1fr;
+         grid-template-areas:"header" "side" "main"}
+    main{padding:20px 16px 40px}
+  }
+</style>
+</head>
+<body>
+
+<header class="es-header"></header>
+<aside class="es-side"></aside>
+
+<main>
+  <div class="pg-head">
+    <h1>Importar PCRS</h1>
+    <p>Carga do plano de soldagem a partir da planilha</p>
+  </div>
+
+  <div class="card">
+    <div class="passo"><i>1</i><b>Selecionar a planilha</b></div>
+    <div class="bar">
+      <input type="file" id="fArquivo" accept=".xlsx,.xlsm">
+      <span class="muted" style="font-size:12px">Aba SOLDA. O cabeçalho é localizado pelo conteúdo.</span>
+    </div>
+    <div class="msg" id="msgArquivo"></div>
+    <div class="nota">O mapeamento é conferido coluna a coluna antes de qualquer leitura.
+      Se o cabeçalho não bater com o esperado, a importação para e mostra onde divergiu.</div>
+  </div>
+
+  <div class="card hide" id="cardLeitura">
+    <div class="passo"><i>2</i><b>Leitura e conferência</b></div>
+    <div class="kpis" id="kpisLeitura"></div>
+    <div id="pendBox"></div>
+    <div class="bar" style="margin-top:14px">
+      <button class="btn btn-pri" id="bConferir">Conferir contra o banco</button>
+    </div>
+    <div class="msg" id="msgLeitura"></div>
+  </div>
+
+  <div class="card hide" id="cardConf">
+    <div class="passo"><i>3</i><b>Resolução das plaquetas</b></div>
+    <div class="kpis" id="kpisConf"></div>
+    <div id="confBox"></div>
+    <div class="bar" style="margin-top:14px">
+      <button class="btn btn-pri" id="bGravar">Gravar no banco</button>
+      <span class="muted" style="font-size:12px">Junta que já existir é ignorada. Nada é sobrescrito.</span>
+    </div>
+    <div class="prog hide" id="progWrap"><i id="progBar"></i></div>
+    <div class="msg" id="msgGravar"></div>
+  </div>
+
+  <div class="card hide" id="cardFim">
+    <div class="passo"><i>4</i><b>Resultado</b></div>
+    <div class="kpis" id="kpisFim"></div>
+    <div id="fimBox"></div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="esigma-ui.js"></script>
+<script>
+const SB_URL='https://kiwiykgzogcxiseynzyy.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
+let sb=null, OCUPADO=false;
+
+// ═══════════════════════════════════════════════
+// MAPEAMENTO EXPLICITO
+// Indice zero a zero da aba SOLDA, conferido contra o cabecalho da linha 6.
+// Coluna que nao esta aqui nao entra em lugar nenhum.
+// ═══════════════════════════════════════════════
+const COL={
+  cod:0, unidade:1, plaqueta:2, sistema:3, isometrico:4, tag:5, equipamento:6,
+  ls:7, item_geral:8, descricao_tarefa:9, descricao_resumida:10, spec:11,
+  classe_pressao:12, fluido:13, temperatura:14, material:15, p_numero:16,
+  material_2:17, p_numero_2:18, junta:19, tipo_construtivo:20, diametro:21,
+  espessura:22, local:23, classe_inspecao:24, detalhamento:25, spool:26,
+  sinete_raiz:27, sinete_ench:28, liberacao:29, local_ensaio:30, laudo:31,
+  data_ensaio:32, ieis:33, eps:34, processo:35, consumivel:36, f_numero:37,
+  ttat_temp:38, ttat_tempo:39, ct:40, observacao:58, detalhamento2:59,
+  pcrs:60, mcjs:61, obs_bia:62
+};
+const ESPERADO={
+  0:'CÓD.', 1:'UNIDADE', 2:'Plaqueta GCB', 4:'ISOMÉTRICO', 5:'TAG',
+  7:'DOC. REFERÊNCIA', 19:'JUNTA', 20:'TIPO JUNTA', 21:'DIÂM.', 22:'ESPES.',
+  23:'PIPE  ou CAMPO', 24:'CLASSE INSP', 26:'SPOOL', 27:'Sinete Raiz',
+  28:'Sinete Ench/Acab.', 29:'liberação do VA/VS', 31:'Laudo',
+  32:'Data do Ensaio', 33:'IEIS', 35:'PROC. SOLD.', 61:'MCJS'
+};
+// As 17 colunas de ensaio, na ordem da planilha
+const ENSAIOS=[
+  {i:41,cod:'PMI'},{i:42,cod:'EVS'},{i:43,cod:'LP_REM'},{i:44,cod:'LP'},
+  {i:45,cod:'LP2'},{i:46,cod:'PM'},{i:47,cod:'PM2'},{i:48,cod:'US'},
+  {i:49,cod:'US2'},{i:50,cod:'PA'},{i:51,cod:'RX'},{i:52,cod:'RX2'},
+  {i:53,cod:'TTAT'},{i:54,cod:'DUR'},{i:55,cod:'TH'},{i:56,cod:'TO'},{i:57,cod:'TP'}
+];
+
+let LIDO=null;   // resultado da leitura
+let CONF=null;   // resultado da conferencia
+
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function msg(id,texto,tipo){
+  const m=el(id); if(!m) return;
+  if(!texto){m.className='msg';m.textContent='';return;}
+  m.className='msg on '+(tipo||'ok'); m.textContent=texto;
+}
+function txt(v){
+  if(v==null) return null;
+  const s=String(v).replace(/\s+/g,' ').trim();
+  return s===''?null:s;
+}
+function norm(s){return txt(s)?txt(s).toUpperCase():'';}
+
+// ═══════════════════════════════════════════════
+// NORMALIZACAO
+// ═══════════════════════════════════════════════
+function numeroJunta(v){
+  const s=txt(v);
+  if(!s) return null;
+  const d=s.match(/\d+/);
+  return d?parseInt(d[0],10):null;
+}
+// O prefixo JC ou JP vem da coluna PIPE ou CAMPO, nao da coluna JUNTA
+function tipoJunta(local){
+  const s=norm(local);
+  if(s.indexOf('PIPE')>=0) return 'JP';
+  if(s.indexOf('CAMPO')>=0) return 'JC';
+  return null;
+}
+function espessuraMm(v){
+  const s=txt(v);
+  if(!s) return null;
+  const m=s.replace(',','.').match(/-?\d+(\.\d+)?/);
+  if(!m) return null;
+  const n=Number(m[0]);
+  return isNaN(n)?null:n;
+}
+function dataISO(v){
+  if(v==null||v==='') return null;
+  if(v instanceof Date && !isNaN(v)){
+    return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+  }
+  const s=txt(v); if(!s) return null;
+  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if(!m) return null;
+  let ano=m[3].length===2?('20'+m[3]):m[3];
+  return ano+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+}
+function hojeISO(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// ═══════════════════════════════════════════════
+// PASSO 1 e 2: LEITURA
+// ═══════════════════════════════════════════════
+async function lerArquivo(ev){
+  const f=ev.target.files[0];
+  if(!f) return;
+  msg('msgArquivo','Lendo a planilha…','warn');
+  el('cardLeitura').classList.add('hide');
+  el('cardConf').classList.add('hide');
+  el('cardFim').classList.add('hide');
+  await new Promise(r=>setTimeout(r,30));
+  try{
+    const buf=await f.arrayBuffer();
+    const wb=XLSX.read(buf,{cellDates:true,sheets:['SOLDA']});
+    if(wb.SheetNames.indexOf('SOLDA')<0) throw new Error('A planilha não tem a aba SOLDA.');
+    const ws=wb.Sheets['SOLDA'];
+    if(!ws||!ws['!ref']) throw new Error('A aba SOLDA está vazia.');
+
+    // A aba declara um intervalo enorme, com mais de um milhao de linhas.
+    // Converter tudo trava o navegador, entao a leitura e celula a celula
+    // e para depois de uma sequencia longa de linhas vazias.
+    const ref=XLSX.utils.decode_range(ws['!ref']);
+    const ULT_COL=Math.min(ref.e.c, 70);
+    const cel=(lin,col)=>{
+      const c=ws[XLSX.utils.encode_cell({r:lin,c:col})];
+      return c?(c.v==null?null:c.v):null;
+    };
+    const lerLinha=lin=>{
+      const out=[];
+      for(let c=0;c<=ULT_COL;c++) out.push(cel(lin,c));
+      return out;
+    };
+
+    // O cabecalho e localizado pelo conteudo, nao por numero de linha fixo,
+    // porque copias da planilha podem ter linhas a mais ou a menos no topo.
+    let linhaHdr=-1;
+    for(let n=0;n<=Math.min(ref.e.r,40);n++){
+      if(norm(cel(n,0))==='CÓD.' && norm(cel(n,1))==='UNIDADE' && norm(cel(n,2))==='PLAQUETA GCB'){
+        linhaHdr=n; break;
+      }
+    }
+    if(linhaHdr<0) throw new Error('Não achei o cabeçalho na aba SOLDA. Esperava uma linha com CÓD., UNIDADE e Plaqueta GCB.');
+
+    const hdr=lerLinha(linhaHdr).map(v=>txt(v)?txt(v):'');
+    const divergentes=[];
+    Object.keys(ESPERADO).forEach(k=>{
+      const i=Number(k);
+      if(norm(hdr[i])!==norm(ESPERADO[k])) divergentes.push({i:i,esperado:ESPERADO[k],achado:hdr[i]||'(vazio)'});
+    });
+    if(divergentes.length){
+      msg('msgArquivo','Cabeçalho na linha '+(linhaHdr+1)+' fora do esperado em '+divergentes.length+
+        ' coluna(s). Primeira divergência: coluna '+(divergentes[0].i+1)+
+        ', esperado "'+divergentes[0].esperado+'", encontrado "'+divergentes[0].achado+'".','err');
+      return;
+    }
+
+    const dados=[];
+    let vazias=0;
+    for(let n=linhaHdr+1;n<=ref.e.r;n++){
+      const plq=txt(cel(n,COL.plaqueta)), ls=txt(cel(n,COL.ls));
+      if(!plq && !ls){
+        vazias++;
+        if(vazias>300) break;   // fim real dos dados
+        continue;
+      }
+      vazias=0;
+      dados.push({linha:n+1, r:lerLinha(n)});
+    }
+
+    const pend=[];
+    const juntas=dados.map(d=>{
+      const r=d.r;
+      const un=txt(r[COL.unidade]), plq=txt(r[COL.plaqueta]), ls=txt(r[COL.ls]);
+      const num=numeroJunta(r[COL.junta]);
+      const tipo=tipoJunta(r[COL.local]);
+      if(!un||!plq)  pend.push({linha:d.linha,motivo:'sem unidade ou sem plaqueta',detalhe:(un||'')+' / '+(plq||'')});
+      if(num===null) pend.push({linha:d.linha,motivo:'sem número de junta',detalhe:txt(r[COL.junta])||'(vazio)'});
+      if(!tipo)      pend.push({linha:d.linha,motivo:'sem pipe shop ou campo',detalhe:txt(r[COL.local])||'(vazio)'});
+      const tc=txt(r[COL.tipo_construtivo]);
+      if(tc && norm(tc)==='VERIFICAR') pend.push({linha:d.linha,motivo:'tipo de junta marcado VERIFICAR',detalhe:tc});
+      return {
+        linha:d.linha, un:un, plq:plq, ls:ls,
+        isometrico:txt(r[COL.isometrico]),
+        tipo:tipo, numero:num, numero_origem:txt(r[COL.junta]),
+        r:r
+      };
+    });
+
+    // colisao de identidade dentro do arquivo
+    const chave={}, colisoes=[];
+    juntas.forEach(j=>{
+      if(!j.un||!j.plq||j.numero===null||!j.tipo) return;
+      const k=[j.un,j.plq,j.isometrico||'',j.tipo,j.numero].join('|');
+      if(chave[k]!==undefined){
+        colisoes.push({linha:j.linha,motivo:'junta repetida no arquivo',detalhe:'igual à linha '+chave[k]});
+      }else chave[k]=j.linha;
+    });
+    colisoes.forEach(c=>pend.push(c));
+
+    LIDO={arquivo:f.name, juntas:juntas, pendencias:pend};
+    msg('msgArquivo','');
+    renderLeitura();
+  }catch(e){
+    msg('msgArquivo','Não foi possível ler o arquivo. '+(e.message||e),'err');
+  }
+}
+
+function renderLeitura(){
+  const j=LIDO.juntas, p=LIDO.pendencias;
+  const trios=new Set(j.filter(x=>x.un&&x.plq).map(x=>x.un+'|'+x.plq+'|'+(x.ls||'')));
+  const validas=j.filter(x=>x.un&&x.plq&&x.numero!==null&&x.tipo).length;
+  el('kpisLeitura').innerHTML=`
+    <div class="kpi"><div class="k">Linhas lidas</div><div class="v">${j.length}</div></div>
+    <div class="kpi ok"><div class="k">Juntas válidas</div><div class="v">${validas}</div></div>
+    <div class="kpi"><div class="k">Trios distintos</div><div class="v">${trios.size}</div></div>
+    <div class="kpi ${p.length?'warn':'ok'}"><div class="k">Pendências</div><div class="v">${p.length}</div></div>`;
+
+  const porMotivo={};
+  p.forEach(x=>{porMotivo[x.motivo]=(porMotivo[x.motivo]||0)+1;});
+  el('pendBox').innerHTML = p.length
+    ? '<table><thead><tr><th>Motivo</th><th class="num">Linhas</th><th>Exemplos</th></tr></thead><tbody>'+
+      Object.keys(porMotivo).map(m=>{
+        const ex=p.filter(x=>x.motivo===m).slice(0,6);
+        return `<tr><td class="strong">${esc(m)}</td><td class="num">${porMotivo[m]}</td>
+          <td class="muted">${ex.map(x=>'linha '+x.linha+' ('+esc(x.detalhe)+')').join(' · ')}</td></tr>`;
+      }).join('')+'</tbody></table>'+
+      '<div class="nota">Linha com pendência de unidade, plaqueta, número ou tipo não é gravada. As demais entram normalmente.</div>'
+    : '<div class="vazio">Nenhuma pendência de leitura.</div>';
+
+  el('cardLeitura').classList.remove('hide');
+}
+
+// ═══════════════════════════════════════════════
+// PASSO 3: CONFERENCIA CONTRA O BANCO
+// ═══════════════════════════════════════════════
+async function conferir(){
+  if(OCUPADO||!LIDO) return;
+  const btn=el('bConferir'); const t=btn.textContent;
+  OCUPADO=true; btn.disabled=true; btn.textContent='Conferindo…';
+  msg('msgLeitura','');
+  try{
+    const trios=[];
+    const vistos={};
+    LIDO.juntas.forEach(j=>{
+      if(!j.un||!j.plq) return;
+      const k=j.un+'|'+j.plq+'|'+(j.ls||'');
+      if(!vistos[k]){vistos[k]=true;trios.push({un:j.un,plq:j.plq,ls:j.ls});}
+    });
+
+    // busca por unidade, em blocos, e resolve o trio no cliente
+    const porUnidade={};
+    trios.forEach(t2=>{(porUnidade[t2.un]=porUnidade[t2.un]||[]).push(t2.plq);});
+    const banco={};
+    for(const un of Object.keys(porUnidade)){
+      const plqs=[...new Set(porUnidade[un])];
+      for(let i=0;i<plqs.length;i+=150){
+        const {data,error}=await sb.from('plaquetas')
+          .select('id,unidade,plaqueta,ls_codigo,tag')
+          .eq('unidade',un).in('plaqueta',plqs.slice(i,i+150));
+        if(error) throw error;
+        (data||[]).forEach(p=>{
+          const k=p.unidade+'|'+p.plaqueta;
+          (banco[k]=banco[k]||[]).push(p);
+        });
+      }
+    }
+
+    const resolvido={}, naoAchou=[], ambiguo=[];
+    trios.forEach(t2=>{
+      const cands=banco[t2.un+'|'+t2.plq]||[];
+      const exatos=cands.filter(p=>(p.ls_codigo||'')===(t2.ls||''));
+      const alvo = exatos.length===1 ? exatos : cands;
+      if(alvo.length===1) resolvido[t2.un+'|'+t2.plq+'|'+(t2.ls||'')]=alvo[0];
+      else if(alvo.length===0) naoAchou.push(t2);
+      else ambiguo.push({t:t2,n:alvo.length});
+    });
+
+    // juntas que ja existem no banco, para nao duplicar
+    const ids=Object.values(resolvido).map(p=>p.id);
+    const existentes={};
+    for(let i=0;i<ids.length;i+=100){
+      const {data,error}=await sb.from('junta')
+        .select('plaqueta_id,isometrico,tipo_junta,numero_junta,sufixo')
+        .in('plaqueta_id',ids.slice(i,i+100));
+      if(error) throw error;
+      (data||[]).forEach(x=>{
+        existentes[[x.plaqueta_id,x.isometrico||'',x.tipo_junta,x.numero_junta,x.sufixo||''].join('|')]=true;
+      });
+    }
+
+    const mapasAtuais={};
+    for(let i=0;i<ids.length;i+=100){
+      const {data,error}=await sb.from('mcjs').select('id,plaqueta_id').in('plaqueta_id',ids.slice(i,i+100));
+      if(error) throw error;
+      (data||[]).forEach(m=>{mapasAtuais[m.plaqueta_id]=m.id;});
+    }
+
+    CONF={resolvido:resolvido, naoAchou:naoAchou, ambiguo:ambiguo,
+          existentes:existentes, mapas:mapasAtuais};
+    renderConf();
+  }catch(e){
+    msg('msgLeitura','Erro na conferência: '+(e.message||e),'err');
+  }finally{ OCUPADO=false; btn.disabled=false; btn.textContent=t; }
+}
+
+function renderConf(){
+  const nResolve=Object.keys(CONF.resolvido).length;
+  const grava=LIDO.juntas.filter(j=>gravavel(j)).length;
+  const jaExiste=LIDO.juntas.filter(j=>{
+    if(!gravavel(j)) return false;
+    const p=CONF.resolvido[j.un+'|'+j.plq+'|'+(j.ls||'')];
+    return CONF.existentes[[p.id,j.isometrico||'',j.tipo,j.numero,''].join('|')];
+  }).length;
+  const semMapa=new Set(Object.values(CONF.resolvido).filter(p=>!CONF.mapas[p.id]).map(p=>p.id)).size;
+
+  el('kpisConf').innerHTML=`
+    <div class="kpi ok"><div class="k">Trios resolvidos</div><div class="v">${nResolve}</div></div>
+    <div class="kpi ${CONF.naoAchou.length?'bad':'ok'}"><div class="k">Sem plaqueta</div><div class="v">${CONF.naoAchou.length}</div></div>
+    <div class="kpi ${CONF.ambiguo.length?'warn':'ok'}"><div class="k">Ambíguos</div><div class="v">${CONF.ambiguo.length}</div></div>
+    <div class="kpi"><div class="k">Juntas a gravar</div><div class="v">${grava-jaExiste}</div></div>
+    <div class="kpi ${jaExiste?'warn':''}"><div class="k">Já existentes</div><div class="v">${jaExiste}</div></div>
+    <div class="kpi"><div class="k">Mapas a criar</div><div class="v">${semMapa}</div></div>`;
+
+  let html='';
+  if(CONF.naoAchou.length){
+    html+='<div class="rolagem"><table><thead><tr><th>Unidade</th><th>Plaqueta</th><th>LS</th><th></th></tr></thead><tbody>'+
+      CONF.naoAchou.map(t=>`<tr><td>${esc(t.un)}</td><td class="mono strong">${esc(t.plq)}</td>
+        <td class="mono muted">${esc(t.ls||'')}</td><td><span class="tag tag-bad">não existe no cadastro</span></td></tr>`).join('')+
+      '</tbody></table></div><div class="nota">Essas plaquetas precisam ser cadastradas antes. As linhas delas não serão gravadas.</div>';
+  }
+  if(CONF.ambiguo.length){
+    html+='<div class="rolagem" style="margin-top:12px"><table><thead><tr><th>Unidade</th><th>Plaqueta</th><th>LS</th><th></th></tr></thead><tbody>'+
+      CONF.ambiguo.map(a=>`<tr><td>${esc(a.t.un)}</td><td class="mono strong">${esc(a.t.plq)}</td>
+        <td class="mono muted">${esc(a.t.ls||'')}</td><td><span class="tag tag-w">${a.n} candidatas</span></td></tr>`).join('')+
+      '</tbody></table></div>';
+  }
+  if(!html) html='<div class="vazio">Todas as plaquetas da planilha foram resolvidas.</div>';
+  el('confBox').innerHTML=html;
+  el('cardConf').classList.remove('hide');
+}
+
+function gravavel(j){
+  if(!j.un||!j.plq||j.numero===null||!j.tipo) return false;
+  return !!CONF.resolvido[j.un+'|'+j.plq+'|'+(j.ls||'')];
+}
+
+// ═══════════════════════════════════════════════
+// PASSO 4: GRAVACAO
+// ═══════════════════════════════════════════════
+async function inserirEmBlocos(tabela, linhas, tamanho, retornar){
+  const out=[];
+  for(let i=0;i<linhas.length;i+=tamanho){
+    let q=sb.from(tabela).insert(linhas.slice(i,i+tamanho));
+    if(retornar) q=q.select(retornar);
+    const {data,error}=await q;
+    if(error) throw new Error(tabela+': '+error.message);
+    if(data) out.push.apply(out,data);
+    progresso(i+tamanho, linhas.length);
+  }
+  return out;
+}
+function progresso(feito,total){
+  const p=total?Math.min(100,Math.round(feito*100/total)):0;
+  el('progBar').style.width=p+'%';
+}
+
+async function gravar(){
+  if(OCUPADO||!CONF) return;
+  const btn=el('bGravar'); const t=btn.textContent;
+  OCUPADO=true; btn.disabled=true; btn.textContent='Gravando…';
+  msg('msgGravar','');
+  el('progWrap').classList.remove('hide');
+  const relat={mapas:0, juntas:0, requisitos:0, apontamentos:0, eventos:0, ignoradas:0};
+  try{
+    const alvo=LIDO.juntas.filter(gravavel);
+
+    // 1. mapas MCJS que faltam
+    const precisaMapa={};
+    alvo.forEach(j=>{
+      const p=CONF.resolvido[j.un+'|'+j.plq+'|'+(j.ls||'')];
+      if(!CONF.mapas[p.id]) precisaMapa[p.id]={plaqueta_id:p.id, unidade:p.unidade,
+        numero:p.plaqueta, codigo_origem:txt(j.r[COL.mcjs]), ano:new Date().getFullYear()};
+    });
+    const novosMapas=Object.values(precisaMapa);
+    if(novosMapas.length){
+      const criados=await inserirEmBlocos('mcjs',novosMapas,200,'id,plaqueta_id');
+      criados.forEach(m=>{CONF.mapas[m.plaqueta_id]=m.id;});
+      relat.mapas=criados.length;
+    }
+
+    // 2. juntas
+    const paraInserir=[], origemDaLinha=[];
+    alvo.forEach(j=>{
+      const p=CONF.resolvido[j.un+'|'+j.plq+'|'+(j.ls||'')];
+      const k=[p.id,j.isometrico||'',j.tipo,j.numero,''].join('|');
+      if(CONF.existentes[k]){relat.ignoradas++;return;}
+      CONF.existentes[k]=true;
+      const r=j.r;
+      paraInserir.push({
+        plaqueta_id:p.id, mcjs_id:CONF.mapas[p.id]||null,
+        tipo_junta:j.tipo, numero_junta:j.numero, sufixo:'',
+        numero_origem:j.numero_origem, isometrico:j.isometrico,
+        tipo_construtivo:txt(r[COL.tipo_construtivo]),
+        local_previsto: j.tipo==='JP'?'pipeshop':'campo',
+        diametro:txt(r[COL.diametro]), espessura_mm:espessuraMm(r[COL.espessura]),
+        material:txt(r[COL.material]), material_2:txt(r[COL.material_2]),
+        p_numero:txt(r[COL.p_numero]), p_numero_2:txt(r[COL.p_numero_2]),
+        processo:txt(r[COL.processo]), consumivel:txt(r[COL.consumivel]),
+        f_numero:txt(r[COL.f_numero]), procedimento_soldagem:txt(r[COL.eps]),
+        classe_inspecao:txt(r[COL.classe_inspecao]), spool:txt(r[COL.spool]),
+        sistema:txt(r[COL.sistema]), equipamento:txt(r[COL.equipamento]),
+        spec:txt(r[COL.spec]), classe_pressao:txt(r[COL.classe_pressao]),
+        fluido:txt(r[COL.fluido]), temperatura:txt(r[COL.temperatura]),
+        ttat_temp:txt(r[COL.ttat_temp]), ttat_tempo:txt(r[COL.ttat_tempo]),
+        detalhamento_tec:txt(r[COL.detalhamento]),
+        item_geral:txt(r[COL.item_geral]),
+        descricao_tarefa:txt(r[COL.descricao_tarefa]),
+        descricao_resumida:txt(r[COL.descricao_resumida]),
+        ieis_codigo_origem:txt(r[COL.ieis]),
+        cod_origem:txt(r[COL.cod]), pcrs_origem:txt(r[COL.pcrs]),
+        mcjs_origem:txt(r[COL.mcjs]),
+        observacao:txt(r[COL.observacao]),
+        origem:'plano',
+        arquivo_origem:LIDO.arquivo, linha_planilha:j.linha,
+        importado_em:new Date().toISOString()
+      });
+      origemDaLinha.push(j);
+    });
+
+    const inseridas=await inserirEmBlocos('junta',paraInserir,150,'id,plaqueta_id,isometrico,tipo_junta,numero_junta,sufixo');
+    relat.juntas=inseridas.length;
+
+    // casa a junta gravada com a linha da planilha
+    const idPorChave={};
+    inseridas.forEach(x=>{
+      idPorChave[[x.plaqueta_id,x.isometrico||'',x.tipo_junta,x.numero_junta,x.sufixo||''].join('|')]=x.id;
+    });
+    const linhaComId=origemDaLinha.map(j=>{
+      const p=CONF.resolvido[j.un+'|'+j.plq+'|'+(j.ls||'')];
+      return {j:j, id:idPorChave[[p.id,j.isometrico||'',j.tipo,j.numero,''].join('|')], plaqueta_id:p.id};
+    }).filter(x=>x.id);
+
+    // 3. requisitos de ensaio. N.A significa nao se aplica, PEND significa previsto.
+    // O percentual vem da IEIS e por isso fica nulo nesta carga.
+    const reqs=[];
+    linhaComId.forEach(x=>{
+      ENSAIOS.forEach(e=>{
+        const v=txt(x.j.r[e.i]);
+        if(!v) return;
+        const na=norm(v)==='N.A'||norm(v)==='NA'||norm(v)==='N/A';
+        reqs.push({junta_id:x.id, ensaio_codigo:e.cod, percentual:null,
+                   aplicavel:!na, escopo:'plaqueta', valor_origem:v});
+      });
+    });
+    if(reqs.length){ await inserirEmBlocos('junta_ensaio_requisito',reqs,400); relat.requisitos=reqs.length; }
+
+    // 4. execucao ja registrada na planilha
+    const comExec=linhaComId.filter(x=>{
+      const r=x.j.r;
+      return norm(r[COL.liberacao])==='VA/VS' || txt(r[COL.sinete_raiz]) || txt(r[COL.sinete_ench]);
+    });
+    if(comExec.length){
+      // um apontamento por plaqueta e data
+      const chaves={};
+      comExec.forEach(x=>{
+        const d=dataISO(x.j.r[COL.data_ensaio])||hojeISO();
+        chaves[x.plaqueta_id+'|'+d]={plaqueta_id:x.plaqueta_id, data_apontamento:d,
+          inspetor_nome:'Importação PCRS', observacao:'Carga a partir de '+LIDO.arquivo};
+      });
+      const aps=await inserirEmBlocos('apontamento',Object.values(chaves),200,'id,plaqueta_id,data_apontamento');
+      relat.apontamentos=aps.length;
+      const apPorChave={};
+      aps.forEach(a=>{apPorChave[a.plaqueta_id+'|'+a.data_apontamento]=a.id;});
+
+      const evs=[];
+      comExec.forEach(x=>{
+        const r=x.j.r;
+        const d=dataISO(r[COL.data_ensaio]);
+        const ap=apPorChave[x.plaqueta_id+'|'+(d||hojeISO())];
+        if(!ap) return;
+        const local=x.j.tipo==='JP'?'pipeshop':'campo';
+        const base={junta_id:x.id, apontamento_id:ap, passagem:1,
+                    local_execucao:local, executado_em:d};
+        if(norm(r[COL.liberacao])==='VA/VS'){
+          const res=norm(r[COL.laudo])==='A'?'aprovado':'executado';
+          evs.push(Object.assign({},base,{etapa_codigo:'visual_ajuste',resultado:res}));
+          evs.push(Object.assign({},base,{etapa_codigo:'dimensional',resultado:res}));
+        }
+        const s1=txt(r[COL.sinete_raiz]), s2=txt(r[COL.sinete_ench]);
+        if(s1) evs.push(Object.assign({},base,{etapa_codigo:'raiz',resultado:'executado',sinete:s1}));
+        if(s2){
+          evs.push(Object.assign({},base,{etapa_codigo:'enchimento',resultado:'executado',sinete:s2}));
+          evs.push(Object.assign({},base,{etapa_codigo:'acabamento',resultado:'executado',sinete:s2}));
+        }
+      });
+      if(evs.length){ await inserirEmBlocos('junta_evento',evs,400); relat.eventos=evs.length; }
+    }
+
+    renderFim(relat);
+    msg('msgGravar','Importação concluída.','ok');
+  }catch(e){
+    msg('msgGravar','Erro ao gravar: '+(e.message||e)+
+      ' O que já foi gravado permanece. Rode a conferência de novo antes de repetir.','err');
+  }finally{
+    OCUPADO=false; btn.disabled=false; btn.textContent=t;
+  }
+}
+
+function renderFim(r){
+  el('kpisFim').innerHTML=`
+    <div class="kpi ok"><div class="k">Juntas gravadas</div><div class="v">${r.juntas}</div></div>
+    <div class="kpi"><div class="k">Mapas criados</div><div class="v">${r.mapas}</div></div>
+    <div class="kpi"><div class="k">Requisitos de ensaio</div><div class="v">${r.requisitos}</div></div>
+    <div class="kpi"><div class="k">Apontamentos</div><div class="v">${r.apontamentos}</div></div>
+    <div class="kpi"><div class="k">Eventos de execução</div><div class="v">${r.eventos}</div></div>
+    <div class="kpi ${r.ignoradas?'warn':''}"><div class="k">Já existiam</div><div class="v">${r.ignoradas}</div></div>`;
+  el('fimBox').innerHTML='<div class="nota">'+
+    'Os eventos vieram das colunas de liberação e de sinete. Linha sem data de ensaio ficou com o evento gravado e a data em branco, '+
+    'porque a planilha não trouxe a data. O percentual de ensaio ficou nulo, à espera da carga da IEIS.</div>';
+  el('cardFim').classList.remove('hide');
+}
+
+// ═══════════════════════════════════════════════
+function initPage(){
+  sb = window.supabase.createClient(SB_URL, SB_KEY);
+  el('fArquivo').addEventListener('change', lerArquivo);
+  el('bConferir').addEventListener('click', conferir);
+  el('bGravar').addEventListener('click', gravar);
+}
+ESigma.init().then(() => initPage());
+</script>
+
+</body>
+</html>
