@@ -124,7 +124,11 @@ tr:last-child td{border-bottom:none}
     </div>
     <div>
       <div class="card"><h2>Últimos registros</h2><div id="feed"><div class="vazio">Carregando…</div></div></div>
-      <div class="card"><h2>Mapas com junta lançada</h2><div id="mapas"><div class="vazio">Carregando…</div></div></div>
+      <div class="card"><h2>Mapas com junta lançada</h2>
+        <input type="text" id="qMapa" placeholder="Buscar por LS, plaqueta ou mapa"
+               style="width:100%;padding:9px 11px;border:1px solid var(--field-line);border-radius:var(--r);
+                      background:#fff;font-size:13px;margin-bottom:11px">
+        <div id="mapas"><div class="vazio">Carregando…</div></div></div>
     </div>
   </div>
 
@@ -169,7 +173,7 @@ async function carregar(){
     const [etp,ens,jts,evs,aps,mps,req,rez]=await Promise.all([
       db.from('junta_etapa').select('*').eq('ativo',true).order('ordem'),
       db.from('ensaio_tipo').select('*').eq('ativo',true).order('ordem'),
-      lerTudo('junta','id,plaqueta_id,tipo_junta,numero_junta,sufixo,situacao,origem'),
+      lerTudo('junta','id,plaqueta_id,tipo_junta,numero_junta,sufixo,situacao,origem,classe_inspecao,tipo_construtivo,verificar'),
       lerTudo('junta_evento','junta_id,apontamento_id,etapa_codigo,passagem,resultado,local_execucao,executado_em,registrado_em','registrado_em'),
       lerTudo('apontamento','id,plaqueta_id,data_apontamento','criado_em'),
       lerTudo('mcjs','id,plaqueta_id,unidade,numero'),
@@ -286,59 +290,86 @@ function renderPorEtapa(js,evs){
 
 // Ordem de leitura pedida: os principais primeiro, o resto por volume.
 const ORDEM_ENSAIO=['EVS','LP','US','DUR'];
+const ORDEM_CLASSE=['I','II','III','IV'];
 
+// A exigencia pertence a classe de inspecao, entao a leitura e por classe.
+// Somar classes diferentes numa linha so esconde de onde vem a exigencia.
 function renderEnsaios(js){
-  const idsVis=new Set(js.map(j=>j.id));
-  const acc={};
+  const jById={}; (D.juntas||[]).forEach(j=>{jById[j.id]=j;});
+  const porClasse={};
   (D.reqs||[]).forEach(r=>{
-    if(!idsVis.has(r.junta_id)) return;
-    const pctExig = r.percentual_exigido!=null ? Number(r.percentual_exigido)
-                  : (r.percentual!=null ? Number(r.percentual) : null);
+    const j=jById[r.junta_id]; if(!j) return;
+    if(!js.some(x=>x.id===r.junta_id)) return;
+    const cl = j.verificar ? 'a verificar' : (j.classe_inspecao||'sem classe');
+    const pctExig = r.percentual_exigido!=null ? Number(r.percentual_exigido) : null;
     if(pctExig==null && !r.aplicavel) return;
-    acc[r.ensaio_codigo]=acc[r.ensaio_codigo]||{faixas:{},total:0,feitas:0,reprov:0,semDef:0};
-    const a=acc[r.ensaio_codigo];
+    porClasse[cl]=porClasse[cl]||{juntas:new Set(),ens:{}};
+    const c=porClasse[cl];
+    c.juntas.add(r.junta_id);
+    const a=c.ens[r.ensaio_codigo]=c.ens[r.ensaio_codigo]||{total:0,pct:null,comRegra:0,feitas:0,reprov:0,semDef:0};
     a.total++;
-    // O percentual vale sobre o conjunto de juntas daquela faixa,
-    // entao a exigencia e somada faixa a faixa, nao pelo maior percentual.
     if(pctExig==null) a.semDef++;
-    else a.faixas[pctExig]=(a.faixas[pctExig]||0)+1;
+    else { a.comRegra++; a.pct = a.pct==null ? pctExig : Math.max(a.pct,pctExig); }
     const feitos=(D.realiz||[]).filter(x=>x.junta_id===r.junta_id&&x.ensaio_codigo===r.ensaio_codigo);
     if(feitos.some(x=>x.resultado!=='reprovado')) a.feitas++;
     a.reprov+=feitos.filter(x=>x.resultado==='reprovado').length;
   });
 
-  const ks=Object.keys(acc).sort((a,b)=>{
-    const ia=ORDEM_ENSAIO.indexOf(a), ib=ORDEM_ENSAIO.indexOf(b);
-    if(ia>=0 && ib>=0) return ia-ib;
+  const classes=Object.keys(porClasse).sort((a,b)=>{
+    const ia=ORDEM_CLASSE.indexOf(a), ib=ORDEM_CLASSE.indexOf(b);
+    if(ia>=0&&ib>=0) return ia-ib;
     if(ia>=0) return -1;
     if(ib>=0) return 1;
-    return acc[b].total-acc[a].total;
+    return a.localeCompare(b);
   });
 
-  el('ensaios').innerHTML=ks.length
-    ? '<table><thead><tr><th>Ensaio</th><th class="num">Exigência</th><th class="num">Juntas</th><th class="num">Exigidas</th><th class="num">Feitas</th><th></th></tr></thead><tbody>'+
-      ks.map(k=>{
-        const d=acc[k];
-        const nome=((D.ensaios||[]).find(e=>e.codigo===k)||{}).nome||k;
-        const pcts=Object.keys(d.faixas).map(Number).sort((a,b)=>a-b);
-        const comRegra=pcts.reduce((s,p)=>s+d.faixas[p],0);
-        if(!pcts.length){
-          return `<tr><td class="strong">${esc(nome)}</td><td class="num muted">a definir</td>
-            <td class="num">${d.total}</td><td class="num muted">-</td><td class="num">${d.feitas}</td>
-            <td><span class="tag tag-w">sem exigência definida</span></td></tr>`;
-        }
-        const exig=pcts.reduce((s,p)=>s+Math.ceil(d.faixas[p]*p/100),0);
-        const rotulo = pcts.length===1 ? pcts[0]+'%' : pcts[0]+'% a '+pcts[pcts.length-1]+'%';
-        const ok=d.feitas>=exig;
-        return `<tr><td class="strong">${esc(nome)}</td><td class="num muted">${rotulo}</td>
-          <td class="num">${comRegra}</td><td class="num">${exig}</td><td class="num">${d.feitas}</td>
-          <td>${ok?'<span class="tag tag-ok">cobertura fechada</span>':'<span class="tag tag-w">faltam '+(exig-d.feitas)+'</span>'}
-          ${d.reprov?' <span class="tag tag-bad">'+d.reprov+' reprovado</span>':''}
-          ${d.semDef?' <span class="tag tag-w">'+d.semDef+' sem exigência</span>':''}</td></tr>`;
-      }).join('')+'</tbody></table>'+
-      '<div class="muted" style="font-size:11.5px;margin-top:9px">Exigência por classe de inspeção, P number e tipo de solda. '+
-      'Quando o percentual varia entre classes, a exigência é somada faixa a faixa.</div>'
-    : '<div class="vazio">Nenhum ensaio previsto no plano.</div>';
+  if(!classes.length){ el('ensaios').innerHTML='<div class="vazio">Nenhum ensaio previsto no plano.</div>'; return; }
+
+  el('ensaios').innerHTML = classes.map(cl=>{
+    const c=porClasse[cl];
+    const ks=Object.keys(c.ens).sort((a,b)=>{
+      const ia=ORDEM_ENSAIO.indexOf(a), ib=ORDEM_ENSAIO.indexOf(b);
+      if(ia>=0&&ib>=0) return ia-ib;
+      if(ia>=0) return -1;
+      if(ib>=0) return 1;
+      return c.ens[b].total-c.ens[a].total;
+    });
+    const comRegra=ks.filter(k=>c.ens[k].pct!=null);
+    const semRegra=ks.filter(k=>c.ens[k].pct==null);
+
+    const linhas=comRegra.map(k=>{
+      const d=c.ens[k];
+      const nome=((D.ensaios||[]).find(e=>e.codigo===k)||{}).nome||k;
+      const exig=Math.ceil(d.comRegra*d.pct/100);
+      const ok=d.feitas>=exig;
+      return `<tr><td class="strong">${esc(nome)}</td><td class="num muted">${d.pct}%</td>
+        <td class="num">${d.comRegra}</td><td class="num">${exig}</td><td class="num">${d.feitas}</td>
+        <td>${ok?'<span class="tag tag-ok">fechada</span>':'<span class="tag tag-w">faltam '+(exig-d.feitas)+'</span>'}
+        ${d.reprov?' <span class="tag tag-bad">'+d.reprov+' reprovado</span>':''}</td></tr>`;
+    }).join('');
+
+    const extra = semRegra.length
+      ? '<div class="muted" style="font-size:11.5px;margin-top:8px;line-height:1.5">'+
+        'Sem exigência definida nesta classe: '+
+        semRegra.map(k=>{
+          const nome=((D.ensaios||[]).find(e=>e.codigo===k)||{}).nome||k;
+          return esc(nome)+' ('+c.ens[k].semDef+(c.ens[k].feitas?', '+c.ens[k].feitas+' com laudo':'')+')';
+        }).join(' · ')+'</div>'
+      : '';
+
+    const rotulo = cl==='a verificar' ? 'A verificar'
+                 : (ORDEM_CLASSE.indexOf(cl)>=0 ? 'Classe '+cl : cl);
+    return `<div style="margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:7px">
+        <span style="font-family:var(--font-d);font-size:14px;font-weight:800">${esc(rotulo)}</span>
+        <span class="muted" style="font-size:11.5px">${c.juntas.size} juntas</span>
+      </div>
+      ${linhas
+        ? '<table><thead><tr><th>Ensaio</th><th class="num">Exigência</th><th class="num">Juntas</th><th class="num">Exigidas</th><th class="num">Feitas</th><th></th></tr></thead><tbody>'+linhas+'</tbody></table>'
+        : '<div class="muted" style="font-size:12.5px">Nenhuma exigência definida para esta classe.</div>'}
+      ${extra}
+    </div>`;
+  }).join('');
 }
 
 function renderFeed(){
@@ -368,28 +399,57 @@ function renderFeed(){
     : '<div class="vazio">Nenhum registro de campo ainda.</div>';
 }
 
+const BASE_CAMPO=location.origin+location.pathname.replace(/[^/]*$/,'');
+function urlMapa(p){
+  return BASE_CAMPO+'mcjs-campo.html?un='+encodeURIComponent(p.unidade||'')
+       +'&plq='+encodeURIComponent(p.plaqueta||'')
+       +'&ls='+encodeURIComponent(p.ls_codigo||'');
+}
+
 function renderMapas(){
   const un=filtroUn();
+  const termo=((el('qMapa')||{}).value||'').trim().toUpperCase();
   const cnt={};
   (D.juntas||[]).filter(j=>j.situacao==='ativa').forEach(j=>{
     cnt[j.plaqueta_id]=(cnt[j.plaqueta_id]||0)+1;
   });
-  const lista=(D.mcjs||[]).filter(m=>{
+  let lista=(D.mcjs||[]).filter(m=>{
     const p=D.plaquetas[m.plaqueta_id]||{};
-    return !un||(p.unidade||m.unidade)===un;
+    if(un && (p.unidade||m.unidade)!==un) return false;
+    if(termo){
+      const alvo=[m.numero,p.plaqueta,p.ls_codigo,p.tag,p.unidade].filter(Boolean).join(' ').toUpperCase();
+      if(alvo.indexOf(termo)<0) return false;
+    }
+    return true;
   });
+  lista.sort((a,b)=>{
+    const pa=D.plaquetas[a.plaqueta_id]||{}, pb=D.plaquetas[b.plaqueta_id]||{};
+    return ((pa.unidade||'')+(pa.plaqueta||'')).localeCompare((pb.unidade||'')+(pb.plaqueta||''));
+  });
+
+  const mostra=lista.slice(0,20);
   el('mapas').innerHTML=lista.length
     ? '<table><thead><tr><th>Mapa</th><th>Unidade</th><th>LS</th><th class="num">Juntas</th></tr></thead><tbody>'+
-      lista.slice(0,15).map(m=>{const p=D.plaquetas[m.plaqueta_id]||{};const n=cnt[m.plaqueta_id]||0;
-        return `<tr><td class="strong mono">${esc(m.numero||'')}</td><td>${esc(p.unidade||m.unidade||'')}</td>
-        <td class="mono muted">${esc(p.ls_codigo||'')}</td>
-        <td class="num">${n?n:'<span class="tag tag-w">0</span>'}</td></tr>`;}).join('')+'</tbody></table>'+
-      (lista.length>15?'<div class="muted" style="font-size:11.5px;margin-top:8px">e mais '+(lista.length-15)+'.</div>':'')
-    : '<div class="vazio">Nenhum mapa criado ainda.</div>';
+      mostra.map(m=>{
+        const p=D.plaquetas[m.plaqueta_id]||{};
+        const n=cnt[m.plaqueta_id]||0;
+        return `<tr>
+          <td class="strong mono"><a href="${urlMapa(p)}" target="_blank" rel="noopener"
+              style="color:var(--blue);text-decoration:none">${esc(m.numero||p.plaqueta||'')}</a></td>
+          <td>${esc(p.unidade||m.unidade||'')}</td>
+          <td class="mono muted">${esc(p.ls_codigo||'')}</td>
+          <td class="num">${n?n:'<span class="tag tag-w">0</span>'}</td></tr>`;
+      }).join('')+'</tbody></table>'+
+      (lista.length>20?'<div class="muted" style="font-size:11.5px;margin-top:8px">Mostrando 20 de '+lista.length+'. Use a busca para chegar na LS.</div>':'')
+    : '<div class="vazio">Nenhum mapa com esse filtro.</div>';
 }
 
 el('bRefresh').addEventListener('click',carregar);
 el('fUnidade').addEventListener('change',()=>{ if(D.juntas) render(); });
+(function(){
+  const q=el('qMapa'); let t=null;
+  if(q) q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{ if(D.mcjs) renderMapas(); },200);});
+})();
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) carregar(); });
 setInterval(carregar,60000);
 carregar();
