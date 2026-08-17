@@ -173,7 +173,7 @@ async function carregar(){
       lerTudo('junta_evento','junta_id,apontamento_id,etapa_codigo,passagem,resultado,local_execucao,executado_em,registrado_em','registrado_em'),
       lerTudo('apontamento','id,plaqueta_id,data_apontamento','criado_em'),
       lerTudo('mcjs','id,plaqueta_id,unidade,numero'),
-      lerTudo('junta_ensaio_requisito','junta_id,ensaio_codigo,percentual,aplicavel'),
+      lerTudo('junta_ensaio_requisito','junta_id,ensaio_codigo,percentual,percentual_exigido,aplicavel,divergente'),
       lerTudo('junta_ensaio','junta_id,ensaio_codigo,resultado')
     ]);
     D.etapas=etp.data||[]; D.ensaios=ens.data||[]; D.juntas=jts;
@@ -288,22 +288,41 @@ function renderEnsaios(js){
   const idsVis=new Set(js.map(j=>j.id));
   const acc={};
   (D.reqs||[]).forEach(r=>{
-    if(!idsVis.has(r.junta_id)||!r.aplicavel) return;
-    acc[r.ensaio_codigo]=acc[r.ensaio_codigo]||{pct:Number(r.percentual),previstas:0,feitas:0,reprov:0};
-    acc[r.ensaio_codigo].previstas++;
+    if(!idsVis.has(r.junta_id)) return;
+    // O percentual vem da tabela de exigencia. Onde ela nao alcanca,
+    // o painel diz que falta definir em vez de fingir cobertura fechada.
+    const pctExig = r.percentual_exigido!=null ? Number(r.percentual_exigido)
+                  : (r.percentual!=null ? Number(r.percentual) : null);
+    if(pctExig==null && !r.aplicavel) return;
+    acc[r.ensaio_codigo]=acc[r.ensaio_codigo]||{pct:null,previstas:0,feitas:0,reprov:0,semDef:0};
+    const a=acc[r.ensaio_codigo];
+    if(pctExig==null){ a.semDef++; }
+    else { a.pct = a.pct==null ? pctExig : Math.max(a.pct,pctExig); a.previstas++; }
     const feitos=(D.realiz||[]).filter(x=>x.junta_id===r.junta_id&&x.ensaio_codigo===r.ensaio_codigo);
-    if(feitos.some(x=>x.resultado!=='reprovado')) acc[r.ensaio_codigo].feitas++;
-    acc[r.ensaio_codigo].reprov+=feitos.filter(x=>x.resultado==='reprovado').length;
+    if(feitos.some(x=>x.resultado!=='reprovado')) a.feitas++;
+    a.reprov+=feitos.filter(x=>x.resultado==='reprovado').length;
   });
-  const ks=Object.keys(acc);
+  const ks=Object.keys(acc).sort();
   el('ensaios').innerHTML=ks.length
-    ? '<table><thead><tr><th>Ensaio</th><th class="num">Previsto</th><th class="num">Exigidas</th><th class="num">Feitas</th><th></th></tr></thead><tbody>'+
-      ks.map(k=>{const d=acc[k];const nome=((D.ensaios||[]).find(e=>e.codigo===k)||{}).nome||k;
-        const exig=Math.ceil(d.previstas*d.pct/100);const ok=d.feitas>=exig;
+    ? '<table><thead><tr><th>Ensaio</th><th class="num">Exigência</th><th class="num">Juntas</th><th class="num">Exigidas</th><th class="num">Feitas</th><th></th></tr></thead><tbody>'+
+      ks.map(k=>{
+        const d=acc[k];
+        const nome=((D.ensaios||[]).find(e=>e.codigo===k)||{}).nome||k;
+        if(d.pct==null){
+          return `<tr><td class="strong">${esc(nome)}</td><td class="num muted">a definir</td>
+            <td class="num">${d.semDef}</td><td class="num muted">-</td><td class="num">${d.feitas}</td>
+            <td><span class="tag tag-w">sem exigência definida</span></td></tr>`;
+        }
+        const exig=Math.ceil(d.previstas*d.pct/100);
+        const ok=d.feitas>=exig;
         return `<tr><td class="strong">${esc(nome)}</td><td class="num muted">${d.pct}%</td>
-          <td class="num">${exig}</td><td class="num">${d.feitas}</td>
+          <td class="num">${d.previstas}</td><td class="num">${exig}</td><td class="num">${d.feitas}</td>
           <td>${ok?'<span class="tag tag-ok">cobertura fechada</span>':'<span class="tag tag-w">faltam '+(exig-d.feitas)+'</span>'}
-          ${d.reprov?' <span class="tag tag-bad">'+d.reprov+' reprovado</span>':''}</td></tr>`;}).join('')+'</tbody></table>'
+          ${d.reprov?' <span class="tag tag-bad">'+d.reprov+' reprovado</span>':''}
+          ${d.semDef?' <span class="tag tag-w">'+d.semDef+' sem exigência</span>':''}</td></tr>`;
+      }).join('')+'</tbody></table>'+
+      '<div class="muted" style="font-size:11.5px;margin-top:9px">Exigência por classe de inspeção, P number e tipo de solda. '+
+      'Onde ainda não há regra definida, o painel não afirma cobertura.</div>'
     : '<div class="vazio">Nenhum ensaio previsto no plano.</div>';
 }
 
