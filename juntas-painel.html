@@ -119,7 +119,7 @@ tr:last-child td{border-bottom:none}
   <div class="cols">
     <div>
       <div class="card"><h2>Avanço por unidade</h2><div id="porUnidade"><div class="vazio">Carregando…</div></div></div>
-      <div class="card"><h2>Etapas concluídas</h2><div id="porEtapa"><div class="vazio">Carregando…</div></div></div>
+      <div class="card"><h2>Etapas e ensaios concluídos</h2><div id="porEtapa"><div class="vazio">Carregando…</div></div></div>
       <div class="card"><h2>Cobertura de ensaios</h2><div id="ensaios"><div class="vazio">Carregando…</div></div></div>
     </div>
     <div>
@@ -270,8 +270,8 @@ function renderPorUnidade(evs){
 }
 
 function renderPorEtapa(js,evs){
-  const idsVis=new Set(js.map(j=>j.id));
   const total=js.length;
+  const idsVis=new Set(js.map(j=>j.id));
   const linhas=(D.etapas||[]).map(et=>{
     let feitas=0;
     js.forEach(j=>{
@@ -283,8 +283,53 @@ function renderPorEtapa(js,evs){
       <td><div style="display:flex;align-items:center;gap:9px"><div class="barra" style="flex:1"><i style="width:${p}%"></i></div>
       <span class="muted" style="font-size:11.5px;min-width:30px">${p}%</span></div></td></tr>`;
   }).join('');
-  el('porEtapa').innerHTML=(total&&idsVis.size)
-    ? '<table><thead><tr><th>Etapa</th><th class="num">Juntas</th><th>Avanço</th></tr></thead><tbody>'+linhas+'</tbody></table>'
+
+  // Ensaios somados em todas as classes, para ter o total que a leitura por classe nao da.
+  const jById={}; (D.juntas||[]).forEach(j=>{jById[j.id]=j;});
+  const acc={};
+  (D.reqs||[]).forEach(r=>{
+    if(!idsVis.has(r.junta_id)) return;
+    const pctExig = r.percentual_exigido!=null ? Number(r.percentual_exigido) : null;
+    if(pctExig==null && !r.aplicavel) return;
+    const a=acc[r.ensaio_codigo]=acc[r.ensaio_codigo]||{faixas:{},semDef:0,feitas:0};
+    if(pctExig==null) a.semDef++;
+    else a.faixas[pctExig]=(a.faixas[pctExig]||0)+1;
+    if((D.realiz||[]).some(x=>x.junta_id===r.junta_id&&x.ensaio_codigo===r.ensaio_codigo&&x.resultado!=='reprovado')) a.feitas++;
+  });
+  const ordem=['EVS','LP','US','DUR'];
+  const ks=Object.keys(acc).filter(k=>Object.keys(acc[k].faixas).length||acc[k].feitas)
+    .sort((a,b)=>{
+      const ia=ordem.indexOf(a), ib=ordem.indexOf(b);
+      if(ia>=0&&ib>=0) return ia-ib;
+      if(ia>=0) return -1;
+      if(ib>=0) return 1;
+      return acc[b].feitas-acc[a].feitas;
+    });
+
+  const linhasEns=ks.map(k=>{
+    const d=acc[k];
+    const nome=((D.ensaios||[]).find(e=>e.codigo===k)||{}).nome||k;
+    const exig=Object.keys(d.faixas).reduce((s,p)=>s+Math.ceil(d.faixas[p]*Number(p)/100),0);
+    const p=exig?pct(d.feitas,exig):0;
+    const sub = exig
+      ? 'de '+exig+' exigidas'+(d.semDef?', '+d.semDef+' sem exigência':'')
+      : (d.semDef+' sem exigência definida');
+    return `<tr><td class="strong">${esc(nome)}
+        <div class="muted" style="font-size:11px;font-weight:400">${esc(sub)}</div></td>
+      <td class="num">${d.feitas}</td>
+      <td>${exig
+        ? `<div style="display:flex;align-items:center;gap:9px"><div class="barra" style="flex:1"><i style="width:${Math.min(100,p)}%"></i></div>
+           <span class="muted" style="font-size:11.5px;min-width:30px">${p}%</span></div>`
+        : '<span class="muted" style="font-size:11.5px">sem base de cálculo</span>'}</td></tr>`;
+  }).join('');
+
+  const sep = linhasEns
+    ? '<tr><td colspan="3" style="padding-top:14px;padding-bottom:4px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#64748B;border-bottom:none">Ensaios</td></tr>'
+    : '';
+
+  el('porEtapa').innerHTML=total
+    ? '<table><thead><tr><th>Etapa</th><th class="num">Juntas</th><th>Avanço</th></tr></thead><tbody>'+
+      linhas+sep+linhasEns+'</tbody></table>'
     : '<div class="vazio">Nenhuma junta lançada ainda.</div>';
 }
 
