@@ -15,7 +15,7 @@
   --white:#fff;--canvas:#F1F4F9;
   --ink:#1F2937;--ink-soft:#4B5563;--muted:#6B7280;
   --line:#E5E7EB;--field:#F4F6FA;--field-line:#D7DEEA;
-  --danger:#EF4444;--warning:#F59E0B;--red:#C62828;
+  --danger:#EF4444;--warning:#F59E0B;
   --font-d:'Exo 2',system-ui,sans-serif;
   --font-ui:'Inter',system-ui,sans-serif;
   --r:8px;--r-md:12px;--r-lg:16px;
@@ -31,7 +31,7 @@ button,input,select,textarea{font-family:inherit}
 .card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-md);overflow:hidden}
 .card-pad{padding:22px 20px}
 .brand{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line);background:#fff}
-.brand .logo{width:30px;height:30px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;flex:none}
+.brand .logo{width:30px;height:30px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex:none}
 .brand .logo svg{width:16px;height:16px;color:#fff}
 .brand .name{font-family:var(--font-d);font-size:14px;font-weight:800}
 .brand .name small{display:block;font-family:var(--font-ui);font-size:10.5px;font-weight:600;color:var(--muted);letter-spacing:.04em}
@@ -413,10 +413,8 @@ async function buscarInspetor(){
   const box=document.getElementById('inspRes');
   if(t.length<3){box.innerHTML='';return;}
   try{
-    const {data,error}=await db.from('usuarios_campo')
-      .select('id,nome,cpf,matricula,funcao,ativo')
-      .or(`nome.ilike.%${t}%,cpf.ilike.%${t}%,matricula.ilike.%${t}%`)
-      .eq('ativo',true).limit(6);
+    // Efetivo unico: sigmatr.pessoas via RPC (a tabela usuarios_campo esta depreciada).
+    const {data,error}=await db.rpc('buscar_efetivo_campo',{p_termo:t});
     if(error) throw error;
     if(!data||!data.length){box.innerHTML='<div class="user-miss">Não encontrado. Confira nome, CPF ou matrícula.</div>';return;}
     __ubuf=data;
@@ -428,7 +426,7 @@ async function buscarInspetor(){
 }
 function selecInspetor(i){
   const u=__ubuf[i]; if(!u) return;
-  INSPETOR={nome:u.nome,funcao:u.funcao,matricula:u.matricula};
+  INSPETOR={pessoa_id:u.pessoa_id,nome:u.nome,funcao:u.funcao,matricula:u.matricula};
   APONT=null;
   renderInspetor();
 }

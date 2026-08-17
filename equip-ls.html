@@ -757,10 +757,9 @@ async function buscarUsuarioCDR(){
   __regUser=null;
   if(t.length<3){box.innerHTML='';return;}
   try{
-    const {data,error}=await db.from('usuarios_campo')
-      .select('id,nome,cpf,matricula,funcao,ativo')
-      .or(`nome.ilike.%${t}%,cpf.ilike.%${t}%,matricula.ilike.%${t}%`)
-      .eq('ativo',true).limit(6);
+    // Efetivo unico: sigmatr.pessoas via RPC (a tabela usuarios_campo esta depreciada).
+    // A RPC ja filtra desmobilizado/anonimizado e devolve o CPF mascarado.
+    const {data,error}=await db.rpc('buscar_efetivo_campo',{p_termo:t});
     if(error) throw error;
     if(!data||!data.length){box.innerHTML='<div class="user-miss">Não encontrado. Confira nome, CPF ou matrícula.</div>';return;}
     if(data.length===1){selecUserCDR(data[0]);return;}
@@ -986,7 +985,7 @@ async function salvarRegistroCDR(){
     }
     const ins=await db.from('atividades_campo').insert({
       plaqueta_id:p.id, servico_id:p.servico_id||null,
-      usuario_id:__regUser.id, usuario_nome:__regUser.nome, usuario_funcao:__regUser.funcao,
+      usuario_pessoa_id:__regUser.pessoa_id, usuario_nome:__regUser.nome, usuario_funcao:__regUser.funcao,
       etapa:__tarefa.etapa, pergunta:__tarefa.pergunta, resposta:resp.value,
       observacoes:document.getElementById('regObs').value.trim()||null,
       doc_cancelamento:(resp.value==='cancelado')?docCanc:null,
