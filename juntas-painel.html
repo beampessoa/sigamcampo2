@@ -337,20 +337,34 @@ function renderPorEtapa(js,evs){
 const ORDEM_ENSAIO=['EVS','LP','US','DUR'];
 const ORDEM_CLASSE=['I','II','III','IV'];
 
-// A exigencia pertence a classe de inspecao, entao a leitura e por classe.
-// Somar classes diferentes numa linha so esconde de onde vem a exigencia.
+// A classe de inspecao pertence a plaqueta, nao a junta.
+// Por isso a leitura e por plaqueta, e classe divergente dentro da mesma
+// plaqueta e erro de dado, nao dois casos validos.
 function renderEnsaios(js){
   const jById={}; (D.juntas||[]).forEach(j=>{jById[j.id]=j;});
+  const idsVis=new Set(js.map(j=>j.id));
+
+  // classe de cada plaqueta e divergencia interna
+  const plqClasse={};
+  js.forEach(j=>{
+    const p=j.plaqueta_id;
+    plqClasse[p]=plqClasse[p]||{classes:new Set(),juntas:0};
+    plqClasse[p].classes.add(j.classe_inspecao||'sem classe');
+    plqClasse[p].juntas++;
+  });
+
   const porClasse={};
   (D.reqs||[]).forEach(r=>{
-    const j=jById[r.junta_id]; if(!j) return;
-    if(!js.some(x=>x.id===r.junta_id)) return;
-    const cl = j.verificar ? 'a verificar' : (j.classe_inspecao||'sem classe');
+    const j=jById[r.junta_id]; if(!j||!idsVis.has(r.junta_id)) return;
+    const info=plqClasse[j.plaqueta_id]||{classes:new Set()};
+    const cl = info.classes.size>1 ? 'classe divergente'
+             : (j.verificar ? 'a verificar' : (j.classe_inspecao||'sem classe'));
     const pctExig = r.percentual_exigido!=null ? Number(r.percentual_exigido) : null;
     if(pctExig==null && !r.aplicavel) return;
-    porClasse[cl]=porClasse[cl]||{juntas:new Set(),ens:{}};
+    porClasse[cl]=porClasse[cl]||{juntas:new Set(),plaquetas:new Set(),ens:{}};
     const c=porClasse[cl];
     c.juntas.add(r.junta_id);
+    c.plaquetas.add(j.plaqueta_id);
     const a=c.ens[r.ensaio_codigo]=c.ens[r.ensaio_codigo]||{total:0,pct:null,comRegra:0,feitas:0,reprov:0,semDef:0};
     a.total++;
     if(pctExig==null) a.semDef++;
@@ -403,12 +417,18 @@ function renderEnsaios(js){
       : '';
 
     const rotulo = cl==='a verificar' ? 'A verificar'
+                 : cl==='classe divergente' ? 'Classe divergente na mesma plaqueta'
                  : (ORDEM_CLASSE.indexOf(cl)>=0 ? 'Classe '+cl : cl);
+    const aviso = cl==='classe divergente'
+      ? '<div class="muted" style="font-size:11.5px;margin-bottom:7px;line-height:1.5">'+
+        'A classe pertence à plaqueta. Plaqueta com mais de uma classe é erro de preenchimento e precisa ser corrigida no PCRS.</div>'
+      : '';
     return `<div style="margin-bottom:18px">
       <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:7px">
         <span style="font-family:var(--font-d);font-size:14px;font-weight:800">${esc(rotulo)}</span>
-        <span class="muted" style="font-size:11.5px">${c.juntas.size} juntas</span>
+        <span class="muted" style="font-size:11.5px">${c.plaquetas.size} plaquetas · ${c.juntas.size} juntas</span>
       </div>
+      ${aviso}
       ${linhas
         ? '<table><thead><tr><th>Ensaio</th><th class="num">Exigência</th><th class="num">Juntas</th><th class="num">Exigidas</th><th class="num">Feitas</th><th></th></tr></thead><tbody>'+linhas+'</tbody></table>'
         : '<div class="muted" style="font-size:12.5px">Nenhuma exigência definida para esta classe.</div>'}
