@@ -46,6 +46,10 @@ select,button{font-family:inherit;font-size:13px;padding:8px 12px;border-radius:
      border:1px solid var(--field-line);background:#fff;color:var(--ink);cursor:pointer}
 select:focus,button:focus-visible{outline:2px solid var(--blue-300);outline-offset:1px}
 
+.btn-ger{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:var(--r);
+  background:#1E6B47;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border:1px solid #1E6B47}
+.btn-ger:hover{background:#145034;border-color:#145034}
+.btn-ger:focus-visible{outline:2px solid #7DBE6A;outline-offset:2px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:15px 17px;box-shadow:var(--sh)}
 .kpi .k{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#64748B}
@@ -104,6 +108,11 @@ tr:last-child td{border-bottom:none}
 <div class="wrap">
   <div class="bar">
     <h1>Andamento das juntas</h1>
+    <a href="juntas-gerencial.html" class="btn-ger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           style="width:15px;height:15px"><path d="M3 3v18h18M7 15l3-4 3 3 5-7"/></svg>
+      Painel Gerencial
+    </a>
     <select id="fUnidade">
       <option value="">Todas as unidades</option>
       <option value="2700">2700</option>

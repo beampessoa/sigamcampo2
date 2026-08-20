@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Painel Gerencial · Mapa de Juntas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --verde:#1E6B47;--verde-esc:#145034;--verde-cl:#7DBE6A;--verde-claro:#C8E0A8;
+  --cinza:#E8EDE9;--linha:#D6DED8;
+  --ink:#1F2937;--muted:#6B7280;
+  --font-d:'Exo 2',system-ui,sans-serif;
+  --font-ui:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:0 0 24px}
+
+/* CABECALHO */
+.topo{display:flex;align-items:center;gap:20px;padding:14px 22px;background:#E4EEE7;border-bottom:4px solid var(--verde)}
+.topo .marca{height:52px;display:flex;align-items:center;gap:12px;flex:none}
+.topo .marca img{height:52px;width:auto;object-fit:contain}
+.topo h1{flex:1;text-align:center;font-family:var(--font-d);font-size:27px;font-weight:800;color:var(--verde-esc);letter-spacing:.01em}
+.faixa{background:var(--verde);color:#fff;padding:9px 22px}
+.faixa h2{font-family:var(--font-d);font-size:19px;font-weight:800;letter-spacing:.01em}
+.faixa p{font-size:11px;font-weight:600;letter-spacing:.13em;color:#CFE6D8;margin-top:3px}
+
+/* KPIS */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;padding:16px 22px}
+.kpi{border:1px solid var(--linha);border-radius:4px;padding:11px 8px;text-align:center;background:#fff}
+.kpi .v{font-family:var(--font-d);font-size:31px;font-weight:800;color:var(--verde-esc);line-height:1.05}
+.kpi .k{font-size:10.5px;font-weight:800;color:var(--ink);margin-top:5px;line-height:1.25}
+.kpi .s{font-size:9.5px;color:var(--muted);margin-top:3px;font-style:italic}
+
+/* SECOES */
+.barra-sec{background:var(--verde);color:#fff;font-size:11.5px;font-weight:800;
+  letter-spacing:.1em;text-align:center;padding:5px 10px}
+.grid-main{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;padding:0 22px}
+.bloco{border:1px solid var(--linha);border-top:none}
+.bloco .corpo{padding:12px}
+
+/* BARRAS HORIZONTAIS */
+.barh{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:8px;margin-bottom:5px;font-size:11.5px}
+.barh .rot{text-align:right;font-weight:700;color:#374151;white-space:nowrap}
+.barh .trilho{position:relative;height:17px;background:#F3F6F4;border:1px solid #EAEFEB;display:flex}
+.barh .feito{background:var(--verde-cl);height:100%;display:flex;align-items:center;justify-content:flex-end;
+  padding-right:4px;font-size:10px;font-weight:800;color:#145034;min-width:0;overflow:hidden}
+.barh .falta{background:var(--verde-claro);height:100%;display:flex;align-items:center;justify-content:flex-end;
+  padding-right:4px;font-size:10px;font-weight:700;color:#3F5A34;min-width:0;overflow:hidden}
+.barh .num{font-size:10px;font-weight:700;color:#4B5563;padding-left:5px}
+.legenda{display:flex;gap:16px;justify-content:center;margin-top:9px;font-size:10.5px;color:#4B5563}
+.legenda span{display:inline-flex;align-items:center;gap:5px}
+.legenda i{width:11px;height:11px;display:inline-block;border-radius:2px}
+
+/* ROSCAS */
+.roscas{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 6px;place-items:center}
+.rosca{text-align:center}
+.rosca svg{width:118px;height:118px;display:block}
+.rosca .lab{font-size:10.5px;font-weight:800;color:#4B5563;margin-top:4px}
+
+/* PIZZA */
+.pizza-area{display:grid;grid-template-columns:1fr 118px;gap:10px;align-items:center;padding:10px 6px}
+.pizza svg{width:100%;max-width:210px;height:auto;display:block;margin:0 auto}
+.pz-leg{display:flex;flex-direction:column;gap:5px;font-size:9.5px;color:#4B5563}
+.pz-leg span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.pz-leg i{width:9px;height:9px;border-radius:2px;flex:none}
+
+/* LOCAL */
+.local{padding:0 22px;margin-top:14px}
+.local h3{font-family:var(--font-d);font-size:19px;font-weight:800;color:var(--verde-esc);text-align:center;margin-bottom:9px}
+.local-barra{display:flex;height:30px;border:1px solid var(--linha)}
+.local-barra div{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;overflow:hidden}
+.escala{display:flex;justify-content:space-between;font-size:9.5px;color:#6B7280;margin-top:3px}
+
+/* RODAPE */
+.rodape{display:flex;justify-content:space-between;align-items:center;background:var(--verde);
+  color:#fff;font-size:11px;font-weight:600;padding:7px 22px;margin-top:16px}
+.rodape a{color:#CFE6D8;text-decoration:none}
+.vazio{padding:26px;text-align:center;color:var(--muted);font-size:13px}
+.erro{display:none;margin:12px 22px;padding:11px 14px;border-radius:6px;background:#FEF2F2;
+  border:1px solid #FECACA;color:#991B1B;font-size:13px;font-weight:600}
+.erro.on{display:block}
+@media (max-width:980px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .grid-main{grid-template-columns:1fr}
+  .topo h1{font-size:20px}
+}
+@media print{ .rodape{position:fixed;bottom:0;left:0;right:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topo">
+    <div class="marca"><img id="logo" alt=""></div>
+    <h1>PAINEL GERENCIAL | MAPA DE JUNTAS</h1>
+    <div class="marca" style="width:150px"></div>
+  </div>
+
+  <div class="faixa">
+    <h2>CONTROLE DA QUALIDADE: AVANÇO DE JUNTAS</h2>
+    <p>TUBULAÇÃO · SOLDAGEM · PARADA GERAL DE MANUTENÇÃO</p>
+  </div>
+
+  <div class="erro" id="erro"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid-main">
+    <div>
+      <div class="barra-sec">AVANÇO POR DIÂMETRO</div>
+      <div class="bloco"><div class="corpo" id="diam"><div class="vazio">Carregando…</div></div></div>
+    </div>
+    <div>
+      <div class="barra-sec">AVANÇO PRÉ PARADA / GERAL</div>
+      <div class="bloco"><div class="roscas" id="roscas"></div>
+        <div class="barra-sec" style="margin-top:2px">TIPO DE JUNTA</div>
+        <div class="pizza-area" id="tipos"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="local">
+    <h3>LOCAL DO SERVIÇO · DISTRIBUIÇÃO DAS JUNTAS</h3>
+    <div class="local-barra" id="localBarra"></div>
+    <div class="escala" id="escala"></div>
+    <div class="legenda" id="localLeg"></div>
+  </div>
+
+  <div class="rodape">
+    <span id="rodEmpresa">Mapa da Qualidade</span>
+    <span id="rodData"></span>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://kiwiykgzogcxiseynzyy.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
+const db=supabase.createClient(SB_URL,SB_KEY);
+const D={};
+
+const CORES=['#F0872B','#3FA3D4','#2F4E8F','#C0392B','#1E6B47','#7B4EA8','#E8B93B','#8FA2AC','#7DBE6A'];
+
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function br(n){return Number(n||0).toLocaleString('pt-BR');}
+function pctTxt(a,b){return b>0?((a*100/b).toFixed(1).replace('.',',')+'%'):'0%';}
+function erro(t){const e=el('erro');if(!t){e.className='erro';return;}e.className='erro on';e.textContent=t;}
+
+// Leitura no Supabase corta em 1000 linhas sem avisar, entao tudo pagina.
+async function lerTudo(tabela,colunas){
+  const passo=1000,out=[];
+  for(let i=0;i<60;i++){
+    const {data,error}=await db.from(tabela).select(colunas).range(i*passo,(i+1)*passo-1);
+    if(error) throw error;
+    const b=data||[];
+    out.push.apply(out,b);
+    if(b.length<passo) break;
+  }
+  return out;
+}
+
+// Diametro chega como numero solto. Vira polegada legivel, com fracao.
+function rotuloDiam(v){
+  const s=(v==null?'':String(v)).trim();
+  if(!s) return 'sem diâmetro';
+  const n=Number(s.replace(',','.'));
+  if(isNaN(n)) return s;
+  const frac={0.5:'1/2"',0.75:'3/4"',1.25:'1¼"',1.5:'1½"',2.5:'2½"'};
+  return frac[n]||(String(n).replace('.',',')+'"');
+}
+function ordemDiam(v){
+  const n=Number(String(v==null?'':v).replace(',','.'));
+  return isNaN(n)?9999:n;
+}
+// Grafias diferentes do mesmo tipo viram um valor so.
+function rotuloTipo(v){
+  const s=(v==null?'':String(v)).trim().toUpperCase()
+    .replace(/[ÁÀÂÃ]/g,'A').replace(/[ÉÊ]/g,'E').replace(/[ÍÎ]/g,'I').replace(/[ÓÔÕ]/g,'O').replace(/[ÚÛ]/g,'U');
+  if(!s) return 'N/A';
+  if(s.indexOf('ANGULO')>=0) return 'JUNTAS DE ÂNGULO';
+  if(s.indexOf('TOPO')>=0) return 'TOPO';
+  if(s==='BL') return 'BOCA DE LOBO';
+  if(s.indexOf('ENCAIXE')>=0) return 'ENCAIXE';
+  if(s.indexOf('SOBREPOST')>=0) return 'SOBREPOSTA';
+  if(s.indexOf('ENCHIMENTO')>=0) return 'ENCHIMENTO';
+  if(s==='RO') return 'RO';
+  if(s.indexOf('VERIFICAR')>=0) return 'VERIFICAR';
+  return s;
+}
+
+async function carregar(){
+  erro('');
+  try{
+    const [juntas,eventos]=await Promise.all([
+      lerTudo('junta','id,tipo_junta,situacao,diametro,tipo_construtivo,local_previsto'),
+      lerTudo('junta_evento','junta_id,etapa_codigo,resultado')
+    ]);
+    D.juntas=juntas.filter(j=>j.situacao!=='cancelada');
+    D.exec={};
+    eventos.forEach(e=>{ if(e.resultado!=='na') D.exec[e.junta_id]=true; });
+    try{
+      const {data}=await db.from('empresas').select('nome,logo_base64').limit(1);
+      if(data&&data[0]){
+        if(data[0].logo_base64) el('logo').src=data[0].logo_base64;
+        if(data[0].nome) el('rodEmpresa').textContent=data[0].nome+' · Mapa da Qualidade';
+      }
+    }catch(e){}
+    render();
+  }catch(e){ erro('Não foi possível carregar. '+(e.message||e)); }
+}
+
+function render(){
+  const js=D.juntas;
+  const total=js.length;
+  const campo=js.filter(j=>j.tipo_junta==='JC').length;
+  const fabric=js.filter(j=>j.tipo_junta==='JP').length;
+  // Executada segue o criterio do painel gerencial: junta de fabricacao
+  // com registro. O avanco pre parada mede o pipe shop, e o geral projeta
+  // esse mesmo numero sobre o escopo total.
+  const exec=js.filter(j=>j.tipo_junta==='JP'&&D.exec[j.id]).length;
+  const pend=total-exec;
+  const prePar=fabric?(exec*100/fabric):0;
+  const geral=total?(exec*100/total):0;
+
+  el('kpis').innerHTML=`
+    <div class="kpi"><div class="v">${br(total)}</div><div class="k">TOTAL DE JUNTAS</div><div class="s">Escopo previsto</div></div>
+    <div class="kpi"><div class="v">${br(campo)}</div><div class="k">TOTAL DE PARADA</div><div class="s">Escopo campo</div></div>
+    <div class="kpi"><div class="v">${br(fabric)}</div><div class="k">TOTAL DE FABRICAÇÃO</div><div class="s">Escopo pipe shop</div></div>
+    <div class="kpi"><div class="v">${br(exec)}</div><div class="k">JUNTAS EXECUTADAS</div><div class="s">Escopo de fabricação</div></div>
+    <div class="kpi"><div class="v">${br(pend)}</div><div class="k">JUNTAS PENDENTES</div><div class="s">Escopo total</div></div>
+    <div class="kpi"><div class="v">${Math.round(prePar)}%</div><div class="k">AVANÇO PRÉ PARADA</div><div class="s">Executado / previsto</div></div>`;
+
+  renderDiam(js);
+  renderRoscas(prePar, geral);
+  renderTipos(js);
+  renderLocal(js);
+
+  const d=new Date();
+  el('rodData').textContent='Atualizado em '+String(d.getDate()).padStart(2,'0')+'/'+
+    String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()+' às '+
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+function renderDiam(js){
+  const acc={};
+  js.forEach(j=>{
+    const k=rotuloDiam(j.diametro);
+    acc[k]=acc[k]||{feito:0,falta:0,ord:ordemDiam(j.diametro)};
+    // Mesmo criterio dos indicadores: realizado e fabricacao com registro.
+    if(j.tipo_junta==='JP'&&D.exec[j.id]) acc[k].feito++; else acc[k].falta++;
+  });
+  const ks=Object.keys(acc).sort((a,b)=>(acc[b].feito+acc[b].falta)-(acc[a].feito+acc[a].falta));
+  const maxTot=Math.max.apply(null,ks.map(k=>acc[k].feito+acc[k].falta).concat([1]));
+  el('diam').innerHTML=ks.map(k=>{
+    const d=acc[k];
+    const wf=d.feito*100/maxTot, wp=d.falta*100/maxTot;
+    return `<div class="barh">
+      <span class="rot">${esc(k)}</span>
+      <span class="trilho">
+        <span class="feito" style="width:${wf}%">${d.feito?d.feito:''}</span>
+        <span class="falta" style="width:${wp}%">${d.falta?d.falta:''}</span>
+      </span></div>`;
+  }).join('')+
+  '<div class="legenda"><span><i style="background:var(--verde-cl)"></i>Realizado</span>'+
+  '<span><i style="background:var(--verde-claro)"></i>Pendente</span></div>';
+}
+
+function rosca(pctVal, cor){
+  const r=46, c=2*Math.PI*r, off=c*(1-Math.min(100,Math.max(0,pctVal))/100);
+  return `<svg viewBox="0 0 110 110">
+    <circle cx="55" cy="55" r="${r}" fill="none" stroke="#E6EDE8" stroke-width="15"/>
+    <circle cx="55" cy="55" r="${r}" fill="none" stroke="${cor}" stroke-width="15"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}" stroke-linecap="butt"
+      transform="rotate(-90 55 55)"/>
+    <text x="55" y="61" text-anchor="middle" font-family="Exo 2, sans-serif"
+      font-size="21" font-weight="800" fill="#145034">${pctVal.toFixed(1).replace('.',',')}%</text>
+  </svg>`;
+}
+function renderRoscas(pre, geral){
+  el('roscas').innerHTML=
+    '<div class="rosca">'+rosca(pre,'#1E6B47')+'<div class="lab">PRÉ PARADA</div></div>'+
+    '<div class="rosca">'+rosca(geral,'#3E8E63')+'<div class="lab">GERAL</div></div>';
+}
+
+function renderTipos(js){
+  const acc={};
+  js.forEach(j=>{const k=rotuloTipo(j.tipo_construtivo);acc[k]=(acc[k]||0)+1;});
+  const ks=Object.keys(acc).sort((a,b)=>acc[b]-acc[a]);
+  const total=js.length||1;
+  let ang=0;
+  const raioE=52, raioI=27, cx=60, cy=60;
+  const fatias=ks.map((k,i)=>{
+    const v=acc[k], frac=v/total, ang2=ang+frac*360;
+    const p=(a,r)=>[cx+r*Math.cos((a-90)*Math.PI/180), cy+r*Math.sin((a-90)*Math.PI/180)];
+    const grande=frac>0.5?1:0;
+    const [x1,y1]=p(ang,raioE), [x2,y2]=p(ang2,raioE);
+    const [x3,y3]=p(ang2,raioI), [x4,y4]=p(ang,raioI);
+    const d=`M${x1} ${y1} A${raioE} ${raioE} 0 ${grande} 1 ${x2} ${y2} L${x3} ${y3} A${raioI} ${raioI} 0 ${grande} 0 ${x4} ${y4} Z`;
+    const meio=(ang+ang2)/2;
+    const [tx,ty]=p(meio,(raioE+raioI)/2);
+    const rot=frac>=0.05
+      ? `<text x="${tx}" y="${ty+3}" text-anchor="middle" font-size="7.5" font-weight="800" fill="#fff">${Math.round(frac*100)}%</text>` : '';
+    ang=ang2;
+    return `<path d="${d}" fill="${CORES[i%CORES.length]}"/>`+rot;
+  }).join('');
+  el('tipos').innerHTML=
+    `<div class="pizza"><svg viewBox="0 0 120 120">${fatias}
+      <text x="60" y="57" text-anchor="middle" font-size="8" font-weight="700" fill="#4B5563">TOTAL</text>
+      <text x="60" y="68" text-anchor="middle" font-family="Exo 2, sans-serif" font-size="13" font-weight="800" fill="#145034">${br(js.length)}</text>
+    </svg></div>`+
+    '<div class="pz-leg">'+ks.map((k,i)=>
+      `<span><i style="background:${CORES[i%CORES.length]}"></i>${esc(k)}</span>`).join('')+'</div>';
+}
+
+function renderLocal(js){
+  const acc={};
+  js.forEach(j=>{
+    const k = j.tipo_junta==='JC' ? 'CAMPO' : (j.tipo_junta==='JP' ? 'PIPE SHOP' : 'VERIFICAR');
+    acc[k]=(acc[k]||0)+1;
+  });
+  const ordem=['CAMPO','PIPE SHOP','OFICINA','FÁBRICA','VERIFICAR'];
+  const cores={'CAMPO':'#145034','PIPE SHOP':'#3E8E63','OFICINA':'#7DBE6A','FÁBRICA':'#C8E0A8','VERIFICAR':'#8FA2AC'};
+  const ks=ordem.filter(k=>acc[k]);
+  const total=js.length||1;
+  el('localBarra').innerHTML=ks.map(k=>{
+    const p=acc[k]*100/total;
+    return `<div style="width:${p}%;background:${cores[k]}">${p>=6?p.toFixed(1).replace('.',',')+'%':''}</div>`;
+  }).join('');
+  el('escala').innerHTML=[0,10,20,30,40,50,60,70,80,90,100].map(v=>'<span>'+v+'%</span>').join('');
+  el('localLeg').innerHTML=ks.map(k=>
+    `<span><i style="background:${cores[k]}"></i>${esc(k)} · ${br(acc[k])}</span>`).join('');
+}
+
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) carregar(); });
+setInterval(carregar,120000);
+carregar();
+</script>
+</body>
+</html>
