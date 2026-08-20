@@ -44,14 +44,18 @@ body{font-family:var(--font-ui);color:var(--ink);background:#fff;-webkit-font-sm
 .bloco .corpo{padding:12px}
 
 /* BARRAS HORIZONTAIS */
-.barh{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:8px;margin-bottom:5px;font-size:11.5px}
+.barh{display:grid;grid-template-columns:58px 1fr 42px 42px;align-items:center;gap:7px;margin-bottom:5px;font-size:11.5px}
 .barh .rot{text-align:right;font-weight:700;color:#374151;white-space:nowrap}
 .barh .trilho{position:relative;height:17px;background:#F3F6F4;border:1px solid #EAEFEB;display:flex}
-.barh .feito{background:var(--verde-cl);height:100%;display:flex;align-items:center;justify-content:flex-end;
-  padding-right:4px;font-size:10px;font-weight:800;color:#145034;min-width:0;overflow:hidden}
-.barh .falta{background:var(--verde-claro);height:100%;display:flex;align-items:center;justify-content:flex-end;
-  padding-right:4px;font-size:10px;font-weight:700;color:#3F5A34;min-width:0;overflow:hidden}
-.barh .num{font-size:10px;font-weight:700;color:#4B5563;padding-left:5px}
+.barh .feito{background:var(--verde-cl);height:100%}
+.barh .falta{background:var(--verde-claro);height:100%}
+.barh .nf,.barh .np{font-size:10.5px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.barh .nf{color:#1E6B47}
+.barh .np{color:#7E9A6B}
+.barh .zero{color:#C3CCC6}
+.barh-cab{display:grid;grid-template-columns:58px 1fr 42px 42px;gap:7px;margin-bottom:6px;
+  font-size:9px;font-weight:800;letter-spacing:.05em;color:#8A9691;text-transform:uppercase}
+.barh-cab span:nth-child(3),.barh-cab span:nth-child(4){text-align:right}
 .legenda{display:flex;gap:16px;justify-content:center;margin-top:9px;font-size:10.5px;color:#4B5563}
 .legenda span{display:inline-flex;align-items:center;gap:5px}
 .legenda i{width:11px;height:11px;display:inline-block;border-radius:2px}
@@ -255,15 +259,18 @@ function renderDiam(js){
   });
   const ks=Object.keys(acc).sort((a,b)=>(acc[b].feito+acc[b].falta)-(acc[a].feito+acc[a].falta));
   const maxTot=Math.max.apply(null,ks.map(k=>acc[k].feito+acc[k].falta).concat([1]));
-  el('diam').innerHTML=ks.map(k=>{
+  const cab='<div class="barh-cab"><span></span><span></span><span>Real.</span><span>Pend.</span></div>';
+  el('diam').innerHTML=cab+ks.map(k=>{
     const d=acc[k];
     const wf=d.feito*100/maxTot, wp=d.falta*100/maxTot;
     return `<div class="barh">
       <span class="rot">${esc(k)}</span>
       <span class="trilho">
-        <span class="feito" style="width:${wf}%">${d.feito?d.feito:''}</span>
-        <span class="falta" style="width:${wp}%">${d.falta?d.falta:''}</span>
-      </span></div>`;
+        <span class="feito" style="width:${wf}%"></span>
+        <span class="falta" style="width:${wp}%"></span>
+      </span>
+      <span class="nf ${d.feito?'':'zero'}">${d.feito}</span>
+      <span class="np ${d.falta?'':'zero'}">${d.falta}</span></div>`;
   }).join('')+
   '<div class="legenda"><span><i style="background:var(--verde-cl)"></i>Realizado</span>'+
   '<span><i style="background:var(--verde-claro)"></i>Pendente</span></div>';
