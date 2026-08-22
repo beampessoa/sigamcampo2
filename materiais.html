@@ -71,11 +71,12 @@ tr.bad{background:#FEF2F2}
 
 /* status chip + select */
 .stsel{padding:5px 8px;border-radius:20px;font-size:11.5px;font-weight:700;border:1px solid var(--field-line);background:#fff;cursor:pointer}
-.st-pendente{color:#92400E;background:#FFFBEB;border-color:#FDE68A}
-.st-solicitado{color:var(--blue-700);background:#EFF4FF;border-color:#C7D7F5}
-.st-recebido{color:#166534;background:#F0FDF4;border-color:#BBF7D0}
-.st-aplicado{color:#065F46;background:#ECFDF5;border-color:#A7F3D0}
-.st-devolvido{color:#374151;background:#F3F4F6;border-color:#E5E7EB}
+.st-pendente_reserva{color:#92400E;background:#FFFBEB;border-color:#FDE68A}
+.st-pedido_transferencia{color:var(--blue-700);background:#EFF4FF;border-color:#C7D7F5}
+.st-recuperar{color:#9A3412;background:#FFF7ED;border-color:#FED7AA}
+.st-em_estoque{color:#166534;background:#F0FDF4;border-color:#BBF7D0}
+.st-retirado{color:#334155;background:#F1F5F9;border-color:#CBD5E1}
+.st-cancelado{color:#6B7280;background:#F3F4F6;border-color:#E5E7EB}
 .due-cell{color:var(--danger);font-weight:800;background:#FEF2F2}
 
 /* alternador de visão */
@@ -162,10 +163,12 @@ tr.bad{background:#FEF2F2}
   </div>
   <div class="filters">
     <button class="fchip on" data-f="todos" onclick="setFiltro('todos')">Todos</button>
-    <button class="fchip" data-f="pendente" onclick="setFiltro('pendente')">Pendentes</button>
-    <button class="fchip" data-f="solicitado" onclick="setFiltro('solicitado')">Solicitados</button>
-    <button class="fchip" data-f="recebido" onclick="setFiltro('recebido')">Recebidos</button>
-    <button class="fchip" data-f="aplicado" onclick="setFiltro('aplicado')">Aplicados</button>
+    <button class="fchip" data-f="cancelado" onclick="setFiltro('cancelado')">Cancelado</button>
+    <button class="fchip" data-f="em_estoque" onclick="setFiltro('em_estoque')">Estoque</button>
+    <button class="fchip" data-f="pedido_transferencia" onclick="setFiltro('pedido_transferencia')">Pedido / Transferência</button>
+    <button class="fchip" data-f="pendente_reserva" onclick="setFiltro('pendente_reserva')">Pendente reserva</button>
+    <button class="fchip" data-f="recuperar" onclick="setFiltro('recuperar')">Recuperar</button>
+    <button class="fchip" data-f="retirado" onclick="setFiltro('retirado')">Retirado</button>
     <button class="fchip" data-f="areceber" onclick="setFiltro('areceber')">A receber</button>
     <button class="fchip" data-f="atrasados" onclick="setFiltro('atrasados')">Atrasados</button>
     <button class="fchip" data-f="naocad" onclick="setFiltro('naocad')">LS não cadastradas</button>
@@ -191,15 +194,19 @@ const SUPA_URL='https://kiwiykgzogcxiseynzyy.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd2l5a2d6b2djeGlzZXluenl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzQ0MDYsImV4cCI6MjA5NzExMDQwNn0.usaaGrGFhizyVqCl1IOPykGfW_EUha3d-pF9_AHUojU';
 const db=supabase.createClient(SUPA_URL,SUPA_KEY);
 
-const STATUS=['em_estoque','pedido','pedido_transferencia','falta_reserva','recuperar','verificar','cancelado','pendente','solicitado','recebido','aplicado','devolvido'];
-const STLABEL={em_estoque:'Em estoque',pedido:'Pedido',pedido_transferencia:'Pedido/Transferência',falta_reserva:'Falta reserva',recuperar:'Recuperar',verificar:'Verificar material',cancelado:'Cancelado',pendente:'Pendente',solicitado:'Solicitado',recebido:'Recebido',aplicado:'Aplicado',devolvido:'Devolvido'};
+// Vocabulário oficial: os 6 status da planilha, na mesma ordem do filtro do Excel.
+const STATUS=['cancelado','em_estoque','pedido_transferencia','pendente_reserva','recuperar','retirado'];
+const STLABEL={cancelado:'Cancelado',em_estoque:'Estoque',pedido_transferencia:'Pedido / Transferência',pendente_reserva:'Pendente reserva',recuperar:'Recuperar',retirado:'Retirado'};
+// Material que já chegou: em estoque, ou retirado do armazém (já em uso no campo).
+const ST_RECEBIDO=['em_estoque','retirado'];
+const ST_PADRAO='pendente_reserva';
 const CAMPOS=[['ls_codigo','Cód-LS *'],['nm','NM'],['unidade','Unidade (planta)'],['tag','TAG'],['descricao','Descrição *'],['diametro','Ø'],['classe','# / sch'],['status','Status'],['data_prevista','Previsão'],['data_recebimento','Recebido em'],['quantidade','Qtd'],['unidade_medida','Un. medida'],['codigo','Código']];
 
 const TODAY=new Date().toISOString().slice(0,10);
 let MAT=[], PLAQS=[], filtro='todos', filtroLs=null, filtroUni='', viewMode='lista';
 
 function fmtDay(iso){if(!iso)return '—';const s=String(iso).slice(0,10);const p=s.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s;}
-function isRecebido(m){return !!m.data_recebimento || m.status==='recebido' || m.status==='aplicado';}
+function isRecebido(m){return !!m.data_recebimento || ST_RECEBIDO.includes(m.status);}
 function isVencido(m){return !!m.data_prevista && !isRecebido(m) && String(m.data_prevista).slice(0,10)<=TODAY;}
 function parseDate(v){
   if(v==null||v==='')return null;
@@ -217,17 +224,19 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;',
 function toast(m,t){const w=document.getElementById('toastWrap');const e=document.createElement('div');e.className='toast '+(t||'ok');e.textContent=m;w.appendChild(e);setTimeout(()=>e.remove(),3600);}
 function fmtDate(s){if(!s)return'';const d=new Date(s);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
 function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
-function normStatus(s){const n=norm(s);if(STATUS.includes(n))return n;
-  if(/transfer/.test(n))return'pedido_transferencia';
-  if(/pedido/.test(n))return'pedido';
-  if(/estoque/.test(n))return'em_estoque';
-  if(/cancel/.test(n))return'cancelado';
-  if(/recuper/.test(n))return'recuperar';
-  if(/verific/.test(n))return'verificar';
-  if(/falta.*res|res.*falta|pend.*res|resrva/.test(n))return'falta_reserva';
-  if(/receb/.test(n))return'recebido';if(/solicit|comprad/.test(n))return'solicitado';
-  if(/aplic|instal/.test(n))return'aplicado';if(/devolv/.test(n))return'devolvido';
-  if(/pend/.test(n))return'pendente';return null;}
+// Reconhece o termo da planilha, tolerando variações de escrita.
+// Retorna null quando não reconhece — o preview mostra o termo para você conferir.
+function normStatus(s){
+  const n=norm(s);
+  if(STATUS.includes(n.replace(/[\s\/.-]+/g,'_'))) return n.replace(/[\s\/.-]+/g,'_');
+  if(/retirad|retirou|baixad/.test(n))            return 'retirado';
+  if(/cancel/.test(n))                            return 'cancelado';
+  if(/recuper/.test(n))                           return 'recuperar';
+  if(/reserva|resrva/.test(n))                    return 'pendente_reserva';
+  if(/transfer|pedido|compra|solicit/.test(n))    return 'pedido_transferencia';
+  if(/estoque|almox/.test(n))                     return 'em_estoque';
+  return null;
+}
 
 // ── carregar lista ──
 async function carregar(){
@@ -330,7 +339,7 @@ function renderGrouped(){
   cont.innerHTML=lss.map(ls=>{
     const items=g[ls];
     const uni=(items.find(x=>x.unidade)||{}).unidade||'';
-    const pend=items.filter(m=>m.status==='pendente'||m.status==='solicitado').length;
+    const pend=items.filter(m=>!isRecebido(m)&&m.status!=='cancelado').length;
     const atras=items.filter(isVencido).length;
     const linhas=items.map(m=>{const venc=isVencido(m);
       return '<tr><td>'+esc(m.nm||'—')+'</td><td>'+esc(m.descricao||'')+'</td><td>'+selStatus(m)+'</td>'
@@ -351,7 +360,9 @@ function renderGrouped(){
 function toggleGroup(head){head.parentElement.classList.toggle('collapsed');}
 
 function selStatus(m){
+  const legado=!STATUS.includes(m.status);
   return '<select class="stsel st-'+m.status+'" onchange="mudarStatus('+m.id+',this.value,this)">'
+    +(legado?'<option value="'+esc(m.status)+'" selected>⚠ Sem status — reimportar</option>':'')
     +STATUS.map(s=>'<option value="'+s+'"'+(s===m.status?' selected':'')+'>'+STLABEL[s]+'</option>').join('')+'</select>';
 }
 async function mudarStatus(id,val,el){
@@ -410,33 +421,95 @@ function valLinha(r){
   const g=k=>{const i=mapping[k];return i>=0?String(r[i]).trim():'';};
   const gr=k=>{const i=mapping[k];return i>=0?r[i]:'';};
   const ls=g('ls_codigo'),desc=g('descricao');
-  const st=g('status')?normStatus(g('status')):'pendente';
+  const st=g('status')?normStatus(g('status')):ST_PADRAO;
   const q=g('quantidade');
-  return {ls_codigo:ls,nm:g('nm')||null,unidade:g('unidade')||null,tag:g('tag')||null,descricao:desc,diametro:g('diametro')||null,classe:g('classe')||null,
-    status:st||'pendente',statusRaw:g('status'),statusBad:!!(g('status')&&!st),
+  return {ls_codigo:ls,nm:g('nm'),unidade:g('unidade')||null,tag:g('tag')||null,descricao:desc,diametro:g('diametro')||null,classe:g('classe')||null,
+    status:st||ST_PADRAO,statusRaw:g('status'),statusBad:!!(g('status')&&!st),
     data_prevista:parseDate(gr('data_prevista')),data_recebimento:parseDate(gr('data_recebimento')),
     quantidade:q===''?null:(isNaN(Number(q))?null:Number(q)),unidade_medida:g('unidade_medida')||null,codigo:g('codigo')||null,
     _bad:(!ls||!desc)};
 }
-function preview(){
+// chave de negócio do material (espelha o índice único materiais_ls_nm_uidx)
+function chaveMat(ls,nm){return String(ls==null?'':ls).trim()+'||'+String(nm==null?'':nm).trim();}
+
+// busca as chaves LS+NM já existentes no banco, paginando por segurança
+async function fetchChaves(lss){
+  const set=new Set();
+  for(let i=0;i<lss.length;i+=100){
+    const grupo=lss.slice(i,i+100);
+    let from=0;
+    while(true){
+      const {data,error}=await db.from('materiais').select('ls_codigo,nm').in('ls_codigo',grupo).range(from,from+999);
+      if(error) throw error;
+      (data||[]).forEach(d=>set.add(chaveMat(d.ls_codigo,d.nm)));
+      if(!data||data.length<1000) break;
+      from+=1000;
+    }
+  }
+  return set;
+}
+
+let previewToken=0;
+async function preview(){
   const rows=rawRows.map(valLinha);
-  const ok=rows.filter(r=>!r._bad).length, bad=rows.length-ok, stbad=rows.filter(r=>r.statusBad).length;
+  const ok=rows.filter(r=>!r._bad).length, bad=rows.length-ok;
+  const termosDesconhecidos=[...new Set(rows.filter(r=>r.statusBad).map(r=>r.statusRaw))];
   const head='<thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Status</th><th>Previsão</th><th>Recebido</th><th>Qtd</th><th>UM</th></tr></thead>';
-  const body='<tbody>'+rows.slice(0,50).map(r=>'<tr class="'+(r._bad?'bad':'')+'"><td>'+esc(r.nm||'')+'</td><td>'+esc(r.ls_codigo||'⚠ vazio')+'</td><td>'+esc(r.unidade||'')+'</td><td>'+esc(r.tag||'')+'</td><td>'+esc(r.descricao||'⚠ vazio')+'</td><td>'+(STLABEL[r.status]||r.status)+(r.statusBad?' <span class="mini">(“'+esc(r.statusRaw)+'”→pendente)</span>':'')+'</td><td>'+fmtDay(r.data_prevista)+'</td><td>'+fmtDay(r.data_recebimento)+'</td><td>'+(r.quantidade!=null?r.quantidade:'')+'</td><td>'+esc(r.unidade_medida||'')+'</td></tr>').join('')+'</tbody>';
+  const body='<tbody>'+rows.slice(0,50).map(r=>'<tr class="'+(r._bad?'bad':'')+'"><td>'+esc(r.nm||'')+'</td><td>'+esc(r.ls_codigo||'⚠ vazio')+'</td><td>'+esc(r.unidade||'')+'</td><td>'+esc(r.tag||'')+'</td><td>'+esc(r.descricao||'⚠ vazio')+'</td><td>'+(STLABEL[r.status]||r.status)+(r.statusBad?' <span class="mini">(“'+esc(r.statusRaw)+'” não reconhecido)</span>':'')+'</td><td>'+fmtDay(r.data_prevista)+'</td><td>'+fmtDay(r.data_recebimento)+'</td><td>'+(r.quantidade!=null?r.quantidade:'')+'</td><td>'+esc(r.unidade_medida||'')+'</td></tr>').join('')+'</tbody>';
   document.getElementById('prevTable').innerHTML=head+body;
-  document.getElementById('prevCount').innerHTML='<b>'+ok+'</b> válidos'+(bad?' · <span class="bad">'+bad+' ignorados (sem LS/descrição)</span>':'')+(stbad?' · '+stbad+' status corrigidos':'')+(rows.length>50?' · mostrando 50 de '+rows.length:'');
-  document.getElementById('btnImport').disabled=ok===0;
-  window.__toImport=rows.filter(r=>!r._bad).map(r=>({ls_codigo:r.ls_codigo,nm:r.nm,unidade:r.unidade,tag:r.tag,descricao:r.descricao,diametro:r.diametro,classe:r.classe,status:r.status,data_prevista:r.data_prevista,data_recebimento:r.data_recebimento,quantidade:r.quantidade,unidade_medida:r.unidade_medida,codigo:r.codigo}));
+
+  // dedup do próprio arquivo por LS+NM — última ocorrência vence.
+  // Sem isso o upsert falha com "ON CONFLICT cannot affect row a second time".
+  const validos=rows.filter(r=>!r._bad);
+  const mapa=new Map();
+  validos.forEach(r=>mapa.set(chaveMat(r.ls_codigo,r.nm),r));
+  const dedup=[...mapa.values()];
+  const fundidas=validos.length-dedup.length;
+
+  window.__toImport=dedup.map(r=>({ls_codigo:r.ls_codigo,nm:r.nm,unidade:r.unidade,tag:r.tag,descricao:r.descricao,diametro:r.diametro,classe:r.classe,status:r.status,data_prevista:r.data_prevista,data_recebimento:r.data_recebimento,quantidade:r.quantidade,unidade_medida:r.unidade_medida,codigo:r.codigo}));
+  document.getElementById('btnImport').disabled=dedup.length===0;
+
+  document.getElementById('prevCount').innerHTML='<b>'+dedup.length+'</b> válidos'
+    +(bad?' · <span class="bad">'+bad+' ignorados (sem LS/descrição)</span>':'')
+    +(fundidas?' · <span class="bad">'+fundidas+' linha'+(fundidas>1?'s':'')+' do arquivo fundida'+(fundidas>1?'s':'')+' (LS+NM repetido)</span>':'')
+    +(termosDesconhecidos.length?' · <span class="bad">status não reconhecido'+(termosDesconhecidos.length>1?'s':'')+': '+termosDesconhecidos.slice(0,5).map(t=>'“'+esc(t)+'”').join(', ')+(termosDesconhecidos.length>5?' e mais '+(termosDesconhecidos.length-5):'')+' → '+STLABEL[ST_PADRAO]+'</span>':'')
+    +(rows.length>50?' · mostrando 50 de '+rows.length:'')
+    +' · <span id="cntChaves" class="mini">verificando novos/atualizados…</span>';
+
+  // contagem novos × atualizados (assíncrona, com guarda de corrida)
+  const meuToken=++previewToken;
+  if(!dedup.length) return;
+  try{
+    const existentes=await fetchChaves([...new Set(dedup.map(r=>r.ls_codigo))]);
+    if(meuToken!==previewToken) return;
+    const atualizados=dedup.filter(r=>existentes.has(chaveMat(r.ls_codigo,r.nm))).length;
+    const el=document.getElementById('cntChaves');
+    if(el) el.innerHTML='<b>'+(dedup.length-atualizados)+'</b> novos · <b>'+atualizados+'</b> atualizados';
+  }catch(e){
+    if(meuToken!==previewToken) return;
+    const el=document.getElementById('cntChaves');
+    if(el) el.textContent='(não foi possível conferir novos/atualizados)';
+  }
 }
 async function importar(){
   const rows=window.__toImport||[];if(!rows.length){toast('Nada para importar','err');return;}
   const btn=document.getElementById('btnImport');btn.disabled=true;const t=btn.textContent;btn.textContent='Importando…';
+  let novos=rows.length,atualizados=0;
   try{
+    const existentes=await fetchChaves([...new Set(rows.map(r=>r.ls_codigo))]);
+    atualizados=rows.filter(r=>existentes.has(chaveMat(r.ls_codigo,r.nm))).length;
+    novos=rows.length-atualizados;
+  }catch(e){novos=-1;} // contagem é apenas informativa; não bloqueia a importação
+  try{
+    const agora=new Date().toISOString();
     for(let i=0;i<rows.length;i+=500){
-      const {error}=await db.from('materiais').insert(rows.slice(i,i+500));
+      const lote=rows.slice(i,i+500).map(r=>Object.assign({},r,{data_atualizacao:agora}));
+      // upsert por LS+NM: chave inédita insere, chave existente atualiza os campos enviados.
+      // Colunas fora do payload (org_id, observacoes) são preservadas.
+      const {error}=await db.from('materiais').upsert(lote,{onConflict:'ls_codigo,nm'});
       if(error) throw error;
     }
-    toast(rows.length+' materiais importados','ok');
+    toast(novos<0?(rows.length+' materiais importados'):(novos+' novos · '+atualizados+' atualizados'),'ok');
     cancelarImport();carregar();
   }catch(e){toast('Erro ao importar: '+(e.message||e),'err');btn.disabled=false;btn.textContent=t;}
 }
