@@ -445,7 +445,7 @@ function renderInspetor(){
   }
 }
 
-function trocarInspetor(){INSPETOR=null;APONT=null;renderInspetor();}
+function trocarInspetor(){INSPETOR=null;APONT=null;assLimpar();renderInspetor();}
 
 let __ubuf=[];
 async function buscarInspetor(){
@@ -464,8 +464,21 @@ async function buscarInspetor(){
     ).join('')+'</div>';
   }catch(e){box.innerHTML='<div class="user-miss">Erro na busca. '+esc(e.message||'')+'</div>';}
 }
-function selecInspetor(i){
+async function selecInspetor(i){
   const u=__ubuf[i]; if(!u) return;
+
+  // O PIN vem aqui: quem se identifica confirma na hora que e ele mesmo.
+  assLimpar();
+  const ass = await assGarantir({
+    pessoa_id:u.pessoa_id, nome:u.nome, referencia_tipo:'mcjs_campo'
+  });
+  if(!ass.ok){
+    INSPETOR=null; APONT=null; renderInspetor();
+    toast(ass.semPessoa ? 'Cadastro sem vínculo com o efetivo. Procure o RH.'
+                        : 'Identidade não confirmada.','err');
+    return;
+  }
+
   INSPETOR={pessoa_id:u.pessoa_id,nome:u.nome,funcao:u.funcao,matricula:u.matricula};
   APONT=null;
   renderInspetor();
@@ -746,7 +759,7 @@ async function salvarEtapa(){
   OCUPADO=true;   // trava aqui: sem isso um duplo toque abre duas telas de PIN
   // Assinatura por PIN de quem esta registrando. O soldador continua sendo
   // identificado pelo sinete; quem responde pelo registro e o inspetor.
-  const ass = await pincAssinar({
+  const ass = await assGarantir({
     pessoa_id: INSPETOR.pessoa_id, nome: INSPETOR.nome,
     referencia_tipo: 'mcjs_campo', referencia_id: j.id + ':' + etapa
   });
@@ -794,7 +807,7 @@ async function salvarEnsaio(){
   if(!res){errBox('gErr','Marque o resultado.');return;}
 
   OCUPADO=true;   // trava aqui: sem isso um duplo toque abre duas telas de PIN
-  const ass = await pincAssinar({
+  const ass = await assGarantir({
     pessoa_id: INSPETOR.pessoa_id, nome: INSPETOR.nome,
     referencia_tipo: 'mcjs_campo', referencia_id: j.id + ':' + cod
   });
@@ -1014,7 +1027,24 @@ async function carregarFlagPin(){
     console.warn('exige_pin_campo indisponivel:', e.message||e);
   }
 }
-carregarFlagPin();
+// Guarda a promessa: se a pessoa se identificar antes da leitura terminar,
+// assGarantir espera aqui em vez de assumir que o PIN esta desligado.
+const __flagPronta = carregarFlagPin();
+
+// A assinatura vale 5 minutos no banco. Guardamos a que foi feita na
+// identificacao e so pedimos o PIN de novo se ela envelheceu antes de gravar.
+let __assAtual=null;   // {id, em}
+const ASS_VALE_MS = 4*60*1000;   // 4 min: folga de 1 min para o insert chegar
+function assFresca(){ return __assAtual && (Date.now()-__assAtual.em) < ASS_VALE_MS; }
+function assLimpar(){ __assAtual=null; }
+async function assGarantir(ctx){
+  await __flagPronta;
+  if(!EXIGE_PIN_CAMPO) return {ok:true, assinatura_id:null};
+  if(assFresca()) return {ok:true, assinatura_id:__assAtual.id};
+  const r = await pincAssinar(ctx);
+  if(r.ok) __assAtual={id:r.assinatura_id, em:Date.now()};
+  return r;
+}
 
 let __pincResolve=null, __pincCtx=null, __pincTimer=null;
 
@@ -1025,6 +1055,8 @@ function pincAssinar(ctx){
   if(!ctx || !ctx.pessoa_id){
     return Promise.resolve({ok:false, semPessoa:true});
   }
+  // Duas chamadas simultaneas deixariam a primeira promessa pendurada para sempre.
+  if(__pincResolve) return Promise.resolve({ok:false, cancelado:true});
   __pincCtx = ctx;
   document.getElementById('pincNome').textContent = ctx.nome||'';
   const inp=document.getElementById('pincIn');

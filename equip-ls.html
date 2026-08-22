@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>SIGMA CODE — Ficha Técnica da Plaqueta</title>
+<title>SIGMA CODE · Ficha Técnica da Plaqueta</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -405,7 +405,7 @@ textarea:focus{outline:2px solid var(--blue-300);outline-offset:1px;background:#
         </div>
         <div class="fg">
           <label for="inPlq">Plaqueta (opcional)</label>
-          <input type="text" id="inPlq" placeholder="Ex.: T-001 — em branco lista a unidade" autocomplete="off" autocapitalize="characters">
+          <input type="text" id="inPlq" placeholder="Ex.: T-001 (em branco lista a unidade)" autocomplete="off" autocapitalize="characters">
         </div>
         <button class="btn btn-primary btn-block" onclick="buscarPlq()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -527,7 +527,7 @@ async function renderFicha(p){
 
   const linhas=[];
   linhas.push(['Código LS', p.ls_codigo]);
-  linhas.push(['Ordem de Serviço', ex.osNumero ? (ex.osNumero + (ex.osDesc?` — ${ex.osDesc}`:'')) : null]);
+  linhas.push(['Ordem de Serviço', ex.osNumero ? (ex.osNumero + (ex.osDesc?` · ${ex.osDesc}`:'')) : null]);
   linhas.push(['Descrição', p.descricao]);
 
   const temES = p.diametro_entrada || p.classe_entrada || p.diametro_saida || p.classe_saida;
@@ -757,7 +757,7 @@ function regErrClear(){document.getElementById('regErr').classList.remove('on');
 function abrirRegistro(){
   const p=window.__ficha;
   if(!p){toastCDR('Abra uma ficha primeiro.','err');return;}
-  __regUser=null; __tarefa=null;
+  __regUser=null; __tarefa=null; assLimpar();
   document.getElementById('regBusca').value='';
   document.getElementById('regUserRes').innerHTML='';
   document.getElementById('regObs').value='';
@@ -793,12 +793,31 @@ async function buscarUsuarioCDR(){
   }catch(e){box.innerHTML='<div class="user-miss">Erro na busca. '+esc(e.message||'')+'</div>';}
 }
 
-function selecUserCDR(u){
-  __regUser=u;
+async function selecUserCDR(u){
+  const box=document.getElementById('regUserRes');
   document.getElementById('regBusca').value=u.nome;
-  document.getElementById('regUserRes').innerHTML=
+  box.innerHTML=
     '<div class="user-hit"><div class="ic">'+esc((u.nome||'?').trim().charAt(0).toUpperCase())+'</div>'+
     '<div><div class="nm">'+esc(u.nome)+'</div><div class="fx">'+esc(u.matricula)+' · '+esc(u.funcao)+'</div></div></div>';
+
+  // O PIN vem aqui: e o momento em que a pessoa diz "sou eu que vou registrar".
+  // Enquanto o interruptor estiver desligado isso passa direto.
+  assLimpar();
+  const ass = await assGarantir({
+    pessoa_id:u.pessoa_id, nome:u.nome, referencia_tipo:'atividade_campo'
+  });
+  if(!ass.ok){
+    __regUser=null;
+    box.innerHTML='<div class="user-miss">'+
+      (ass.semPessoa ? 'Este cadastro não tem vínculo com o efetivo. Procure o RH.'
+                     : 'Identidade não confirmada. Digite seu nome de novo para tentar outra vez.')+
+      '</div>';
+    document.getElementById('regBusca').value='';
+    document.getElementById('regBusca').focus();
+    return;
+  }
+
+  __regUser=u;
   iniciarTarefaCDR();
 }
 
@@ -998,9 +1017,9 @@ async function salvarRegistroCDR(){
   if(btn.disabled) return;
   btn.disabled=true;
 
-  // Assinatura por PIN. Enquanto exige_pin_campo estiver desligado isso
-  // devolve ok na hora e nenhuma tela aparece.
-  const ass = await pincAssinar({
+  // Reaproveita a assinatura feita na identificacao. So volta a pedir o PIN
+  // se ela passou de 4 minutos — o banco recusa assinatura com mais de 5.
+  const ass = await assGarantir({
     pessoa_id: __regUser.pessoa_id,
     nome: __regUser.nome,
     referencia_tipo: 'atividade_campo',
@@ -1127,10 +1146,10 @@ async function carregarHistoricoCDR(){
     let banner='';
     if(evtRow && evtRow.resposta==='cancelado'){
       banner='<div class="cdr-cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><span>LS CANCELADA'
-        +(evtRow.doc_cancelamento?(' — doc '+esc(evtRow.doc_cancelamento)):'')+'. Todas as atividades foram encerradas.</span></div>';
+        +(evtRow.doc_cancelamento?(', doc '+esc(evtRow.doc_cancelamento)):'')+'. Todas as atividades foram encerradas.</span></div>';
     }else if(evtRow && evtRow.resposta==='reativado'){
       banner='<div class="cdr-reativ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>LS REATIVADA'
-        +(evtRow.doc_cancelamento?(' — doc '+esc(evtRow.doc_cancelamento)):'')+'. O cancelamento anterior permanece no histórico.</span></div>';
+        +(evtRow.doc_cancelamento?(', doc '+esc(evtRow.doc_cancelamento)):'')+'. O cancelamento anterior permanece no histórico.</span></div>';
     }
     box.innerHTML='<h3>Atividades registradas</h3>'+banner+data.map(r=>{
       const dt=r.data_criacao?new Date(r.data_criacao):null;
@@ -1218,7 +1237,24 @@ async function carregarFlagPin(){
     console.warn('exige_pin_campo indisponivel:', e.message||e);
   }
 }
-carregarFlagPin();
+// Guarda a promessa: se a pessoa se identificar antes da leitura terminar,
+// assGarantir espera aqui em vez de assumir que o PIN esta desligado.
+const __flagPronta = carregarFlagPin();
+
+// A assinatura vale 5 minutos no banco. Guardamos a que foi feita na
+// identificacao e so pedimos o PIN de novo se ela envelheceu antes de gravar.
+let __assAtual=null;   // {id, em}
+const ASS_VALE_MS = 4*60*1000;   // 4 min: folga de 1 min para o insert chegar
+function assFresca(){ return __assAtual && (Date.now()-__assAtual.em) < ASS_VALE_MS; }
+function assLimpar(){ __assAtual=null; }
+async function assGarantir(ctx){
+  await __flagPronta;
+  if(!EXIGE_PIN_CAMPO) return {ok:true, assinatura_id:null};
+  if(assFresca()) return {ok:true, assinatura_id:__assAtual.id};
+  const r = await pincAssinar(ctx);
+  if(r.ok) __assAtual={id:r.assinatura_id, em:Date.now()};
+  return r;
+}
 
 let __pincResolve=null, __pincCtx=null, __pincTimer=null;
 
@@ -1229,6 +1265,8 @@ function pincAssinar(ctx){
   if(!ctx || !ctx.pessoa_id){
     return Promise.resolve({ok:false, semPessoa:true});
   }
+  // Duas chamadas simultaneas deixariam a primeira promessa pendurada para sempre.
+  if(__pincResolve) return Promise.resolve({ok:false, cancelado:true});
   __pincCtx = ctx;
   document.getElementById('pincNome').textContent = ctx.nome||'';
   const inp=document.getElementById('pincIn');
