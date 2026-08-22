@@ -56,6 +56,9 @@ th{text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.03em;text-tr
 td{padding:8px 11px;border-bottom:1px solid #F1F4F9;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr.bad{background:#FEF2F2}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--blue)}
+th.sortable.on{color:var(--blue)}
 .mini{font-size:11px;color:var(--muted)}
 
 .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink)}
@@ -178,7 +181,7 @@ tr.bad{background:#FEF2F2}
   <div id="viewLista">
     <div class="tbl-wrap">
       <table>
-        <thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Status</th><th>Previsão</th><th>Recebido</th><th>Qtd</th><th>UM</th><th>Atualizado</th></tr></thead>
+        <thead><tr><th>NM</th><th>LS</th><th>Unidade</th><th>TAG</th><th>Descrição</th><th>Status</th><th class="sortable" id="thPrev" data-label="Previsão" onclick="ordenar('data_prevista')">Previsão</th><th class="sortable" id="thReceb" data-label="Recebido" onclick="ordenar('data_recebimento')">Recebido</th><th>Qtd</th><th>UM</th><th>Atualizado</th></tr></thead>
         <tbody id="matBody"><tr><td colspan="11" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
@@ -204,6 +207,35 @@ const CAMPOS=[['ls_codigo','Cód-LS *'],['nm','NM'],['unidade','Unidade (planta)
 
 const TODAY=new Date().toISOString().slice(0,10);
 let MAT=[], PLAQS=[], filtro='todos', filtroLs=null, filtroUni='', viewMode='lista';
+// ordenação por data (só na visão Lista): 1º clique = maior para o menor
+let ordCol=null, ordDesc=true;
+const ORD_TH={data_prevista:'thPrev',data_recebimento:'thReceb'};
+
+function ordenar(col){
+  if(ordCol===col) ordDesc=!ordDesc; else {ordCol=col;ordDesc=true;}
+  renderLista();
+}
+function marcarCabecalho(){
+  Object.keys(ORD_TH).forEach(col=>{
+    const el=document.getElementById(ORD_TH[col]); if(!el)return;
+    const ativo=ordCol===col;
+    el.textContent=el.dataset.label+(ativo?(ordDesc?' ↓':' ↑'):'');
+    el.classList.toggle('on',ativo);
+  });
+}
+// datas vazias ficam sempre no fim, nas duas direções
+function aplicarOrdem(rows){
+  if(!ordCol) return rows;
+  const val=m=>m[ordCol]?String(m[ordCol]).slice(0,10):'';
+  return rows.slice().sort((a,b)=>{
+    const va=val(a), vb=val(b);
+    if(!va&&!vb) return 0;
+    if(!va) return 1;
+    if(!vb) return -1;
+    if(va===vb) return 0;
+    return ordDesc ? (va<vb?1:-1) : (va<vb?-1:1);
+  });
+}
 
 function fmtDay(iso){if(!iso)return '—';const s=String(iso).slice(0,10);const p=s.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s;}
 function isRecebido(m){return !!m.data_recebimento || ST_RECEBIDO.includes(m.status);}
@@ -309,7 +341,8 @@ function renderNaoCad(){
 }
 
 function renderFlat(){
-  const rows=filtrarMat();
+  marcarCabecalho();
+  const rows=aplicarOrdem(filtrarMat());
   const body=document.getElementById('matBody');
   if(!rows.length){body.innerHTML='<tr><td colspan="11" class="empty">Nenhum material.</td></tr>';return;}
   body.innerHTML=rows.map(m=>{
