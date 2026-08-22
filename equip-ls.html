@@ -313,6 +313,29 @@ textarea:focus{outline:2px solid var(--blue-300);outline-offset:1px;background:#
   *{overflow:visible!important;max-height:none!important}
 }
 </style>
+<style>
+/* ═══ PIN de campo — assinatura do registro ═══ */
+.pinc-ov{position:fixed;inset:0;background:rgba(15,23,42,.62);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;padding:18px;z-index:9000}
+.pinc-ov.on{display:flex}
+.pinc-box{background:#fff;border-radius:16px;width:100%;max-width:340px;padding:22px 20px 18px;
+  box-shadow:0 24px 60px rgba(2,6,23,.35);text-align:center}
+.pinc-tt{font-size:17px;font-weight:800;color:#0f172a;letter-spacing:-.2px}
+.pinc-sub{font-size:13px;color:#64748b;margin-top:3px}
+.pinc-in{width:100%;margin-top:16px;padding:14px 12px;border:1.5px solid #cbd5e1;border-radius:11px;
+  font-size:26px;letter-spacing:12px;text-align:center;font-weight:700;color:#0f172a;outline:none;
+  -webkit-text-security:disc}
+.pinc-in:focus{border-color:#0F4CBA;box-shadow:0 0 0 3px rgba(15,76,186,.13)}
+.pinc-in:disabled{background:#f1f5f9;color:#94a3b8}
+.pinc-err{display:none;margin-top:10px;font-size:12.5px;color:#b91c1c;font-weight:600;line-height:1.35}
+.pinc-err.on{display:block}
+.pinc-acts{display:flex;gap:9px;margin-top:15px}
+.pinc-btn{flex:1;padding:12px 10px;border-radius:10px;border:0;font-size:14px;font-weight:700;cursor:pointer}
+.pinc-ok{background:#0F4CBA;color:#fff}
+.pinc-ok:disabled{background:#94a3b8;cursor:not-allowed}
+.pinc-gh{background:#f1f5f9;color:#475569}
+.pinc-foot{margin-top:12px;font-size:11px;color:#94a3b8;line-height:1.4}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -968,8 +991,29 @@ async function salvarRegistroCDR(){
     }
   }
   regErrClear();
+
+  // Trava o botao antes de pedir o PIN: sem isso um duplo toque abre
+  // duas telas de PIN e pode gravar a etapa duas vezes.
   const btn=document.getElementById('regSalvar'); const txt=btn.textContent;
-  btn.disabled=true; btn.textContent='Salvando…';
+  if(btn.disabled) return;
+  btn.disabled=true;
+
+  // Assinatura por PIN. Enquanto exige_pin_campo estiver desligado isso
+  // devolve ok na hora e nenhuma tela aparece.
+  const ass = await pincAssinar({
+    pessoa_id: __regUser.pessoa_id,
+    nome: __regUser.nome,
+    referencia_tipo: 'atividade_campo',
+    referencia_id: p.id + ':' + __tarefa.etapa
+  });
+  if(!ass.ok){
+    btn.disabled=false;
+    if(ass.semPessoa) regErr('Este cadastro não tem vínculo com o efetivo. Procure o RH.');
+    else if(ass.cancelado) regErr('Registro não gravado: o PIN não foi confirmado.');
+    return;
+  }
+
+  btn.textContent='Salvando…';
   try{
     let arquivo_url=null, arquivo_nome=null;
     const f=document.getElementById('regFile').files[0];
@@ -989,7 +1033,8 @@ async function salvarRegistroCDR(){
       etapa:__tarefa.etapa, pergunta:__tarefa.pergunta, resposta:resp.value,
       observacoes:document.getElementById('regObs').value.trim()||null,
       doc_cancelamento:(resp.value==='cancelado')?docCanc:null,
-      arquivo_url, arquivo_nome
+      arquivo_url, arquivo_nome,
+      assinatura_id: ass.assinatura_id
     });
     if(ins.error) throw ins.error;
 
@@ -1142,6 +1187,131 @@ async function carregarMateriaisLS(){
 
 boot();
 </script>
+<script>
+// ═══════════════════════════════════════════════
+// PIN DE CAMPO — assinatura do registro
+//
+// O interruptor mora em public.config.exige_pin_campo e e lido por
+// sigmatr.exige_pin_campo(). Enquanto estiver 'false' nada muda: pincAssinar()
+// devolve ok na hora e nenhuma tela aparece.
+//
+// Quando estiver 'true':
+//   1. esta tela pede o PIN de quem esta registrando;
+//   2. sigmatr.assinar_campo() confere o PIN no banco (bcrypt, 5 tentativas,
+//      bloqueio de 5 min) e devolve o id da assinatura;
+//   3. o insert leva assinatura_id e um gatilho no banco recusa qualquer
+//      linha sem assinatura valida, fresca (5 min) e da pessoa certa.
+// O PIN nunca trafega para lugar nenhum alem da RPC. O front aqui e conforto:
+// quem manda o insert direto pela chave anon esbarra no gatilho do banco.
+// ═══════════════════════════════════════════════
+const trdb = supabase.createClient(SUPA_URL, SUPA_KEY, {db:{schema:'sigmatr'}});
+let EXIGE_PIN_CAMPO = false;
+
+async function carregarFlagPin(){
+  try{
+    const {data,error} = await trdb.rpc('exige_pin_campo');
+    if(error) throw error;
+    EXIGE_PIN_CAMPO = (data === true);
+  }catch(e){
+    // Se nao deu para ler o interruptor, nao trava o campo: segue como estava.
+    EXIGE_PIN_CAMPO = false;
+    console.warn('exige_pin_campo indisponivel:', e.message||e);
+  }
+}
+carregarFlagPin();
+
+let __pincResolve=null, __pincCtx=null, __pincTimer=null;
+
+// ctx = {pessoa_id, nome, referencia_tipo, referencia_id, conteudo_hash}
+// devolve {ok:true, assinatura_id} | {ok:false, cancelado:true}
+function pincAssinar(ctx){
+  if(!EXIGE_PIN_CAMPO) return Promise.resolve({ok:true, assinatura_id:null});
+  if(!ctx || !ctx.pessoa_id){
+    return Promise.resolve({ok:false, semPessoa:true});
+  }
+  __pincCtx = ctx;
+  document.getElementById('pincNome').textContent = ctx.nome||'';
+  const inp=document.getElementById('pincIn');
+  inp.value=''; inp.disabled=false;
+  const err=document.getElementById('pincErr'); err.textContent=''; err.classList.remove('on');
+  document.getElementById('pincOk').disabled=false;
+  document.getElementById('pincOv').classList.add('on');
+  setTimeout(()=>inp.focus(),60);
+  return new Promise(r=>{ __pincResolve=r; });
+}
+
+function pincFechar(res){
+  if(__pincTimer){clearInterval(__pincTimer);__pincTimer=null;}
+  document.getElementById('pincOv').classList.remove('on');
+  const r=__pincResolve; __pincResolve=null; __pincCtx=null;
+  if(r) r(res);
+}
+function pincCancelar(){ pincFechar({ok:false, cancelado:true}); }
+function pincErro(m){ const e=document.getElementById('pincErr'); e.textContent=m; e.classList.add('on'); }
+
+async function pincConfirmar(){
+  if(!__pincCtx) return;
+  const inp=document.getElementById('pincIn');
+  const pin=(inp.value||'').trim();
+  if(!/^\d{4,6}$/.test(pin)){ pincErro('Digite seu PIN (4 a 6 dígitos).'); return; }
+  const btn=document.getElementById('pincOk'); const txt=btn.textContent;
+  btn.disabled=true; btn.textContent='Conferindo…';
+  try{
+    const {data,error}=await trdb.rpc('assinar_campo',{
+      p_pessoa_id: __pincCtx.pessoa_id,
+      p_pin: pin,
+      p_modulo: 'campo',
+      p_referencia_tipo: __pincCtx.referencia_tipo||null,
+      p_referencia_id: __pincCtx.referencia_id||null,
+      p_conteudo_hash: __pincCtx.conteudo_hash||null,
+      p_user_agent: (navigator.userAgent||'').slice(0,300)
+    });
+    if(error) throw error;
+    if(data && data.ok===true){
+      pincFechar({ok:true, assinatura_id:data.assinatura_id, nome:data.nome});
+      return;
+    }
+    const m=(data&&data.motivo)||'erro';
+    if(m==='sem_pin'){
+      pincErro('Você ainda não cadastrou seu PIN. Procure o RH ou o CQ para cadastrar.');
+      inp.disabled=true; btn.disabled=true; btn.textContent=txt; return;
+    }
+    if(m==='bloqueado'){ pincBloqueio(data.segundos||300); }
+    else if(m==='incorreto'){
+      pincErro('PIN incorreto.'+(data.restantes!=null?(' Restam '+data.restantes+' tentativa(s).'):''));
+    }
+    else if(m==='pessoa_nao_encontrada'){ pincErro('Cadastro não encontrado ou desmobilizado. Procure o RH.'); }
+    else { pincErro('Não consegui conferir agora. Tente de novo.'); }
+    inp.value=''; inp.focus();
+  }catch(e){
+    pincErro('Sem conexão agora. Tente de novo.');
+  }finally{
+    if(!__pincTimer && !document.getElementById('pincIn').disabled){
+      btn.disabled=false; btn.textContent=txt;
+    }else{ btn.textContent=txt; }
+  }
+}
+
+function pincBloqueio(seg){
+  const btn=document.getElementById('pincOk'), inp=document.getElementById('pincIn');
+  let s=Math.max(1,Math.floor(seg));
+  btn.disabled=true; inp.disabled=true; inp.value='';
+  const tick=()=>{
+    if(s<=0){
+      clearInterval(__pincTimer); __pincTimer=null;
+      btn.disabled=false; inp.disabled=false;
+      const e=document.getElementById('pincErr'); e.textContent='Pode tentar de novo.';
+      inp.focus(); return;
+    }
+    const mm=String(Math.floor(s/60)).padStart(2,'0'), ss=String(s%60).padStart(2,'0');
+    pincErro('Muitas tentativas. Aguarde '+mm+':'+ss+' para tentar de novo.');
+    s--;
+  };
+  if(__pincTimer) clearInterval(__pincTimer);
+  tick(); __pincTimer=setInterval(tick,1000);
+}
+</script>
+
 <!-- ══ MODAL: REGISTRO DE ATIVIDADE ══ -->
 <div class="ov" id="ovReg" onclick="if(event.target===this)fecharRegistro()">
   <div class="modal">
@@ -1209,6 +1379,23 @@ boot();
       </div>
 
     </div>
+  </div>
+</div>
+
+<!-- ═══ PIN de campo — assinatura do registro ═══ -->
+<div class="pinc-ov" id="pincOv" onclick="if(event.target===this)pincCancelar()">
+  <div class="pinc-box">
+    <div class="pinc-tt">Confirme seu PIN</div>
+    <div class="pinc-sub" id="pincNome">—</div>
+    <input class="pinc-in" id="pincIn" type="text" inputmode="numeric" pattern="[0-9]*"
+           autocomplete="off" maxlength="6" placeholder="••••"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();pincConfirmar();}">
+    <div class="pinc-err" id="pincErr"></div>
+    <div class="pinc-acts">
+      <button class="pinc-btn pinc-ok" id="pincOk" onclick="pincConfirmar()">Assinar</button>
+      <button class="pinc-btn pinc-gh" onclick="pincCancelar()">Cancelar</button>
+    </div>
+    <div class="pinc-foot">O PIN é pessoal e intransferível. Este registro fica assinado no seu nome.</div>
   </div>
 </div>
 
